@@ -1,10 +1,12 @@
 # MobileWaveRun continuity
 
 ## [PLANS]
+- 2026-10-29T22:51Z [USER] Replace tap-to-fly and fixed flight pads with a faint floating joystick, vertical analog movement, second-finger tap fire and left/right flick dodge. Prevent gameplay taps zooming the phone browser. Preserve combat/Depot and side view; future 3D steering is outside this change.
 - 2026-10-29T16:50Z [USER] Extraction accepted and PR1 merged. Priority-one combat now authorized: two weapons and two enemy behaviors integrated into existing side-view waves, Depot, controls and checkpoints. Use imagegen for needed sprites. No navigable station, 3D conversion or licensed Unreal assets. PR required, do not auto-merge.
 - 2026-10-29T12:25Z [USER] Extract only The Spill into new repository https://github.com/j6sistek-ui/MobileWaveRun; retain current side-view gameplay and browser launch. Later review original SpaceSurvival scope beyond Phase1 for adaptation. No 3D/Phoenix adoption now.
 
 ## [DECISIONS]
+- 2026-10-29T23:12Z [CODE] Supersedes tap/gravity and fixed-pad input: floating first-pointer joystick, second-pointer tap/optional hold fire, bidirectional flick dodge, W/S+F/Space equivalents. Neutral stops/holds altitude; soft edges harmless. Gameplay-only touch guards replace global viewport zoom restrictions. New transient inputs clear across interruptions and migrate older Depot saves safely.
 - 2026-10-29T17:13Z [CODE] Combat extends the extraction baseline: two free-selectable weapons with65/130 run upgrades, manual heldF/Fire pad, narrow forward assistance, Pursuer/Flanker encounters fromWave2. IndependentRNG and capped pressure replace some debris; existing shields/Pulse/coins/contracts/checkpoints integrate. Legacyv1 saves defaulttierI; oldassets unchanged, newimagegenprovenance separate. Sideview/Depot remain.
 - 2026-10-29T12:25Z [TOOL] Upstream AcornautSandbox pinned b67bb50f3f3fa24b6a335133a1c176638a83f775. Read-only source clone in task work/spill-source. New destination was empty; main initialized with empty commit2ac0fb7 so implementation can be reviewed as a PR on codex/extract-spill-browser.
 - 2026-10-29T12:25Z [CODE] Preserve rules/render/input timing; replace multi-mode host with Spill-only entry and isolate persistence. Shared supporting modules retained initially for parity; no other mode entry points allowed.
@@ -14,9 +16,11 @@
 - 2026-10-29T12:46Z [CODE] Early launch during asset loading could start a hidden run; guarded launch/resume until art and scene are ready. Control feedback now refreshes only when visual state changes using existing render loop. Baseline abort banking and teaching speed behavior preserved.
 
 ## [PROGRESS]
+- 2026-10-29T22:51Z [TOOL] PR2 merged c95c93ad; controls branch codex/drag-flight-controls starts from current main. Docker Desktop pipe still unavailable, using existing Node with no installs. Implementation and verification underway; new PR, no automatic merge.
 - 2026-10-29T12:25Z [TOOL] Copied source support and original Spill design reference. Extraction in progress; no launch/visual/parity claim yet.
 
 ## [OUTCOMES]
+- 2026-10-29T23:12Z [TOOL] Controls build/typecheck/assets/all14testfiles pass, including12steering/11gesture/16combat cases. Browser normal run reachedWave2/18coins; live390x760 screenshot shows floating joystick and no pads, consoleclean, viewportreset. Two dodge trails visually checked. Physicalphone zoom/touchfeel/audio/performance/latebalance UNCONFIRMED. New PR pending; no publication/merge.
 - 2026-10-29T17:13Z [TOOL] Supersedes extraction-only verification: cleanbuild/typecheck,127assetprovenancechecks,12testfiles(14combatcases,hostinput/save,6combatframes+Blackout,192shiprenders,legacytraces) anddiffcheck pass. DockerDesktop engine unavailable; existingNode24 fallback. BrowsernormalUI reachedWave2 withheldF/Space and27runcoins, enemy/laser screenshot docs/images/combat-browser.jpg; narrowDepot anddesktoppause checked, consoleclean. Physicalphone/audio/performance/latebalance UNCONFIRMED. Branchcodex/spill-weapons-combat readyforPR, no mergeorpublication.
 - 2026-10-29T12:46Z [TOOL] Supersedes pending implementation: Spill-only browser host, scoped loader, independent storage, static build, launcher and container/CI workflows implemented. npm run check passes typecheck/build/125 exact assets (10,529,964 bytes)/9 test files; audit and diff checks pass. Includes deterministic source parity and192 ship render configurations. Original source checkout and Unreal assets unchanged.
 - 2026-10-29T12:46Z [TOOL] Real browser UI reached free-upgrade Depot, Wave1 and pause, no console errors/warnings; desktop/narrow layout bounds inspected. Browser screenshots unavailable; full overlay visual comparison and physical-device/audio/performance acceptance UNCONFIRMED. See docs/VALIDATION.md. PR publication next, do not merge without owner approval.

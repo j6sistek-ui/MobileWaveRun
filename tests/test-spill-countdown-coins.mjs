@@ -24,8 +24,8 @@ function countdownWithCoin(manual){
   assert.equal(s.nuts.length,0,'collected coins leave the field');
 }
 {
-  // by hand the ship falls under gravity until a tap, so put the coin where
-  // the ship actually is and confirm the very next step collects it
+  // By hand, neutral steering holds altitude; a coin touching the pilot
+  // must still collect during the countdown.
   const s=countdownWithCoin(true);step(s,0.3);
   const ore=s.ore;s.nuts=[{x:s.pilot.x+2,y:s.pilot.y,vx:-120,vy:0,bob:0,kind:'ore',got:false}];
   S.stepSpill(s,1/60);

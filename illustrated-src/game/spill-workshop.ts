@@ -4,7 +4,6 @@ import { spillAppearance } from "./spill-appearance";
 import { SUITS } from "./catalog";
 import { paintShipPreview, type ShipPick } from "./draw";
 import { writeSave } from "./save";
-import { SPILL_CONTROL_COLORS } from "./spill-control-art";
 import { SPILL_ENGINE_COLORS, SPILL_UTILITIES, SPILL_UTILITY_IDS, SPILL_SPECIALTIES,
   spillEngineColor, spillContractOffers, type SpillUtility, type SpillSpecialty } from "./spill-content";
 import { spillBuildFromState } from "./spill-presentation";
@@ -143,7 +142,7 @@ function drawDepotGuide(engine: Engine, onClose: () => void, closeLabel: string)
   const collect = el("div", "ac-guide-collect"), words = el("div");
   words.append(el("h3", "", "Collect Acorn Coins"), el("p", "", "Buy upgrades here. First one free.")); collect.append(coin(), words); sheet.append(collect);
   const effects = el("div", "ac-guide-systems");
-  for (const [id, name, effect] of [["plating", "Health", "More health"], ["shield", "Shields", "Block hits"], ["thrusters", "Thrusters", "Stronger bursts"], ["pulse", "Pulse", "Charged blast"]] as const) {
+  for (const [id, name, effect] of [["plating", "Health", "More health"], ["shield", "Shields", "Block hits"], ["thrusters", "Thrusters", "Sharper steering"], ["pulse", "Pulse", "Charged blast"]] as const) {
     const item = el("div"); item.dataset.system = id; item.append(systemIcon(id), el("b", "", name), el("span", "", effect)); effects.append(item);
   }
   sheet.append(effects, el("p", "ac-guide-services", "Repair · full health   |   Extra life · revive once"));
@@ -182,37 +181,22 @@ export function drawSpillGuideSheet(engine: Engine, onClose: () => void, closeLa
   return wrap;
 }
 
-/** TAP TO FLY, in three cards. The instructions sheet, Settings & Help and
- *  the briefing replay all draw these, so the hand is described once. */
-// Each card names the PAD it describes and wears that pad's colour. All
-// three were the same slab, so the panel teaching the controls looked
-// nothing like the controls (owner, 10 Sep 2026: "the debris field buttons
-// in help are too generic ... match same colors as buttons used in debris
-// field for tap, dive, thrust"). The tints are READ from
-// SPILL_CONTROL_COLORS, the table spillControlArt paints the real pads
-// with, so repainting a pad repaints its card.
-const FLIGHT_CONTROLS = [
-  ["TAP", "Fly", "Tap · Space", "thrust"],
-  ["SWIPE DOWN", "Dive", "Swipe down · ↓", "dive"],
-  ["LUNGE", "Dash forward", "Swipe right · →", "lunge"],
-] as const;
+/** The briefing and Help share the current touch and keyboard controls. */
 function flightControlCards() {
   const controls = el("div", "ac-spillhelp-controls");
-  for (const [input, action, note, pad] of FLIGHT_CONTROLS) {
-    const card = el("div", `ac-spillhelp-pad ac-spillhelp-${pad}`);
-    const { light, edge } = SPILL_CONTROL_COLORS[pad];
-    card.style.setProperty("--pad-light", light);
-    card.style.setProperty("--pad-edge", edge);
-    card.append(el("b", "", input), el("span", "", action), el("small", "ac-sub", note)); controls.append(card);
+  for (const [input, action, note] of [
+    ["HOLD + DRAG", "Steer up / down", "W / S or Up / Down"],
+    ["SECOND FINGER", "Tap to shoot - hold to repeat", "F or Space"],
+    ["FLICK LEFT / RIGHT", "Quick sideways dodge", "A / D or Left / Right"],
+    ["RELEASE", "Ease to a stop", "Mouse: drag + F / Space"],
+  ]) {
+    const card = el("div");
+    card.append(el("b", "", input), el("span", "", action), el("small", "ac-sub", note));
+    controls.append(card);
   }
-  const fire = el("div", "ac-spillhelp-pad ac-spillhelp-fire");
-  fire.style.setProperty("--pad-light", "#ffe2ba");
-  fire.style.setProperty("--pad-edge", "#f4ac71");
-  fire.append(el("b", "", "HOLD FIRE"), el("span", "", "Shoot ahead"), el("small", "ac-sub", "Fire pad · hold F"));
-  controls.append(fire);
   return controls;
 }
-const harderKickNote = () => el("small", "ac-sub ac-spillhelp-extra", "Swipe up · harder kick · W. Hold Fire to shoot; tap and Space still fly. Aim assistance only follows enemies close to your forward line—match their height. Release to stop; press again after pausing.");
+const harderKickNote = () => el("small", "ac-sub ac-spillhelp-extra", "Hold anywhere on the field: a faint stick follows your steering finger. While holding, tap elsewhere with another finger to fire. Aim assistance follows enemies close to your forward line - match their height. After pausing, press again to steer or fire.");
 
 /** The same instructions in Settings & Help and the replayable briefing. */
 export function drawSpillFlightHelp() {
@@ -346,7 +330,7 @@ export function drawDepotWorkshop(engine: Engine, view: DepotView, rerender: () 
     feedback(`${weaponName} upgraded`);
     if (!engine.spillUpgradeWeapon()) { view.receipt = "Weapon upgrade unavailable"; rerender(); }
   };
-  weapons.append(upgradeRow, el("p", "ac-workshop-note", "Hold F or the Fire pad in flight. Choose your free ship-system upgrade separately."));
+  weapons.append(upgradeRow, el("p", "ac-workshop-note", "Second-finger tap or F / Space fires. Choose your free ship-system upgrade separately."));
   sheet.append(weapons);
   // Utilities arrive after wave 5; the original four core hardpoints stay unchanged.
   if (!sp.welcome) {

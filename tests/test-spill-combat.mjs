@@ -62,6 +62,36 @@ test('manual fire only, release, forward default and distinct weapon stats', () 
   s.phase = 'depot'; C.spillSetFiring(s, true); assert.equal(s.combat.firing, false);
 });
 
+test('a tap released between ticks fires once, with no firing backlog', () => {
+  const s = flight();
+  C.spillTapFire(s); C.spillSetFiring(s, true); C.spillSetFiring(s, false);
+  pureStep(s);
+  assert.equal(s.combat.nextId, 2); assert.equal(s.combat.pendingFire, 0);
+  for (let i = 0; i < 90; i++) pureStep(s);
+  assert.equal(s.combat.nextId, 2, 'release cannot turn one tap into automatic fire');
+  s.combat.cooldown = .08;
+  for (let i = 0; i < 10; i++) C.spillTapFire(s);
+  for (let i = 0; i < 90; i++) pureStep(s);
+  assert.equal(s.combat.nextId, 3, 'near-ready taps buffer only one shot');
+  s.combat.cooldown = .65; C.spillTapFire(s);
+  for (let i = 0; i < 60; i++) pureStep(s);
+  assert.equal(s.combat.nextId, 3, 'a tap during a long cooldown expires');
+});
+
+test('cancellation and nonflight phases cannot retain a queued shot', () => {
+  const s = flight();
+  C.spillTapFire(s); C.spillSetFiring(s, true); C.spillClearFireInput(s); pureStep(s);
+  assert.equal(s.combat.nextId, 1); assert.equal(s.combat.firing, false);
+  C.spillTapFire(s); S.resizeSpill(s, 320, 760); pureStep(s);
+  assert.equal(s.combat.nextId, 1); assert.equal(s.combat.pendingFire, 0);
+  C.spillTapFire(s); C.clearSpillCombat(s); pureStep(s);
+  assert.equal(s.combat.nextId, 1);
+  for (const phase of ['ready', 'countdown', 'depot', 'docking', 'respawn', 'over']) {
+    s.phase = phase; C.spillTapFire(s); C.spillSetFiring(s, true);
+    assert.equal(s.combat.pendingFire, 0); assert.equal(s.combat.firing, false);
+  }
+});
+
 test('Depot selection is free, upgrades are independent and atomic, opening choice survives', () => {
   const s = flight(); s.phase = 'depot'; s.welcome = true; s.freeUpgrade = true; s.depot = { arm: 1, bought: [] }; s.ore = 195;
   assert.equal(C.spillSelectWeapon(s, 'cannon'), false);
@@ -226,12 +256,15 @@ test('version-one checkpoints migrate and reject malformed new combat state', ()
   const restored = S.restoreSpill(checkpoint, 320, 760); assert(restored);
   assert.equal(restored.combat.weapon, 'cannon'); assert.equal(restored.combat.levels.cannon, 3);
   assert.equal(restored.combat.kills, 5); assert.equal(restored.combat.enemies.length, 0); assert(!restored.combat.firing);
+  const beforeJoystick = structuredClone(checkpoint); delete beforeJoystick.state.combat.pendingFire;
+  assert.equal(S.restoreSpill(beforeJoystick, 390, 760).combat.pendingFire, 0);
   const old = structuredClone(checkpoint); delete old.state.combat;
   const migrated = S.restoreSpill(old, 390, 760); assert(migrated);
   assert.equal(migrated.combat.weapon, 'laser'); assert.deepEqual(migrated.combat.levels, { laser: 1, cannon: 1 });
   for (const change of [c => c.weapon = 'missile', c => c.levels.laser = 0, c => c.levels.cannon = 4,
     c => c.kills = -1, c => c.waveKills = 20, c => c.rng = NaN, c => c.nextId = 1.5,
-    c => c.firing = true, c => c.cooldown = 1, c => c.enemies = [{}], c => c.shots = [{}],
+    c => c.firing = true, c => c.pendingFire = .1, c => c.pendingFire = '0',
+    c => c.cooldown = 1, c => c.enemies = [{}], c => c.shots = [{}],
     c => c.nextEnemy = Infinity, c => c.muzzleFlash = '0', c => c.version = 2]) {
     const bad = structuredClone(checkpoint); change(bad.state.combat);
     assert.equal(S.restoreSpill(bad, 390, 760), null);
@@ -244,8 +277,8 @@ test('mixed combat simulation repeats exactly for identical seed and inputs', ()
     s.nextRock = .1; s.nextNut = 1; s.nextSpecial = 8;
     for (let i = 0; i < 1200; i++) {
       s.iframes = 9; s.floorT = 0;
-      if (i % 40 === 0) S.spillTap(s);
-      if (i % 180 === 0) S.spillLunge(s);
+      S.spillSteer(s, Math.sin(i / 60));
+      if (i % 180 === 0) S.spillLunge(s, i % 360 === 0 ? -1 : 1);
       C.spillSetFiring(s, i % 120 < 80); S.stepSpill(s, dt);
     }
     return JSON.stringify(s);

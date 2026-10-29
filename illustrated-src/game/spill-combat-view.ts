@@ -150,7 +150,7 @@ export function drawSpillCombatHud(ctx: CanvasRenderingContext2D, s: SpillState)
   ctx.textAlign = "left"; ctx.font = "800 10px Figtree,system-ui";
   ctx.fillText(`${cannon ? "CANNON" : "LASER"} ${["", "I", "II", "III"][level] ?? "I"}`, x + 8, y + 12);
   ctx.fillStyle = c.firing ? color : "#b9c5d3"; ctx.font = "600 8px Figtree,system-ui";
-  ctx.fillText(c.firing ? "FIRING" : "HOLD TO FIRE", x + 8, y + 24);
+  ctx.fillText(c.firing ? "FIRING" : "2ND TOUCH / F", x + 8, y + 24);
   const duration = SPILL_WEAPONS[c.weapon].cooldown * (1 - (level - 1) * .07);
   ctx.fillStyle = "rgba(255,255,255,.14)"; ctx.fillRect(x + 8, y + 29, width - 16, 2);
   ctx.fillStyle = color; ctx.fillRect(x + 8, y + 29, (width - 16) * clamp(1 - c.cooldown / duration, 0, 1), 2);

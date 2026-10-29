@@ -131,7 +131,7 @@ for (const [width, height] of [[320, 760], [390, 760], [1280, 720]]) for (const 
   const bounds = alphaBounds(hud);
   assert(bounds.count > 1000, 'weapon HUD is visible');
   assert(bounds.left >= width - 106 && bounds.right <= width - 11, 'HUD stays at the right edge with margin');
-  assert(bounds.top >= 52 && bounds.bottom < 89, 'HUD fits between shields and status banners, far above touch pads');
+  assert(bounds.top >= 52 && bounds.bottom < 89, 'HUD fits between shields and status banners');
   frames++;
 }
 
@@ -142,6 +142,61 @@ const dark = createCanvas(390, 760);
 Draw.drawWorld(dark.getContext('2d'), blackout.world, blackout.save, bank);
 Draw.drawHud(dark.getContext('2d'), blackout.world, bank, blackout.save);
 writeFileSync(join(output, 'combat-blackout-390.png'), dark.toBuffer('image/png'));
+
+// The real ship image trails on the opposite side for each dodge direction.
+const dodge = fixture(390, 760, 'laser');
+Object.assign(dodge.state, { shield: 0, charge: 0, iframes: 0, lunge: 0, thrustT: 0, burstT: 0 });
+dodge.state.pilot.x = 160; dodge.state.pilot.rot = 0;
+dodge.state.combat.enemies = []; dodge.state.combat.shots = []; dodge.state.combat.muzzleFlash = 0;
+const shipFrame = () => {
+  const frame = createCanvas(390, 760);
+  Draw.drawWorld(frame.getContext('2d'), dodge.world, dodge.save, bank);
+  return frame;
+};
+const base = shipFrame().getContext('2d').getImageData(0, 0, 390, 760).data;
+const ghostCenters = [];
+for (const direction of [-1, 1]) {
+  dodge.state.lunge = .12; dodge.state.lungeDir = direction;
+  const before = JSON.stringify(dodge.state), frame = shipFrame();
+  assert.equal(JSON.stringify(dodge.state), before, 'dodge painting cannot advance the flight');
+  const pixels = frame.getContext('2d').getImageData(0, 0, 390, 760).data;
+  let count = 0, sumX = 0;
+  for (let y = dodge.state.pilot.y - 45; y <= dodge.state.pilot.y + 45; y++) {
+    for (let x = 65; x < 255; x++) {
+      const at = (y * 390 + x) * 4;
+      if (Math.abs(pixels[at] - base[at]) + Math.abs(pixels[at + 1] - base[at + 1]) + Math.abs(pixels[at + 2] - base[at + 2]) > 12) {
+        count++; sumX += x;
+      }
+    }
+  }
+  assert(count > 50, 'dodge adds a visible ship ghost');
+  ghostCenters.push(sumX / count);
+  writeFileSync(join(output, `dodge-${direction < 0 ? 'left' : 'right'}-390.png`), frame.toBuffer('image/png'));
+}
+assert(ghostCenters[0] > ghostCenters[1] + 12, 'left dodge ghost trails to the right of the right dodge ghost');
+
+// Countdown and launch help use the current hand, without an empty pad tray.
+const instruction = fixture(320, 760, 'laser');
+instruction.world.insetTop = 24;
+instruction.state.phase = 'countdown'; instruction.state.manual = false;
+instruction.state.liveMods = ['cross'];
+instruction.state.hintT = 0;
+const hudCanvas = createCanvas(320, 760), hudCtx = hudCanvas.getContext('2d');
+const text = [], paintText = hudCtx.fillText.bind(hudCtx);
+hudCtx.fillText = (value, x, y, ...rest) => {
+  text.push({ value, y: y + hudCtx.getTransform().f });
+  paintText(value, x, y, ...rest);
+};
+Draw.drawHud(hudCtx, instruction.world, bank, instruction.save);
+assert(text.some(line => line.value.includes('DRAG TO STEER')));
+assert(!text.some(line => /TAP TO TAKE|TAP.*FLY|SWIPE.*DIVE/.test(line.value)));
+assert(text.some(line => line.y > 700 && line.y < 740), 'live rule sits near the lower edge, clear of the former fixed pad area');
+text.length = 0;
+instruction.state.phase = 'ready'; instruction.state.target = 1;
+Draw.drawHud(hudCtx, instruction.world, bank, instruction.save);
+assert(text.some(line => line.value.includes('FLICK')));
+assert(text.some(line => line.value.includes('SECOND FINGER TAP')));
+assert(!text.some(line => /TAP TO LAUNCH|TAP.*FLY|SWIPE.*DIVE/.test(line.value)));
 
 // Network failure settles readiness and paints visible, differentiated enemies.
 globalThis.Image = class { set src(value) { queueMicrotask(() => this.onerror?.()); } };
@@ -155,5 +210,5 @@ View.drawSpillCombat(fallbackCtx, state, fallback);
 for (const enemy of state.combat.enemies.filter(enemy => !enemy.dead))
   assert(fallbackCtx.getImageData(enemy.x, enemy.y, 1, 1).data[3] > 0, 'missing sprite remains a visible enemy');
 assert.equal(JSON.stringify(state), fallbackBefore, 'fallback painting cannot mutate gameplay');
-console.log(JSON.stringify({ combatFrames: frames, blackoutFrames: 1, productionEnemySprites: Art.SPILL_ENEMY_IDS.length,
+console.log(JSON.stringify({ combatFrames: frames, blackoutFrames: 1, dodgeFrames: 2, currentControlHints: true, productionEnemySprites: Art.SPILL_ENEMY_IDS.length,
   deterministic: true, hudBounds: '320/390/1280', networkFallback: 'visible', output }));

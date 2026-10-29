@@ -4,7 +4,7 @@
  *  spill.ts owns the rules and knows nothing about a canvas, so every rule
  *  worth arguing about is asserted here against the built module: the wave
  *  ladder climbs and teaches in order, debris never overlaps debris, a
- *  tap kicks the ship skyward and gravity brings it back, DRIFT tilts the field slowly
+ *  direct steering holds altitude on release, DRIFT tilts the field slowly
  *  and never further than it says, the count hands control back on the GO
  *  and never before, the Depot docks, arms, sells fixed meters at flat
  *  prices, an unlocked PULSE fires itself at an impact and banks an echo
@@ -101,100 +101,44 @@ const dock = (seed) => {
 }
 
 // ------------------------------------------------------------- the hand
+// Detailed axis, edge, upgrade and migration checks live in test-spill-steering.
 {
-  // TAP TO FLY: a tap is an instant kick skyward, gravity brings the ship
-  // back, and the whole hop reads like a flap in the other modes
-  const s = launch(2);
-  hover(s);
-  ok(S.spillTap(s) === true && Math.abs(s.pilot.vy + S.SPILL.tapVy) < 1e-6, `a tap kicks the ship to the tap speed (${s.pilot.vy.toFixed(0)})`);
-  ok(s.cues.includes("press") && (s.thrustT ?? 0) > 0, "and is reported, with a plume");
-  S.stepSpill(s, DT);
-  ok(S.spillTap(s) === true && Math.abs(s.pilot.vy + S.SPILL.tapVy) < 1e-6, `a second tap mid-hop resets the climb, it never stacks (${s.pilot.vy.toFixed(0)})`);
-  hover(s);
-  S.spillTap(s);
-  let top = s.pilot.y, apexAt = 0, t = 0;
-  while (s.pilot.vy < 0 && t < 2) { s.rocks = []; S.stepSpill(s, DT); t += DT; if (s.pilot.y < top) { top = s.pilot.y; apexAt = t; } }
-  const hop = s.H * 0.45 - top;
-  ok(hop > 60 && hop < 110, `a tap hops a readable height, near flight's 78px (${hop.toFixed(0)}px)`);
-  ok(apexAt > 0.25 && apexAt < 0.5, `and peaks about when a flap does (${apexAt.toFixed(2)}s)`);
-  // THRUSTERS never touch the tap
-  s.up.thrusters = 3;
-  hover(s);
-  S.spillTap(s);
-  ok(Math.abs(s.pilot.vy + S.SPILL.tapVy) < 1e-6, `THRUSTERS III taps the same kick (${s.pilot.vy.toFixed(0)})`);
-  s.up.thrusters = 0;
-  hover(s);
-  until(s, (x) => x.pilot.vy > 0, 1, (x) => { x.rocks = []; });
-  ok(s.pilot.vy > 0, "left alone, gravity has the ship");
-  until(s, () => false, 1, (x) => { x.rocks = []; x.pilot.y = x.H * 0.3; });
-  ok(Math.abs(s.pilot.vy - S.SPILL.fallCap) < 1e-6, `the fall is capped (${s.pilot.vy.toFixed(0)} vs ${S.SPILL.fallCap})`);
+  const s = launch(2); hover(s);
+  const y = s.pilot.y;
+  until(s, () => false, .5, x => { x.rocks = []; });
+  ok(s.pilot.y === y && s.pilot.vy === 0, "neutral steering holds altitude without gravity");
+  ok(S.spillTap(s) === false && s.pilot.vy === 0, "a flight tap cannot auto-rise");
+  ok(S.spillSteer(s, -1), "up steering is accepted");
+  until(s, () => false, .3, x => { x.rocks = []; });
+  ok(s.pilot.y < y - 40 && s.pilot.vy < 0, "held up steers upward");
+  S.spillSteer(s, 0);
+  until(s, () => false, .2, x => { x.rocks = []; });
+  const stopped = s.pilot.y;
+  until(s, () => false, .5, x => { x.rocks = []; });
+  ok(s.pilot.vy === 0 && s.pilot.y === stopped, "release stops and holds the new altitude");
+  S.spillSteer(s, 1);
+  until(s, () => false, .3, x => { x.rocks = []; });
+  ok(s.pilot.y > stopped + 40 && s.pilot.vy > 0, "held down steers downward");
 }
 {
-  // bursts are instant, like a tap and a dive in every other mode
-  const s = launch(3);
-  hover(s);
-  ok(S.spillBurst(s, -1) === true && s.pilot.vy <= -S.SPILL.burstUp, `a swipe up kicks skyward (vy ${s.pilot.vy})`);
-  ok(s.cues.includes("burst"), "and is reported");
-  ok(S.spillBurst(s, 1) === true && s.pilot.vy >= S.SPILL.burstDown, `a swipe down dives (vy ${s.pilot.vy})`);
-  ok(S.stepSpill(s, DT).filter((c) => c === "burst").length === 2, "both bursts reach the frame's cues");
-  // a burst carries past the cap and decays, it is not clipped to it
-  ok(s.pilot.vy > S.SPILL.fallCap, `the dive keeps its momentum past the fall cap (${s.pilot.vy.toFixed(0)} vs ${S.SPILL.fallCap})`);
-  const v1 = s.pilot.vy;
-  S.stepSpill(s, DT);
-  ok(s.pilot.vy < v1, "and only decays");
-  hover(s);
-  S.spillBurst(s, -1);
-  S.spillTap(s);
-  ok(s.pilot.vy <= -S.SPILL.burstUp, `a tap under a burst up cannot slow it (${s.pilot.vy.toFixed(0)})`);
-  until(s, (x) => x.pilot.vy >= 0, 2, (x) => { x.rocks = []; x.pilot.y = x.H * 0.6; });
-  ok(s.pilot.vy >= 0, "and gravity brings the burst back like any hop");
-  s.up.thrusters = 1; hover(s);
-  S.spillBurst(s, -1);
-  ok(s.pilot.vy < -S.SPILL.burstUp, `THRUSTERS sharpen the burst (${s.pilot.vy.toFixed(0)})`);
-}
-{
-  // a press or a burst outside flight does nothing, and never launches twice
   const s = S.createSpill(W, H, 4, 0);
-  ok(S.spillBurst(s, -1) === false, "a burst on the ready card is refused");
-  ok(S.spillLunge(s) === true && s.phase === "countdown", `a lunge on the ready card launches (${s.phase})`);
-  ok(!s.manual, "the launching tap does not take the stick");
-  ok(S.spillBurst(s, 1) === false && S.spillLunge(s) === false, "bursts and lunges wait for a hand on the stick");
+  ok(S.spillSteer(s, -1) === false && s.steerY === 0, "steering does not launch the ready card");
+  ok(S.spillLunge(s) && s.phase === "countdown", "the legacy ready action still launches");
+  ok(!s.manual && !S.spillTap(s), "another tap does not take control or launch twice");
+  S.spillSteer(s, 0); ok(!s.manual, "neutral input does not disturb countdown autopilot");
+  ok(S.spillSteer(s, -.5) && s.manual, "nonzero steering takes countdown control");
+  until(s, x => x.phase === "wave", 4, x => { x.rocks = []; });
+  ok(s.phase === "wave" && s.steerY === -.5, "held countdown steering survives GO");
+  S.spillSteer(s, 0); until(s, () => false, .3, x => { x.rocks = []; });
+  ok(s.pilot.vy === 0, "release after GO returns to altitude hold");
 }
 {
-  // a tap during the count takes the stick from the autopilot early
-  const s = S.createSpill(W, H, 41, 0);
-  S.spillTap(s);
-  until(s, () => false, 1);
-  const y0 = s.pilot.y;
-  ok(S.spillTap(s) === true && s.manual && s.pilot.vy < 0, "a new tap in the count takes the stick, and kicks");
-  until(s, () => false, 0.3);
-  ok(s.phase === "countdown" && s.pilot.y < y0 - 30 && s.rocks.length === 0, `and the ship hops the empty field before the GO (${(s.pilot.y - y0).toFixed(0)}px)`);
-  until(s, () => false, 1.4);
-  ok(s.phase === "countdown" && s.pilot.y <= s.H - 80 + 1e-6, `left alone, the ship cannot be parked in the killzone before the GO (${s.pilot.y.toFixed(0)} of ${s.H})`);
-  ok(S.spillBurst(s, 1) === true, "bursts answer a hand on the stick");
-  until(s, (x) => x.phase === "wave", 3);
-  ok(s.phase === "wave" && !s.manual, "the GO opens the wave to the hand that took the stick");
-}
-{
-  // the GO hands over a level ship at rest: gravity starts from zero, so
-  // the first tap lands on a readable fall, never on a drop already under way
-  const s = S.createSpill(W, H, 42, 0);
-  S.spillTap(s);
-  until(s, (x) => x.phase === "wave", 5);
-  ok(!s.manual && Math.abs(s.pilot.vy) < 1e-6, `the GO hands over a level ship at rest (vy ${s.pilot.vy.toFixed(0)})`);
-  until(s, () => false, 0.3, (x) => { x.rocks = []; });
-  ok(s.pilot.vy > 0 && s.pilot.vy < S.SPILL.fallCap, `then gravity has it, readably (${s.pilot.vy.toFixed(0)})`);
-  ok(S.spillTap(s) === true && s.pilot.vy < 0, "and the first tap answers");
-}
-{
-  // the control hint leaves after three inputs, or five seconds
   const s = launch(43);
-  ok(s.hint === S.SPILL_CONTROL_HINT && s.hintT > 3, `wave 1 shows the controls (${s.hintT.toFixed(1)}s)`);
-  hover(s);
-  S.spillBurst(s, -1); S.spillBurst(s, 1);
-  ok(s.hintT > 3, "two inputs keep it");
-  S.spillTap(s);
-  ok(s.hintT <= 1, `the third sends it away (${s.hintT.toFixed(1)}s)`);
+  ok(s.hint === S.SPILL_CONTROL_HINT && s.hintT > 3, "wave 1 shows direct-control instructions");
+  S.spillSteer(s, -1); S.spillSteer(s, 1);
+  ok(s.hintT > 3, "two deliberate directions keep the hint");
+  S.spillLunge(s, -1);
+  ok(s.hintT <= 1, "the third deliberate input dismisses the hint");
 }
 
 // --------------------------------------------------- the count and the GO
@@ -216,7 +160,7 @@ const dock = (seed) => {
   ok(JSON.stringify(counts) === "[2,1]", `the count ticks down (${JSON.stringify(counts)})`);
   ok(s.pilot.y < y - 100, `the autopilot flew the ship home during the count (${s.pilot.y.toFixed(0)} from ${y.toFixed(0)})`);
   ok(s.rocks.length === 0, "nothing spawns before the GO");
-  ok(S.spillTap(s) === true && s.pilot.vy < 0, "control is back on the GO");
+  ok(S.spillSteer(s, -1) && s.steerY === -1, "steering is available on GO");
 }
 
 // ------------------------------------------- debris never meets debris
@@ -338,18 +282,16 @@ const dock = (seed) => {
   ok(drifts === 0, `only ore, charged coins and hull kits drift in the field (${drifts})`);
 }
 {
-  // the floor: brushing is free, sustained contact costs one pip and recovers
-  const s = launch(8);
-  s.rocks = [];
-  const ride = (seconds) => until(s, (x) => x.phase === "over", seconds,
-    (x) => { x.rocks = []; x.pilot.y = x.H; x.pilot.vy = 0; });
-  ok(!ride(0.15), "a tenth of a second on the floor is a bounce, not a death");
-  until(s, () => false, 0.5, (x) => { x.rocks = []; x.pilot.y = x.H * 0.4; x.pilot.vy = 0; });
-  ok(s.floorT === 0, "clearing the floor forgives the timer");
-  ok(!ride(0.6) && s.hull === 2, "sustained contact costs one hull pip, with recovery");
-  ok(ride(4), "exhausting every hull pip ends the run");
-  ok(s.cause === "GROUNDED", `and it says why (${s.cause})`);
+  // Boundaries are soft movement limits, never a recurring damage source.
+  const s = launch(8); s.nextRock = 1000;
+  for (const dir of [-1, 1]) {
+    S.spillSteer(s, dir);
+    until(s, () => false, 4, x => { x.rocks = []; });
+    ok(s.pilot.y >= 22 && s.pilot.y <= s.H - 22, "steering stays inside the vertical limits");
+    ok(s.hull === 3 && s.hits === 0 && s.floorT === 0, "holding either edge never damages the ship");
+  }
 }
+
 {
   // the Respawn Core: one extra life, hull restored, three seconds of Gold
   const s = launch(9);
@@ -490,7 +432,7 @@ const dock = (seed) => {
   ok(s.wave === 15 && !("timer" in s.depot), "the third visit remains untimed");
 }
 {
-  // a rule phases in: the gravity change is nothing on the first frame
+  // a rule phases in: steering response changes gradually rather than snapping
   const s = launch(20);
   until(s, (x) => x.wave >= 8 && x.phase === "wave", 500, advance);
   ok(s.liveMods.includes("heavy"), `wave 8 is HEAVY (${s.liveMods})`);
@@ -505,8 +447,8 @@ const dock = (seed) => {
   ok(s.phase === "drain", "the field drains after its window");
   ok(S.spillCleared(s) === 0, "the wave is not yet cleared at the drain");
   s.cleared = 1; s.hull = 1; s.iframes = 0;
-  until(s, (x) => x.phase === "over", 3, (x) => { x.rocks = [{ x: x.W - 10, y: 10, vx: -1, vy: 0, r: 10, kind: "shard", sprite: 0, spin: 0, rot: 0, arc: 0, arcPhase: 0, warn: 0, grazed: true, dead: false }]; x.pilot.y = x.H; x.pilot.vy = 0; });
-  ok(s.phase === "over" && s.cause === "GROUNDED", `riding the floor in the drain is still fatal (${s.phase})`);
+  until(s, (x) => x.phase === "over", 3, (x) => { x.rocks = []; x.pilot.y = x.H * .45; x.pilot.vy = 0; rockAt(x, x.pilot.x, x.pilot.y); });
+  ok(s.phase === "over" && s.cause === "STRUCK", `a collision in the drain can still be fatal (${s.phase})`);
   ok(S.spillCleared(s) === 1, `and a clear survives it (cleared ${S.spillCleared(s)})`);
 }
 {
@@ -515,8 +457,8 @@ const dock = (seed) => {
   const s = launch(32);
   until(s, (x) => x.phase === "drain", 60, immune);
   s.coreBought = true; s.coreArmed = true; s.hull = 1; s.iframes = 0;
-  until(s, (x) => x.phase === "respawn", 3, (x) => { x.rocks = [{ x: x.W - 10, y: 10, vx: -1, vy: 0, r: 10, kind: "shard", sprite: 0, spin: 0, rot: 0, arc: 0, arcPhase: 0, warn: 0, grazed: true, dead: false }]; x.pilot.y = x.H; x.pilot.vy = 0; });
-  ok(s.phase === "respawn", "the core catches a grounding in the drain");
+  until(s, (x) => x.phase === "respawn", 3, (x) => { x.rocks = []; x.pilot.y = x.H * .45; x.pilot.vy = 0; rockAt(x, x.pilot.x, x.pilot.y); });
+  ok(s.phase === "respawn", "the core catches a fatal collision in the drain");
   let clears = 0, guard = 0;
   while (s.phase !== "countdown" && guard++ < 60 * 10) { hover(s); const c = S.stepSpill(s, DT); if (c.includes("clear")) clears++; }
   ok(s.phase === "countdown" && s.wave === 2, `the run goes on to wave 2 (${s.phase} ${s.wave})`);
@@ -556,19 +498,22 @@ const dock = (seed) => {
   ok(w.spill !== null && w.tut === null && w.flight === "spill", "a spill run carries its own state and no tutorial");
   ok(w.shieldCharges === 0, "the hangar's start shield stays in the hangar");
   ok(sim.flap(w, sv) === "flap" && w.spill.phase === "countdown", "the first tap launches the field");
-  ok(sim.flap(w, sv) === "flap" && w.spill.manual, "a tap in the count takes the stick");
+  ok(sim.flap(w, sv) === "none" && !w.spill.manual, "a second tap cannot take the stick");
+  ok(S.spillSteer(w.spill, -1) && w.spill.manual, "steering takes the stick in the count");
+  S.spillSteer(w.spill, 0);
   for (let i = 0; i < 60 * 4; i++) { w.spill.rocks = []; w.spill.floorT = 0; sim.updateWorld(w, sv, DT); }
   ok(w.spill.phase === "wave", `the sim steps the Spill through the count (${w.spill.phase})`);
   w.spill.pilot.y = w.H * 0.5; w.spill.pilot.vy = 0;
   const y1 = w.spill.pilot.y;
-  ok(sim.flap(w, sv) === "flap" && w.spill.pilot.vy < 0, "a tap kicks the ship skyward");
-  ok(sim.flap(w, sv) === "flap" && Math.abs(w.spill.pilot.vy + S.SPILL.tapVy) < 1e-6, "a second tap is a tap, and never stacks");
+  ok(sim.flap(w, sv) === "none" && w.spill.pilot.vy === 0, "the shared tap cannot restore old flight impulses");
+  ok(S.spillSteer(w.spill, -1), "the semantic axis controls the Spill");
   for (let i = 0; i < 10; i++) { w.spill.rocks = []; sim.updateWorld(w, sv, DT); }
   ok(w.spill.pilot.vy < 0 && w.spill.pilot.y < y1, "and the ship climbs");
   ok(Math.abs(w.squirrel.y - w.spill.pilot.y) < 1e-6, "the world's squirrel mirrors the Spill's pilot");
   ok(sim.pilotX(w) === w.spill.pilot.x, "and the pilot's X follows the lunge lane");
-  ok(sim.dive(w, sv) === "dive" && w.spill.pilot.vy >= S.SPILL.burstDown, "a dive is the burst down");
-  ok(sim.spillBurstUp(w) === true && w.spill.pilot.vy <= -S.SPILL.burstUp, "a swipe up is the burst up");
+  ok(sim.dive(w, sv) === "dive" && w.spill.steerY === 1, "the legacy dive helper routes to downward steering");
+  ok(sim.spillBurstUp(w) && w.spill.steerY === -1, "the legacy up helper routes to upward steering");
+  S.spillSteer(w.spill, 0);
   // die: three pips gone, on the fourth wave
   w.spill.hull = 1; w.spill.iframes = 0; w.spill.rocks = []; w.spill.floorT = 0;
   w.spill.pilot.y = w.H * 0.45; w.spill.pilot.vy = 0;
@@ -621,18 +566,15 @@ const dock = (seed) => {
 
 // ------------------------------------------------------------- the bot
 //
-// A dodger, not a player: it looks 300px ahead, picks the widest gap in
-// the lane it is flying, and taps toward it like a thumb - at most eight
-// taps a second, and only while the ship is below its lane and not already
-// climbing briskly - bursting when the gap is far. If this cannot clear
-// wave 1 the ladder is broken, whatever the tuning says.
+// A synthetic dodger chooses a gap around debris and steers toward it.
+// This is a geometric smoke check, not evidence of human or phone balance.
 function bot(s) {
   const p = s.pilot;
   if (s.phase !== "wave" && s.phase !== "drain") return;
   const ahead = s.rocks.filter((r) => !r.dead && r.warn <= 0 && r.x > p.x - 20 && r.x < p.x + 300);
   let target = s.H * 0.45;
   if (ahead.length) {
-    // sample candidate heights inside the band the floor rule allows, and
+    // sample candidate heights inside the visible flight area, and
     // score each by clearance from every piece's predicted position when
     // it reaches the pilot, less the cost of getting there
     let best = -1e9;
@@ -647,13 +589,9 @@ function bot(s) {
       if (score > best) { best = score; target = y; }
     }
   }
-  // never idle near the floor: below three quarters the answer is always up
-  if (p.y > s.H - 140) target = Math.min(target, s.H * 0.55);
   const dy = target - p.y;
-  s.botTap = (s.botTap ?? 0) - DT;
-  if (dy < -8 && p.vy > -S.SPILL.tapVy * 0.4 && s.botTap <= 0) { S.spillTap(s); s.botTap = 0.12; }
-  if (dy < -120 && p.vy > -200) S.spillBurst(s, -1);
-  else if (dy > 120 && p.vy < 150) S.spillBurst(s, 1);
+  S.spillSteer(s, Math.abs(dy) < 5 ? 0 : Math.max(-1, Math.min(1, dy / 65)));
+
 }
 {
   const seeds = [1, 2, 3, 4, 5, 6];

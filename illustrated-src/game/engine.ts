@@ -50,7 +50,6 @@ import {
   snapshot,
   takeRaceCueEffects,
   takeSpillCues,
-  spillBurstUp,
   updateWorld,
   type FlightMode,
   type Screen,
@@ -73,9 +72,10 @@ import {
   type RaceGestureResult,
 } from "./race-gesture";
 import { raceViewport } from "./race-viewport";
-import { spillBuy, spillLeaveDepot, spillLunge, spillUtility, spillSpecialize, spillTakeContract,
+import { spillBuy, spillLeaveDepot, spillLunge, spillSteer, spillUtility, spillSpecialize, spillTakeContract,
   spillCheckpoint, restoreSpill, type SpillBuyable, type SpillCue } from "./spill";
-import { spillSetFiring, spillSelectWeapon, spillUpgradeWeapon, type SpillWeaponId } from "./spill-combat";
+import { spillSetFiring, spillTapFire, spillClearFireInput, spillSelectWeapon, spillUpgradeWeapon, type SpillWeaponId } from "./spill-combat";
+import { createSpillStick, moveSpillStick, sampleSpillStick, spillStickAxis, type SpillStick } from "./spill-gesture";
 import { SPILL_UTILITIES, SPILL_ENGINE_COLORS, spillEngineColor, type SpillEngineColor, type SpillUtility, type SpillSpecialty, type SpillContractKind } from "./spill-content";
 import { bankSpill, suitPitchFor, takeReceipt, buyBoost, skipLevel, unlockReward, ownsPremium, settleStarRewards, sealSave } from "./save";
 
@@ -176,11 +176,10 @@ export type Engine = {
   /** leaving a Star Chart result sheet: a full-screen ad after every 10th
    *  level the pilot finishes (owner, 6 Oct 2026), then `next` */
   afterLevel: (next: () => void) => void;
-  /** Spill buttons and gestures share the same movement rules. */
-  spillLunge: () => void;
-  spillThrust: () => void;
-  spillDive: () => void;
+  /** Pointer and keyboard controls share the same flight authority. */
+  spillLunge: (direction?: -1 | 1) => void;
   spillFire: (held: boolean, owner?: string) => void;
+  spillControls: () => { active: boolean; x: number; y: number; dx: number; dy: number };
   spillSelectWeapon: (id: SpillWeaponId) => boolean;
   spillUpgradeWeapon: () => boolean;
   setSpillButtonsOff: (off: boolean) => void;
@@ -332,6 +331,8 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
   const listeners = new Set<() => void>();
   const frameListeners = new Set<() => void>();
   const fireOwners = new Set<string>();
+  const steerKeys = new Set<string>();
+  let spillStick: SpillStick | null = null;
   const notify = () => listeners.forEach((fn) => fn());
 
   // The Spill used to live on a lab page and post its mission result back
@@ -799,24 +800,21 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       if (!due || adBusy) { next(); return; }
       playInterstitial("level", next);
     },
-    spillThrust() {
-      if (!world.spill || world.screen !== "play" || save.spillButtonsOff) return;
-      if (flap(world, save) === "flap") sfx.flap();
-      notify();
-    },
-    spillDive() {
-      if (!world.spill || world.screen !== "play") return;
-      if (dive(world, save) === "dive") sfx.dive();
-      notify();
-    },
     spillFire(held, owner = "manual") {
       if (held) {
         if (!running || !spillReady || world.screen !== "play" || !world.spill
             || !["wave", "drain"].includes(world.spill.phase)) return;
+        if (!fireOwners.has(owner)) spillTapFire(world.spill);
         fireOwners.add(owner);
         unlockAudio();
       } else fireOwners.delete(owner);
       if (world.spill) spillSetFiring(world.spill, fireOwners.size > 0);
+    },
+    spillControls() {
+      const rect = canvas.getBoundingClientRect(), stick = spillStick;
+      return { active: !!stick, x: stick ? stick.x0 / rect.width : 0, y: stick ? stick.y0 / rect.height : 0,
+        dx: stick ? Math.max(-1, Math.min(1, (stick.x - stick.x0) / 44)) : 0,
+        dy: stick ? Math.max(-1, Math.min(1, (stick.y - stick.y0) / 44)) : 0 };
     },
     spillSelectWeapon(id) {
       if (world.screen !== "play" || !world.spill) return false;
@@ -830,7 +828,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       if (ok) { checkpointSpill(); sfx.ui(); } else sfx.warning();
       notify(); return ok;
     },
-    spillLunge() {
+    spillLunge(direction = 1) {
       if (!world.spill || world.screen !== "play") return;
       // on the ready card a lunge is a launch, and a launch has to go
       // through the tap path: that is what clears w.ready, and a run
@@ -840,7 +838,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
         notify();
         return;
       }
-      if (spillLunge(world.spill)) { sfx.near(); notify(); }
+      if (spillLunge(world.spill, direction)) { sfx.near(); notify(); }
     },
     spillBuy(what) {
       if (!world.spill || world.screen !== "play") return "closed";
@@ -1514,7 +1512,20 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
 
   function clearSpillFire() {
     fireOwners.clear();
-    if (world.spill) spillSetFiring(world.spill, false);
+    steerKeys.clear();
+    spillStick = null;
+    if (world.spill) { spillClearFireInput(world.spill); spillSteer(world.spill, 0); }
+  }
+
+  function spillFlightInput() {
+    return running && spillReady && world.screen === "play" && !!world.spill
+      && ["countdown", "wave", "drain"].includes(world.spill.phase);
+  }
+  function updateSpillSteering() {
+    if (!world.spill) return;
+    const up = steerKeys.has("KeyW") || steerKeys.has("ArrowUp");
+    const down = steerKeys.has("KeyS") || steerKeys.has("ArrowDown");
+    spillSteer(world.spill, spillStick ? spillStickAxis(spillStick) : Number(down) - Number(up));
   }
 
   function cancelRaceControls(owner?: RaceGestureOwner) {
@@ -1538,6 +1549,18 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
     "pointerdown",
     (e) => {
       if (world.screen !== "play") return;
+      if (world.spill) {
+        if (!spillFlightInput() || (e.pointerType === "mouse" && e.button !== 0)) return;
+        e.preventDefault();
+        try { canvas.setPointerCapture(e.pointerId); } catch { /* capture may be unavailable */ }
+        if (spillStick?.owner === e.pointerId || fireOwners.has(`pointer:${e.pointerId}`)) return;
+        if (!spillStick) {
+          const rect = canvas.getBoundingClientRect();
+          spillStick = createSpillStick(e.pointerId, e.clientX - rect.left, e.clientY - rect.top, performance.now());
+          updateSpillSteering();
+        } else engine.spillFire(true, `pointer:${e.pointerId}`);
+        return;
+      }
       if (!e.isPrimary || (e.pointerType === "mouse" && e.button !== 0)) return;
       e.preventDefault();
       const p = pos(e);
@@ -1551,14 +1574,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
         return;
       }
       swipe = { owner: e.pointerId, x0: p.x, y0: p.y, t0: performance.now(), fired: false };
-      // the field captures the pointer so a swipe that leaves the canvas
-      // still lands; its tap is the same flap as everywhere else
-      if (world.spill) { try { canvas.setPointerCapture(e.pointerId); } catch { /* browser cancelled the pointer */ } }
-      // A tap is a tap everywhere, the corridor and the debris field
-      // included. Hold-to-rise and slide-and-hold were flown against it and
-      // retired - see the note in updateTunnel - so nothing intercepts this
-      // any more. Hyper Run, the one hold-to-rise mode left, took the
-      // race branch above.
+      // Shared support modes retain their original tap behavior.
       const ev = flap(world, save);
       if (ev === "flap") sfx.flap();
       if (world.tut?.stage === "pal" && world.tut.hold && world.tut.t >= TUT_ARM) {
@@ -1572,6 +1588,15 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
   canvas.addEventListener(
     "pointermove",
     (e) => {
+      if (world.spill) {
+        if (!spillFlightInput() || spillStick?.owner !== e.pointerId) return;
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const dodge = moveSpillStick(spillStick, e.clientX - rect.left, e.clientY - rect.top, performance.now());
+        updateSpillSteering();
+        if (dodge) engine.spillLunge(dodge);
+        return;
+      }
       if (world.race && world.screen === "play") {
         const p = pos(e);
         const canonicalY = raceInputY(p.y);
@@ -1589,28 +1614,9 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
 
       if (!swipe || swipe.owner !== e.pointerId || swipe.fired || world.screen !== "play" || world.flight === "tunnel") return;
       const p = pos(e);
-      if (!world.spill && performance.now() - swipe.t0 > 320) {
+      if (performance.now() - swipe.t0 > 320) {
         swipe = null;
         return;
-      }
-      // THE SPILL's swipes: RIGHT is the lunge, UP is the kick skyward, and
-      // DOWN falls through to the dive below. Each is read against the
-      // other axis so a diagonal goes to whichever way it mostly travelled.
-      if (world.spill) {
-        const dx = p.x - swipe.x0;
-        const dy = p.y - swipe.y0;
-        if (dx >= 40 && dx > Math.abs(dy)) {
-          swipe.fired = true;
-          if (spillLunge(world.spill)) sfx.near();
-          notify();
-          return;
-        }
-        if (dy <= -34 && -dy > Math.abs(dx)) {
-          swipe.fired = true;
-          if (spillBurstUp(world)) sfx.flap();
-          notify();
-          return;
-        }
       }
       if (p.y - swipe.y0 >= 34) {
         swipe.fired = true;
@@ -1619,9 +1625,20 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
         notify();
       }
     },
-    { passive: true },
+    { passive: false },
   );
   const end = (e: PointerEvent) => {
+    if (world.spill) {
+      const steering = spillStick?.owner === e.pointerId, firing = fireOwners.has(`pointer:${e.pointerId}`);
+      if (!steering && !firing) return;
+      e.preventDefault();
+      if (e.type !== "pointerup") clearSpillFire();
+      else {
+        if (steering) { spillStick = null; updateSpillSteering(); }
+        if (firing) engine.spillFire(false, `pointer:${e.pointerId}`);
+      }
+      return;
+    }
     if (raceGesture.owner === e.pointerId) {
       if (e.type === "pointercancel") cancelRaceControls(e.pointerId);
       else applyRaceGesture(releaseRaceGesture(raceGesture, e.pointerId));
@@ -1635,10 +1652,13 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
   canvas.addEventListener("pointerup", end);
   canvas.addEventListener("pointercancel", end);
   canvas.addEventListener("lostpointercapture", end);
+  window.addEventListener("pointerup", end);
+  window.addEventListener("pointercancel", end);
   // A finger resting on the field is a long-press to the browser: without
   // these, phones answer it with text selection and the copy bubble over
   // the whole HUD.
-  canvas.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
+  for (const type of ["touchstart", "touchmove", "touchend", "touchcancel", "gesturestart", "gesturechange", "gestureend"])
+    canvas.addEventListener(type, e => { if (spillFlightInput()) e.preventDefault(); }, { passive: false });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   document.addEventListener("selectstart", (e) => {
     const t = e.target as HTMLElement | null;
@@ -1663,6 +1683,14 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       if (world.screen === "play") engine.pause();
       else if (world.screen === "pause") engine.resume();
       else if (world.screen !== "dead") engine.open("title");
+      return;
+    }
+    if (world.spill && ["KeyW", "KeyS", "ArrowUp", "ArrowDown", "KeyA", "KeyD", "ArrowLeft", "ArrowRight", "KeyF", "Space"].includes(e.code)) {
+      if (world.screen === "play") e.preventDefault();
+      if (!spillFlightInput() || e.repeat) return;
+      if (["KeyF", "Space"].includes(e.code)) engine.spillFire(true, `keyboard:${e.code}`);
+      else if (["KeyA", "ArrowLeft", "KeyD", "ArrowRight"].includes(e.code)) engine.spillLunge(["KeyA", "ArrowLeft"].includes(e.code) ? -1 : 1);
+      else { steerKeys.add(e.code); updateSpillSteering(); }
       return;
     }
     if (e.code === "KeyF") {
@@ -1716,24 +1744,13 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
         ));
       } else if (applyRaceGesture(dropRaceGesture(raceGesture))) sfx.dive();
       notify();
-    } else if (DIVE_KEYS.has(e.code) && world.screen === "play" && world.flight !== "tunnel") {
+    } else if (DIVE_KEYS.has(e.code) && !world.spill && world.screen === "play" && world.flight !== "tunnel") {
       if (e.repeat) return;
       const ev = dive(world, save);
       if (ev === "dive") sfx.dive();
       notify();
     }
-    // the Spill's extra keys: right (or D) for the lunge, W for the harder
-    // kick skyward. Space is the tap and ArrowDown the dive, as everywhere
-    if (world.spill && world.screen === "play" && !e.repeat) {
-      if (e.code === "ArrowRight" || e.code === "KeyD") {
-        e.preventDefault();
-        engine.spillLunge();
-      } else if (e.code === "KeyW") {
-        e.preventDefault();
-        if (spillBurstUp(world)) sfx.flap();
-        notify();
-      }
-    }
+
   });
   window.addEventListener("keyup", (e) => {
     if (e.code === "Space" || e.code === "ArrowUp") {
@@ -1758,6 +1775,8 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
   // Capture releases even when a focused menu button consumes keyboard events.
   window.addEventListener("keyup", e => {
     if (e.code === "KeyF") engine.spillFire(false, "keyboard-f");
+    if (["KeyF", "Space"].includes(e.code)) engine.spillFire(false, `keyboard:${e.code}`);
+    if (steerKeys.delete(e.code)) updateSpillSteering();
   }, true);
   window.addEventListener("blur", () => {
     if (world.screen === "play") {
@@ -1873,6 +1892,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
   }
   let nextSpillPaint = 0;
   function loop(now: number) {
+    if (spillStick) sampleSpillStick(spillStick, now);
     const frameDt = Math.min(0.25, (now - last) / 1000);
     noteFrameCost(now - last);
     last = now;
@@ -1895,9 +1915,10 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       // Race cues are drained after every authority step, not once per
       // render frame. This preserves simultaneous pass/debris feedback and
       // prevents high-refresh rendering from replaying audio side effects.
-      if (world.screen !== "play" || !world.spill || !["wave", "drain"].includes(world.spill.phase)) clearSpillFire();
+      if (!spillFlightInput()) clearSpillFire();
+      const priorSpillPhase = world.spill?.phase;
       const ev = updateWorld(world, save, 1 / 60);
-      if (world.screen !== "play" || !world.spill || !["wave", "drain"].includes(world.spill.phase)) clearSpillFire();
+      if (!spillFlightInput() || (world.spill?.phase === "countdown" && priorSpillPhase !== "countdown")) clearSpillFire();
       if (world.race) dispatchRaceCues(takeRaceCueEffects(world));
       else { dispatchWorldEvent(ev); dispatchSpillCues(takeSpillCues(world)); }
       raceAccumulator -= 1 / 60;
