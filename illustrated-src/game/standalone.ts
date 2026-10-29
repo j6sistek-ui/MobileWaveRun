@@ -1,11 +1,9 @@
 import { createEngine, type Engine } from "./engine";
 import { loadSpillScene } from "./art";
 import { paintShipPreview } from "./draw";
-import { spillControlArt, SPILL_CONTROL_LAYOUT } from "./spill-control-art";
 import { SPILL_UTILITIES, spillMastery } from "./spill-content";
 import { spillBuildFromState, type SpillBuild } from "./spill-presentation";
 import { restoreSpill, type SpillState } from "./spill";
-import { SPILL_WEAPONS } from "./spill-combat";
 import { createDepotView, drawDepotWorkshop, drawSpillLaunchSetup, drawSpillStarters,
   drawSpillEnginePicker, drawSpillFlightHelp, drawSpillGuideSheet } from "./spill-workshop";
 
@@ -25,12 +23,12 @@ export async function bootStandalone(root: HTMLElement) {
   const stage = el("div", "ac-stage");
   const canvas = el("canvas", "ac-canvas");
   const overlay = el("div", "ac-overlay");
-  // Keep these outside the replaced overlay, exactly as in the upstream host.
-  const controls = el("div", "ac-spillbar ac-spillcontrols");
-  controls.hidden = true;
-  controls.setAttribute("role", "group");
-  controls.setAttribute("aria-label", "Debris Field flight controls");
-  stage.append(canvas, overlay, controls);
+  const joystick = el("div", "ac-floating-stick");
+  joystick.hidden = true;
+  joystick.setAttribute("aria-hidden", "true");
+  const stickKnob = el("span", "ac-floating-stick-knob");
+  joystick.append(stickKnob);
+  stage.append(canvas, overlay, joystick);
   root.append(stage);
   const loading = el("section", "ac-sheet ac-center");
   loading.append(el("h1", "", "DEBRIS FIELD"), el("p", "ac-sub", "Loading the ship and field…"));
@@ -88,104 +86,21 @@ export async function bootStandalone(root: HTMLElement) {
     overlay.querySelector<HTMLElement>('[data-spill-control="setup-guide"], [data-action="depot-guide"]')?.focus({ preventScroll: true });
   }
 
-  const thrust = el("button", "ac-thrust");
-  const dive = el("button", "ac-dive");
-  const lunge = el("button", "ac-lunge");
-  const flightPads = el("div", "ac-flightpads");
-  const fire = el("button", "ac-fire");
-  fire.type = "button";
-  fire.dataset.spillControl = "fire";
-  const fireWeapon = el("small");
-  fire.append(el("b", "", "FIRE"), el("span", "", "HOLD · F"), fireWeapon);
-  const firePointers = new Set<number>();
-  fire.onpointerdown = e => {
-    if (fire.disabled || (e.pointerType === "mouse" && e.button !== 0)) return;
-    e.preventDefault();
-    firePointers.add(e.pointerId);
-    fire.setPointerCapture?.(e.pointerId);
-    engine.spillFire(true, `pointer:${e.pointerId}`);
-    updateControls();
-  };
-  const releaseFirePointer = (e: PointerEvent) => {
-    if (!firePointers.delete(e.pointerId)) return;
-    engine.spillFire(false, `pointer:${e.pointerId}`);
-    if (fire.hasPointerCapture?.(e.pointerId)) fire.releasePointerCapture(e.pointerId);
-    updateControls();
-  };
-  fire.addEventListener("lostpointercapture", releaseFirePointer);
-  window.addEventListener("pointerup", releaseFirePointer);
-  window.addEventListener("pointercancel", releaseFirePointer);
-  fire.onkeydown = e => {
-    if (!["Space", "Enter"].includes(e.code)) return;
-    e.preventDefault(); e.stopPropagation();
-    if (!e.repeat) engine.spillFire(true, `fire-button:${e.code}`);
-    updateControls();
-  };
-  fire.onkeyup = e => {
-    if (["Space", "Enter"].includes(e.code)) { e.preventDefault(); e.stopPropagation(); }
-  };
-  window.addEventListener("keyup", e => {
-    if (["Space", "Enter"].includes(e.code)) {
-      engine.spillFire(false, `fire-button:${e.code}`); updateControls();
-    }
-  }, true);
-  fire.addEventListener("contextmenu", e => e.preventDefault());
-  for (const [kind, button] of [["dive", dive], ["thrust", thrust], ["lunge", lunge]] as const) {
-    button.type = "button";
-    button.innerHTML = spillControlArt(kind);
-    const box = SPILL_CONTROL_LAYOUT[kind];
-    button.style.left = `${box.x / SPILL_CONTROL_LAYOUT.width * 100}%`;
-    button.style.top = `${box.y / SPILL_CONTROL_LAYOUT.height * 100}%`;
-    button.style.width = `${box.width / SPILL_CONTROL_LAYOUT.width * 100}%`;
-    button.style.height = `${box.height / SPILL_CONTROL_LAYOUT.height * 100}%`;
-    for (const event of ["keydown", "keyup"] as const) button.addEventListener(event, e => {
-      if (e.code === "Space" || e.code.startsWith("Arrow") || e.code === "Enter") e.stopPropagation();
-    });
-    button.addEventListener("contextmenu", e => e.preventDefault());
-  }
-  const lungeStatus = el("span", "ac-control-status");
-  lunge.append(lungeStatus);
-  thrust.setAttribute("aria-label", "Thrust: tap to fly");
-  dive.setAttribute("aria-label", "Dive: downward burst");
-  thrust.onpointerdown = e => {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    e.preventDefault(); engine.spillThrust(); updateControls();
-  };
-  thrust.onkeydown = e => {
-    if (!["Space", "Enter"].includes(e.code)) return;
-    e.preventDefault();
-    if (e.repeat) return;
-    engine.spillThrust(); updateControls();
-  };
-  thrust.onclick = e => { if (e.detail === 0) { engine.spillThrust(); updateControls(); } };
-  dive.onclick = () => engine.spillDive();
-  lunge.onclick = () => engine.spillLunge();
-  flightPads.append(dive, thrust, lunge);
-  controls.append(flightPads, fire);
-
   let controlState = "";
   function updateControls() {
     const state = engine.world.spill;
-    const visible = !!(engine.world.screen === "play" && state && !engine.save.spillButtonsOff
-      && ["countdown", "wave", "drain"].includes(state.phase));
-    const key = visible ? `${state.phase}:${state.manual}:${state.lungeCharges}:${state.up.thrusters}:${(state.thrustT ?? 0) > 0}:${state.combat.weapon}:${state.combat.firing}` : "hidden";
+    const activeFlight = engine.world.screen === "play" && !!state && ["countdown", "wave", "drain"].includes(state.phase);
+    canvas.classList.toggle("ac-flight-surface", activeFlight);
+    const stick = engine.spillControls();
+    const visible = activeFlight && stick.active;
+    const key = visible ? `${stick.x}:${stick.y}:${stick.dx}:${stick.dy}` : "hidden";
     if (key === controlState) return;
     controlState = key;
-    controls.hidden = !visible;
-    if (!visible) { firePointers.clear(); return; }
-    const manual = state.phase !== "countdown" || state.manual;
-    dive.disabled = !manual;
-    lunge.disabled = !manual || state.lungeCharges <= 0;
-    lunge.classList.toggle("spent", lunge.disabled);
-    const cap = state.up.thrusters >= 2 ? 2 : 1;
-    lungeStatus.textContent = state.lungeCharges ? `${state.lungeCharges}/${cap} READY` : "RECHARGING";
-    lunge.setAttribute("aria-label", `Lunge: forward dash, ${state.lungeCharges} of ${cap} charges ready`);
-    thrust.classList.toggle("firing", (state.thrustT ?? 0) > 0);
-    fire.disabled = !["wave", "drain"].includes(state.phase);
-    fire.classList.toggle("firing", state.combat.firing);
-    fire.setAttribute("aria-pressed", String(state.combat.firing));
-    fire.setAttribute("aria-label", `Hold fire: ${SPILL_WEAPONS[state.combat.weapon].name}. Keyboard F.`);
-    fireWeapon.textContent = SPILL_WEAPONS[state.combat.weapon].name;
+    joystick.hidden = !visible;
+    if (!visible) return;
+    joystick.style.left = `${stick.x * 100}%`;
+    joystick.style.top = `${stick.y * 100}%`;
+    stickKnob.style.transform = `translate(${stick.dx * 25}px, ${stick.dy * 25}px)`;
   }
 
   function sheet(title: string, subtitle = "") {
@@ -272,8 +187,7 @@ export async function bootStandalone(root: HTMLElement) {
   function flightSettings() {
     const settings = el("section", "ac-spillsettings");
     settings.append(el("h3", "", "Flight controls"));
-    settings.append(toggle("buttons", "On-screen buttons", "Thrust, Dive, Lunge and held Fire. Keyboard F also fires.",
-      !engine.save.spillButtonsOff, () => engine.setSpillButtonsOff(!engine.save.spillButtonsOff)));
+    settings.append(el("p", "ac-sub", "Hold and drag to steer. Tap with another finger to shoot. Flick left or right to dodge."));
     const prompts = toggle("prompts", "Instructional prompts",
       engine.save.helpOff ? "Help is disabled in Settings." : "Control tips and wave lessons. Hazard warnings stay visible.",
       !engine.save.spillPromptsOff && !engine.save.helpOff, () => engine.setSpillPromptsOff(!engine.save.spillPromptsOff));
@@ -293,7 +207,7 @@ export async function bootStandalone(root: HTMLElement) {
         () => engine.setHelpOff(!engine.save.helpOff)),
       toggle("motion", "Menu animation", "Pulses, fades and moving badges", !engine.save.motionOff,
         () => engine.setMotionOff(!engine.save.motionOff)),
-      toggle("glow", "Character glow", "The flash and recoil on a tap", !engine.save.glowOff,
+      toggle("glow", "Character glow", "The light around your pilot", !engine.save.glowOff,
         () => engine.setGlowOff(!engine.save.glowOff)));
     box.append(settings, flightSettings(), action("MAIN MENU", "home", home));
     return box;

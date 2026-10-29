@@ -18,7 +18,7 @@ function step(s,seconds,each=()=>{}) {for(let i=0;i<Math.ceil(seconds/dt);i++){e
 function hover(s){s.pilot.y=s.H*.45;s.pilot.vy=0;s.rocks=[];}
 function rock(s,x=s.pilot.x,y=s.pilot.y,kind='tumbler',r=20){return {x,y,vx:0,vy:0,r,kind,sprite:0,spin:0,rot:0,arc:0,arcPhase:0,warn:0,grazed:true,dead:false};}
 function impact(s){s.iframes=0;s.rocks=[rock(s)];return S.stepSpill(s,dt);}
-function boundary(s){s.iframes=0;s.floorT=0;for(let i=0;i<30;i++){s.rocks=[];s.pilot.y=s.H;s.pilot.vy=0;S.stepSpill(s,dt);if(s.pilot.vy<0||s.phase==='respawn'||s.phase==='over')return;}}
+
 function clear(s,wave){s.wave=wave;s.phase='drain';s.rocks=[];S.stepSpill(s,dt);}
 function pickup(s,kind='gold',y=s.pilot.y){s.nuts=[{x:s.pilot.x,y,vx:0,vy:0,got:false,bob:0,kind}];S.stepSpill(s,dt);}
 // The station always covers the screen and keeps its final camera through the Depot handoff.
@@ -43,15 +43,15 @@ for(const [W,H] of [[320,760],[390,844],[1280,720],[844,390]]){
  const preview=P.spillPreviewState(build);assert.deepEqual(preview.up,s.up);assert.deepEqual(preview.utilities,s.utilities);assert.deepEqual(preview.specialties,s.specialties);
  build.utilities.pop();assert.equal(s.utilities.length,2,'preview build does not alias the live ship');
 }
-// Every protection applies to boundary contact, in the same order as debris.
+// Existing shield, pulse and extra-life protections still apply to damaging debris.
 {
  const s=flight();s.up.plating=3;s.maxHull=s.hull=6;s.shield=s.canopyLevel=2;s.up.pulse=2;s.charge=1;
- boundary(s);assert.equal(s.hull,6);assert.equal(s.shield,2);assert.equal(s.charge,0);assert(s.pilot.y<s.H-22&&s.pilot.vy<0);assert(s.pulseQueue>0);
- boundary(s);assert.equal(s.shield,1);assert.equal(s.hull,6);
- boundary(s);assert.equal(s.shield,0);assert.equal(s.hull,6);
- boundary(s);assert.equal(s.hull,5);assert.equal(s.hits,1);assert.equal(s.phase,'wave');
- s.gold=3;boundary(s);assert.equal(s.hull,5);
- s.gold=0;s.hull=1;s.coreBought=s.coreArmed=true;boundary(s);assert.equal(s.phase,'respawn');
+ impact(s);assert.equal(s.hull,6);assert.equal(s.shield,2);assert.equal(s.charge,0);assert(s.pulseQueue>0);
+ impact(s);assert.equal(s.shield,1);assert.equal(s.hull,6);
+ impact(s);assert.equal(s.shield,0);assert.equal(s.hull,6);
+ impact(s);assert.equal(s.hull,5);assert.equal(s.hits,1);assert.equal(s.phase,'wave');
+ s.gold=3;impact(s);assert.equal(s.hull,5);
+ s.gold=0;s.hull=1;s.coreBought=s.coreArmed=true;impact(s);assert.equal(s.phase,'respawn');
  step(s,2.1);assert.equal(s.hull,6);assert(s.gold>0);
 }
 {
@@ -67,7 +67,7 @@ for(const [W,H] of [[320,760],[390,844],[1280,720],[844,390]]){
  S.spillUtility(s,'scanner');s.ore=0;assert.equal(S.spillUtility(s,'brake'),'poor');assert(!s.ownedUtilities.includes('brake'));
  const stock=flight(),mag=flight();mag.utilities=['magnet'];stock.nuts=[{x:stock.pilot.x+70,y:stock.pilot.y,vx:-30,vy:0,got:false,bob:0,kind:'ore'}];mag.nuts=structuredClone(stock.nuts);
  step(stock,.3,x=>{x.pilot.y=x.H*.45;x.pilot.vy=0;});step(mag,.3,x=>{x.pilot.y=x.H*.45;x.pilot.vy=0;});assert.equal(stock.oreMined,0);assert.equal(mag.oreMined,1);
- const brake=flight();brake.utilities=['brake'];brake.pilot.y=brake.H-60;brake.pilot.vy=350;S.stepSpill(brake,dt);assert.equal(brake.hull,3);assert(brake.pilot.vy<0&&brake.brakeCool>11);
+ const brake=flight(),coast=flight();brake.utilities=['brake'];brake.pilot.vy=coast.pilot.vy=300;S.stepSpill(brake,dt);S.stepSpill(coast,dt);assert.equal(brake.hull,3);assert(brake.pilot.vy>=0&&brake.pilot.vy<coast.pilot.vy,'Brake stops neutral drift faster without an upward kick');
  const cap=flight();cap.up.pulse=1;cap.utilities=['capacitor'];for(let i=0;i<4;i++){hover(cap);pickup(cap);}assert.equal(cap.charge,2);impact(cap);assert.equal(cap.charge,1);impact(cap);assert.equal(cap.charge,0);assert.equal(cap.hull,3);
 }
 // Replacing a fitted utility is atomic: no charge or gear is lost on failure.
@@ -137,7 +137,7 @@ for(const W of [320,390,1280])for(const event of ['cargo','vein','lanes','rig'])
  const earned=end.ore;assert(S.spillLeaveDepot(end));assert.equal(end.wave,21);assert.equal(end.phase,'countdown');assert.deepEqual(end.up,{plating:2,thrusters:2,pulse:1});assert.deepEqual(end.utilities,['magnet']);assert.equal(end.ore,earned);
  clear(end,25);step(end,S.SPILL.dockTime+S.SPILL.depotArm+.1);assert.equal(end.phase,'depot');assert(S.spillLeaveDepot(end));assert.equal(end.wave,26);assert.equal(end.cause,'');
  Save.bankSpill(save,end,true);const final=structuredClone(save.spillRecords);Save.bankSpill(save,end,true);assert.deepEqual(save.spillRecords,final);assert.equal(final.expeditions,1);assert.equal(final.runs,1);
- const legacy=structuredClone(cp);delete legacy.state.firstPass;legacy.state.finished=false;assert(S.restoreSpill(legacy,390,760),'existing Depot saves remain resumable');
+ const legacy=structuredClone(cp);delete legacy.state.firstPass;delete legacy.state.steerY;delete legacy.state.lungeDir;legacy.state.finished=false;assert(S.restoreSpill(legacy,390,760),'existing Depot saves remain resumable');
 }
 {
  const save=Save.defaultSave();assert.equal(save.spillSuspended,null);assert.equal(C.spillMastery(5).current.title,'Salvager');assert.equal(C.spillMastery(20).current.title,'Fieldbreaker');

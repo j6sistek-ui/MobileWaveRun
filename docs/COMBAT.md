@@ -4,7 +4,7 @@ Owner-authorized priority-one adaptation of the full SpaceSurvival scope, 2026-1
 
 ## Playing
 
-Choose Rapid Laser or Heavy Cannon in the opening Depot. Both are available immediately and switching at a Depot costs nothing. Choose the existing free starter system separately, then launch. Hold F or the dedicated Fire pad to shoot; release to stop. Space/Up, field taps, Dive and Lunge retain their existing movement behavior. Fire and movement can be used together. Pausing, losing focus or resizing clears held fire; press again after resuming.
+Choose Rapid Laser or Heavy Cannon in the opening Depot. Both are available immediately and switching at a Depot costs nothing. Choose the existing free starter system separately, then launch. Drag the first finger up/down to steer, tap a second finger to fire, and quickly flick the steering finger left/right to dodge. Hold the second finger for repeated fire. Keyboard W/S or Up/Down steers; A/D or Left/Right dodges; F or Space fires. The joystick replaces tap/gravity flight and the fixed pads. Pausing, losing focus or resizing clears held input and pending shots; press again after resuming. See [CONTROLS.md](CONTROLS.md).
 
 Shots travel forward. A narrow forward cone gently aims at an enemy already near the ship's flight line; it does not turn the ship or fire automatically. Match the enemy's height to engage. Debris blocks shots from either side, so clearing a path also removes cover. Dodging remains valid: waves end by time and field drain, not by an enemy kill quota.
 
@@ -33,8 +33,8 @@ Enemy admission is bounded to two concurrent ships and three arrivals below Wave
 
 Combat is nested in version-1 Depot checkpoints. Older checkpoints without it restore with tier-I Rapid Laser and tier-I Heavy Cannon. New checkpoints validate weapon IDs, tiers, counters and cleared transient state. Held inputs, live shots and enemies are never restored from storage. Existing isolated save keys and banking remain unchanged.
 
-New sprites and their exact generation prompts are documented in [COMBAT_ASSETS.md](COMBAT_ASSETS.md). The 125 upstream asset files retain their original bytes. Original non-firing Wave 1 traces and unchanged content/presentation remain regression guards; the old debris-event lane test explicitly isolates debris because its helper does not dodge aimed shots. Dedicated combat tests cover the added behavior. See [VALIDATION.md](VALIDATION.md) for executed checks and remaining playtest limits.
+New sprites and their exact generation prompts are documented in [COMBAT_ASSETS.md](COMBAT_ASSETS.md). The 125 upstream asset files retain their original bytes. Joystick movement intentionally supersedes the original tap/gravity traces; dedicated movement and combat tests cover the current behavior. The debris-event lane test isolates debris because its helper does not dodge aimed shots. See [VALIDATION.md](VALIDATION.md) for executed checks and remaining playtest limits.
 
 ## Next playtest
 
-Compare both weapons through the first Depot interval, then compare upgrades on the same encounters. Judge target readability, whether aim assistance is enough while tapping, Fire-pad reach, the value of keeping debris as cover, and whether cannon/laser choices feel distinct. Physical phone ergonomics, audio listening, sustained performance and late endless-wave balance still need real play. Front-facing movement and broader feature priorities remain later scope.
+Compare both weapons through the first Depot interval, then compare upgrades on the same encounters. Judge target readability, simultaneous steering/shooting, directional dodge distance, the value of keeping debris as cover, and whether cannon/laser choices feel distinct. Physical phone ergonomics, audio listening, sustained performance and late endless-wave balance still need real play. Front-facing movement and broader feature priorities remain later scope.

@@ -2267,11 +2267,11 @@ function drawSpillWorld(ctx: CanvasRenderingContext2D, w: World, save: SaveData,
   for (const p of w.particles) drawParticle(ctx, p);
 
   if (s.phase !== "over" && w.screen !== "dead") {
-    // a lunge leaves a ghost behind it, so the dash reads as a dash
+    // The ghost trails either dodge direction; the ship keeps facing forward.
     if (s.lunge > 0) {
       ctx.save();
       ctx.globalAlpha = 0.3;
-      drawSpillShip(ctx, w, save, art, s, s.pilot.x - 18);
+      drawSpillShip(ctx, w, save, art, s, s.pilot.x - 18 * (s.lungeDir ?? 1));
       ctx.restore();
     }
     // the hull's invulnerability blinks the ship rather than hiding it
@@ -2384,7 +2384,7 @@ function drawSpillHint(ctx: CanvasRenderingContext2D, w: World, text: string, al
   ctx.restore();
 }
 
-function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | null, hidePrompts = false, padsOn = true) {
+function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | null, hidePrompts = false) {
   const s = w.spill!;
   const { W, H } = w;
   ctx.textAlign = "center";
@@ -2499,14 +2499,12 @@ function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | n
     }
     hudY += 14;
   }
-  // THE RULE CHIP: the live rule sits beside the controls for the whole
-  // wave, with a bar that fills as it phases in, so nothing is a surprise
+  // The rule stays at the lower edge now that flight has no fixed button tray.
   if (names && (s.phase === "wave" || s.phase === "drain" || s.phase === "countdown")) {
     ctx.font = "800 11px Figtree, system-ui";
     const label = names;
     const tw = ctx.measureText(label).width;
-    // above the DIVE pad while the pads are on, the way the hint card is
-    const cx = 16, cy = H - (w.insetTop || 0) - (padsOn ? 156 : 40);
+    const cx = 16, cy = H - (w.insetTop || 0) - 40;
     const cw = tw + 26;
     ctx.fillStyle = "rgba(14,20,38,.8)";
     round(ctx, cx, cy - 15, cw, 30, 15);
@@ -2522,18 +2520,14 @@ function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | n
     ctx.fillStyle = "#ff9a4c";
     ctx.fillRect(cx + 13, cy + 9, tw * (s.phase === "countdown" ? 0 : spillRamp(s)), 2);
   }
-  // the free lesson, while it runs. The DOM flight pads sit on the bottom
-  // 110px or so of a phone (plus its safe area), so the card climbs above
-  // them while they are on; it sat across the Thrust pad otherwise
+  // Brief lessons sit above the rule chip; no empty pad area is reserved.
   if (!hidePrompts && s.hintT > 0 && s.phase !== "ready" && s.phase !== "depot" && s.phase !== "docking" && s.phase !== "over") {
-    drawSpillHint(ctx, w, s.hint, Math.min(1, s.hintT * 2), H - (padsOn ? 156 : 96));
+    drawSpillHint(ctx, w, s.hint, Math.min(1, s.hintT * 2), H - (w.insetTop || 0) - 96);
   }
   if (s.phase === "ready" && s.target) {
     const compact = W < 520;
     // a phone gets the same briefing in shorter lines, never a clipped one
-    // FOUR LINES, NOT A BRIEFING (owner, 2 Sep 2026: "no need for a half
-    // page of text"). The loop is the whole story - survive, collect,
-    // Depot, upgrade - and the ore line wears the ore itself.
+    // Keep the loop and controls brief; the ore line wears the ore itself.
     // The ore line is kept SHORT on purpose: the ore sprite flanks it, and
     // on a phone a long line pushed the sprites off the panel's edge.
     const lines = [
@@ -2541,9 +2535,10 @@ function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | n
       "COLLECT ACORN COINS",
       compact ? "DEPOT EVERY 5 WAVES · UPGRADE THE SHIP"
               : "DEPOT EVERY 5 WAVES · SPEND ACORN COINS",
-      compact ? "TAP ▲ FLY · SWIPE ▼ DIVE · SWIPE ▶ LUNGE"
-              : "TAP ▲ FLY · SWIPE ▼ DIVE · SWIPE ▲ BURST · SWIPE ▶ LUNGE",
-      "TAP TO LAUNCH",
+      compact ? "DRAG ▲▼ · FLICK ◀▶ TO DODGE"
+              : "DRAG UP / DOWN · FLICK LEFT / RIGHT TO DODGE",
+      "SECOND FINGER TAP · FIRE",
+      "READY TO LAUNCH",
     ];
     const oreLine = 1;
     const lineHeight = compact ? 20 : 21;
@@ -2586,8 +2581,7 @@ function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | n
     }
   }
   if (s.phase === "countdown") {
-    // THE COUNT. The ship flies itself; the hand rests; control returns on
-    // the GO and never before. The number is the biggest thing on screen
+    // The ship flies itself until a drag takes control during the count.
     const n = spillCount(s);
     const frac = 1 - ((SPILL.countdown - s.phaseT) % 1);
     ctx.save();
@@ -2612,7 +2606,7 @@ function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | n
     ctx.globalAlpha = 1;
     ctx.fillStyle = "rgba(215,230,247,.7)";
     ctx.font = "700 11px Figtree, system-ui";
-    ctx.fillText(s.manual ? "YOU HAVE THE STICK · FIELD ON GO" : "AUTOPILOT · TAP TO TAKE THE STICK", W / 2, H * 0.34 + 146);
+    ctx.fillText(s.manual ? "YOU ARE STEERING · FIELD ON GO" : "AUTOPILOT · DRAG TO STEER", W / 2, H * 0.34 + 146);
     ctx.restore();
   }
   if (s.phase === "wave" && s.phaseT < 0.6) {
@@ -5989,7 +5983,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank |
 function drawHudBody(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | null, save?: SaveData) {
   const { W } = w;
   if (w.spill) {
-    drawSpillHud(ctx, w, art, !!save?.spillPromptsOff || !!save?.helpOff, !save?.spillButtonsOff);
+    drawSpillHud(ctx, w, art, !!save?.spillPromptsOff || !!save?.helpOff);
     return;
   }
   if (w.race) {

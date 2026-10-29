@@ -2,7 +2,7 @@
 
 Read `.agent/CONTINUITY.md` and `README.md` before substantive changes.
 
-This repository develops AcornautSandbox's extracted The Spill/Debris Field as a standalone browser game. The owner authorized priority-one weapons and enemy combat on 2026-10-29; retain the side-view flight and existing Depot. No navigable station. Do not introduce a new engine, 3D flight, Phoenix assets, monetization, or other playable modes without owner direction.
+This repository develops AcornautSandbox's extracted The Spill/Debris Field as a standalone browser game. The owner authorized priority-one weapons/enemies and then floating joystick flight with second-finger firing and left/right dodge on 2026-10-29. Keep the side view and existing Depot; do not restore tap-to-fly or fixed flight pads. No navigable station. Do not introduce a new engine, 3D flight, Phoenix assets, monetization, or other playable modes without owner direction.
 
 Edit TypeScript under `illustrated-src/game/`. `docs/UPSTREAM_SPILL.md` preserves the extraction baseline; subsequent authorized gameplay changes are documented separately. Preserve unchanged upstream artwork and provenance. Shared rendering/simulation support may remain; only Spill may be launched. Keep saves isolated from Acornaut.
 

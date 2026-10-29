@@ -23,7 +23,7 @@ export type SpillShot = {
 };
 export type SpillCombat = {
   version: 1; weapon: SpillWeaponId; levels: Record<SpillWeaponId, number>;
-  firing: boolean; cooldown: number; enemies: SpillEnemy[]; shots: SpillShot[];
+  firing: boolean; pendingFire: number; cooldown: number; enemies: SpillEnemy[]; shots: SpillShot[];
   kills: number; waveKills: number; rng: number; nextId: number; nextEnemy: number; spawned: number;
   /** Keeps enemy warnings from all committing on the same frame. */
   enemyFireGap: number; targetId: number | null; muzzleFlash: number;
@@ -50,7 +50,7 @@ function random(c: SpillCombat) {
 }
 
 export function createSpillCombat(seed: number): SpillCombat {
-  return { version: 1, weapon: "laser", levels: { laser: 1, cannon: 1 }, firing: false,
+  return { version: 1, weapon: "laser", levels: { laser: 1, cannon: 1 }, firing: false, pendingFire: 0,
     cooldown: 0, enemies: [], shots: [], kills: 0, waveKills: 0,
     rng: (seed ^ 0x63a94f21) >>> 0, nextId: 1, nextEnemy: 4.5, spawned: 0,
     enemyFireGap: 0, targetId: null, muzzleFlash: 0 };
@@ -59,10 +59,20 @@ export function createSpillCombat(seed: number): SpillCombat {
 export function spillSetFiring(s: SpillState, held: boolean) {
   s.combat.firing = held === true && active(s);
 }
+/** Keep a brief tap across render/tick boundaries, with a short cooldown buffer.
+ * At most one shot waits; tapping cannot build an unattended firing backlog. */
+export function spillTapFire(s: SpillState) {
+  if (active(s)) s.combat.pendingFire = 0.18;
+}
+/** Cancellation differs from releasing a finger: release preserves its tap. */
+export function spillClearFireInput(s: SpillState) {
+  s.combat.firing = false;
+  s.combat.pendingFire = 0;
+}
 export function spillSelectWeapon(s: SpillState, id: SpillWeaponId): boolean {
   if (!depotOpen(s) || !validWeapon(id)) return false;
   s.combat.weapon = id;
-  s.combat.firing = false;
+  spillClearFireInput(s);
   s.combat.cooldown = 0;
   s.cues.push("buy");
   return true;
@@ -88,7 +98,7 @@ export function spillUpgradeWeapon(s: SpillState): boolean {
 /** Transient combat never follows the pilot into a countdown, Depot, death or extra-life reset. */
 export function clearSpillCombat(s: SpillState) {
   const c = s.combat;
-  c.firing = false; c.cooldown = 0; c.enemies = []; c.shots = [];
+  spillClearFireInput(s); c.cooldown = 0; c.enemies = []; c.shots = [];
   c.targetId = null; c.muzzleFlash = 0; c.enemyFireGap = 0;
 }
 export function beginSpillCombatWave(s: SpillState) {
@@ -97,7 +107,7 @@ export function beginSpillCombatWave(s: SpillState) {
   s.combat.nextEnemy = 4.5 + random(s.combat) * 1.5;
 }
 export function resizeSpillCombat(s: SpillState, sx: number, sy: number) {
-  s.combat.firing = false;
+  spillClearFireInput(s);
   for (const e of s.combat.enemies) {
     e.x *= sx; e.y *= sy; e.vx *= sx; e.vy *= sy;
     e.aimX *= sx; e.aimY *= sy; e.homeY *= sy;
@@ -258,7 +268,7 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
 
   const target = aimTarget(s);
   c.targetId = target?.id ?? null;
-  if (c.firing && c.cooldown === 0 && c.shots.length < 60) {
+  if ((c.firing || c.pendingFire > 0) && c.cooldown === 0 && c.shots.length < 60) {
     const weapon = spillWeaponStats(s);
     const muzzleX = s.pilot.x + effects.shipRadius + 4;
     const angle = target ? Math.atan2(target.y - s.pilot.y, target.x - muzzleX) : 0;
@@ -268,9 +278,11 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
       vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
       r: weapon.radius, damage: weapon.damage, life: 1.4, dead: false });
     c.cooldown = weapon.cooldown;
+    c.pendingFire = 0;
     c.muzzleFlash = 0.075;
     s.cues.push(c.weapon);
   }
+  c.pendingFire = Math.max(0, c.pendingFire - dt);
 
   // Newly emitted shots start at this tick's final muzzle position and move next tick.
   // This avoids granting a full tick of travel after a warning that expired at its end.
@@ -340,6 +352,7 @@ export function restoreSpillCombat(value: unknown, seed: number): SpillCombat | 
   if (c.waveKills > c.kills || c.nextId < 1 || c.spawned > 5) return null;
   if (typeof c.nextEnemy !== "number" || !Number.isFinite(c.nextEnemy) || Math.abs(c.nextEnemy) > 60) return null;
   if (c.firing !== false || c.cooldown !== 0 || c.enemyFireGap !== 0 || c.targetId !== null || c.muzzleFlash !== 0) return null;
+  if (c.pendingFire !== undefined && c.pendingFire !== 0) return null;
   if (!Array.isArray(c.enemies) || c.enemies.length || !Array.isArray(c.shots) || c.shots.length) return null;
   return { ...createSpillCombat(seed), weapon: c.weapon, levels: { laser: c.levels.laser, cannon: c.levels.cannon },
     kills: c.kills, waveKills: c.waveKills, rng: c.rng, nextId: c.nextId, nextEnemy: c.nextEnemy, spawned: c.spawned };
