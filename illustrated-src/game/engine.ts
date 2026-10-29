@@ -75,6 +75,7 @@ import {
 import { raceViewport } from "./race-viewport";
 import { spillBuy, spillLeaveDepot, spillLunge, spillUtility, spillSpecialize, spillTakeContract,
   spillCheckpoint, restoreSpill, type SpillBuyable, type SpillCue } from "./spill";
+import { spillSetFiring, spillSelectWeapon, spillUpgradeWeapon, type SpillWeaponId } from "./spill-combat";
 import { SPILL_UTILITIES, SPILL_ENGINE_COLORS, spillEngineColor, type SpillEngineColor, type SpillUtility, type SpillSpecialty, type SpillContractKind } from "./spill-content";
 import { bankSpill, suitPitchFor, takeReceipt, buyBoost, skipLevel, unlockReward, ownsPremium, settleStarRewards, sealSave } from "./save";
 
@@ -179,6 +180,9 @@ export type Engine = {
   spillLunge: () => void;
   spillThrust: () => void;
   spillDive: () => void;
+  spillFire: (held: boolean, owner?: string) => void;
+  spillSelectWeapon: (id: SpillWeaponId) => boolean;
+  spillUpgradeWeapon: () => boolean;
   setSpillButtonsOff: (off: boolean) => void;
   setSpillPromptsOff: (off: boolean) => void;
   spillBuy: (what: SpillBuyable) => string;
@@ -327,6 +331,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
   let raceResizeKeyboardReleasePending: "keyboard-rise" | "keyboard-drop" | null = null;
   const listeners = new Set<() => void>();
   const frameListeners = new Set<() => void>();
+  const fireOwners = new Set<string>();
   const notify = () => listeners.forEach((fn) => fn());
 
   // The Spill used to live on a lab page and post its mission result back
@@ -348,6 +353,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       raf = requestAnimationFrame(loop);
     },
     stop() {
+      clearSpillFire();
       cancelRaceControls();
       swipe = null;
       running = false;
@@ -386,6 +392,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       if (!["title", "play", "pause", "dead", "hangar", "help", "profile"].includes(s)) return;
       if ((s === "play" || s === "pause") && !world.spill) return;
       if (s !== "play") {
+        clearSpillFire();
         cancelRaceControls();
         swipe = null;
         // every route out of a run passes here: the portal's clock stops
@@ -554,6 +561,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       notify();
     },
     setSpillButtonsOff(off) {
+      if (off) clearSpillFire();
       save.spillButtonsOff = off;
       writeSave(save); notify();
     },
@@ -801,6 +809,27 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       if (dive(world, save) === "dive") sfx.dive();
       notify();
     },
+    spillFire(held, owner = "manual") {
+      if (held) {
+        if (!running || !spillReady || world.screen !== "play" || !world.spill
+            || !["wave", "drain"].includes(world.spill.phase)) return;
+        fireOwners.add(owner);
+        unlockAudio();
+      } else fireOwners.delete(owner);
+      if (world.spill) spillSetFiring(world.spill, fireOwners.size > 0);
+    },
+    spillSelectWeapon(id) {
+      if (world.screen !== "play" || !world.spill) return false;
+      const ok = spillSelectWeapon(world.spill, id);
+      if (ok) { checkpointSpill(); sfx.ui(); notify(); }
+      return ok;
+    },
+    spillUpgradeWeapon() {
+      if (world.screen !== "play" || !world.spill) return false;
+      const ok = spillUpgradeWeapon(world.spill);
+      if (ok) { checkpointSpill(); sfx.ui(); } else sfx.warning();
+      notify(); return ok;
+    },
     spillLunge() {
       if (!world.spill || world.screen !== "play") return;
       // on the ready card a lunge is a launch, and a launch has to go
@@ -878,6 +907,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       writeSave(save); notify(); return true;
     },
     dismissDead() {
+      clearSpillFire();
       world.screen = "title";
       world.lastRun = null;
       world.spill = null;
@@ -890,6 +920,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       // The Spill briefing is replayed by the host without starting a tutorial.
     },
     pause() {
+      clearSpillFire();
       cancelRaceControls();
       swipe = null;
       // A race pause discards the incomplete presentation-frame remainder.
@@ -902,6 +933,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
     },
     resume() {
       if (!world.spill) return;
+      clearSpillFire();
       resumePlay(world);
       raceAccumulator = 0;
       last = performance.now();
@@ -1474,9 +1506,15 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
   }
 
   function resetInputTracking() {
+    clearSpillFire();
     raceGesture = createRaceGestureState();
     raceResizeKeyboardReleasePending = null;
     swipe = null;
+  }
+
+  function clearSpillFire() {
+    fireOwners.clear();
+    if (world.spill) spillSetFiring(world.spill, false);
   }
 
   function cancelRaceControls(owner?: RaceGestureOwner) {
@@ -1627,6 +1665,11 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       else if (world.screen !== "dead") engine.open("title");
       return;
     }
+    if (e.code === "KeyF") {
+      if (world.screen === "play") e.preventDefault();
+      if (!e.repeat) engine.spillFire(true, "keyboard-f");
+      return;
+    }
     if (e.code === "Space" || e.code === "ArrowUp") {
       e.preventDefault();
       // A key held through an orientation change keeps generating repeat
@@ -1712,6 +1755,10 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       }
     }
   });
+  // Capture releases even when a focused menu button consumes keyboard events.
+  window.addEventListener("keyup", e => {
+    if (e.code === "KeyF") engine.spillFire(false, "keyboard-f");
+  }, true);
   window.addEventListener("blur", () => {
     if (world.screen === "play") {
       engine.pause();
@@ -1719,6 +1766,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
     }
     cancelRaceControls();
     swipe = null;
+    clearSpillFire();
   });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
@@ -1728,6 +1776,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       }
       cancelRaceControls();
       swipe = null;
+      clearSpillFire();
     }
   });
   function dispatchWorldEvent(ev: string | null) {
@@ -1804,6 +1853,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       graze: "near", pulse: "shift", count: "ui", go: "section", clear: "milestone", milestone: "milestone",
       dock: "region", depot: "region", buy: "ui", deny: "warning", respawn: "shift", surge: "warning",
       warn: "warning", event: "warning", contract: "milestone", mission: "milestone",
+      laser: "near", cannon: "bounce", "enemy-fire": "warning", "enemy-down": "shield",
     };
     for (const c of new Set(cues)) {
       const snd = SOUND[c];
@@ -1845,7 +1895,9 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       // Race cues are drained after every authority step, not once per
       // render frame. This preserves simultaneous pass/debris feedback and
       // prevents high-refresh rendering from replaying audio side effects.
+      if (world.screen !== "play" || !world.spill || !["wave", "drain"].includes(world.spill.phase)) clearSpillFire();
       const ev = updateWorld(world, save, 1 / 60);
+      if (world.screen !== "play" || !world.spill || !["wave", "drain"].includes(world.spill.phase)) clearSpillFire();
       if (world.race) dispatchRaceCues(takeRaceCueEffects(world));
       else { dispatchWorldEvent(ev); dispatchSpillCues(takeSpillCues(world)); }
       raceAccumulator -= 1 / 60;

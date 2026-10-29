@@ -1745,8 +1745,9 @@
     @media(max-height:570px) { body .ac-depotwrap .ac-depotcard { max-height: 98%; } }
     /* Spill controls stay mounted through HUD updates so a held thumb keeps ownership. */
     .ac-stage > .ac-spillcontrols { position: absolute; left: 50%; right: auto; transform: translateX(-50%);
-      width: min(360px,calc(100% - 32px)); aspect-ratio: 360 / 112; bottom: max(22px,env(safe-area-inset-bottom));
+      width: min(460px,calc(100% - 24px)); height: 112px; bottom: max(22px,env(safe-area-inset-bottom));
       z-index: 3; display: block; pointer-events: none; }
+    .ac-flightpads { position: absolute; left: 0; bottom: 8px; width: calc(100% - 84px); aspect-ratio: 360 / 112; }
     .ac-spillcontrols[hidden] { display: none; }
     .ac-spillcontrols button { position: absolute; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
       min-height: 0; min-width: 0; padding: 0; border: 0; border-radius: 0; display: block; background: transparent; box-shadow: none; }
@@ -1754,6 +1755,15 @@
     .ac-spillcontrols .ac-dive { border-radius: 28% 0 0 28%; }
     .ac-spillcontrols .ac-lunge { border-radius: 0 28% 28% 0; }
     .ac-spillcontrols .ac-thrust { z-index: 2; border-radius: 50%; }
+    .ac-spillcontrols .ac-fire { right: 0; bottom: 8px; width: 72px; height: 76px; border: 2px solid #f4ac71;
+      border-radius: 22px; color: #ffe2ba; background: linear-gradient(160deg,#663c35,#201329);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+      box-shadow: inset 0 1px 0 #fff3,0 4px 10px #0008; font-family: Figtree,sans-serif; }
+    .ac-fire b { font-size: 17px; letter-spacing: .06em; }
+    .ac-fire span { font-size: 9px; font-weight: 700; }
+    .ac-fire small { max-width: 66px; font-size: 9px; line-height: 1.15; }
+    .ac-spillcontrols .ac-fire.firing { background: linear-gradient(160deg,#99572f,#392037); box-shadow: 0 0 14px #ffb47680; }
+    .ac-spillcontrols .ac-fire:focus-visible { outline: 2px solid #fff1b2; outline-offset: 3px; }
     .ac-spillcontrols button:active svg,.ac-spillcontrols .firing svg { filter: brightness(1.3) drop-shadow(0 0 8px #a6ffda55); transform: scale(.97); }
     .ac-spillcontrols button:disabled { opacity: .45; }
     .ac-spillcontrols .ac-control-status { position: absolute; top: 100%; left: 12%; width: 88%; text-align: center; color: #b4edff; font: 800 8px Figtree,sans-serif; letter-spacing: .05em; }
@@ -1778,7 +1788,7 @@
     .ac-spillsetting[aria-checked="true"] strong { color: #f5fffe; border-color: #65ffe8;
       background: linear-gradient(180deg, #156263, #09252f 65%, #124a4c); box-shadow: inset 0 0 9px #4affdf99, 0 0 12px #4affdf88; }
     .ac-spillsetting:disabled { opacity: .6; }
-    @media(max-height:450px) { .ac-stage > .ac-spillcontrols { width: min(300px,calc(100% - 32px)); bottom: max(8px,env(safe-area-inset-bottom)); } }
+    @media(max-height:450px) { .ac-stage > .ac-spillcontrols { width: min(400px,calc(100% - 24px)); height: 90px; bottom: max(8px,env(safe-area-inset-bottom)); } }
 
     .ac-rewardwithpin { display:flex; flex-direction:column; align-items:center; gap:3px; }
 

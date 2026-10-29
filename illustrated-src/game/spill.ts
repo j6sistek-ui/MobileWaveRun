@@ -39,6 +39,9 @@ import { VANGUARD_DEPOT_SECONDS } from "./spill-depot-gag";
 import { ENVS, LEGACY_DEBRIS_COUNT, PHYS } from "./catalog";
 import { SPILL_EVENTS, SPILL_SPECIALTIES, SPILL_UTILITIES, SPILL_UTILITY_IDS, spillContractOffers, spillEventFor,
   type SpillContract, type SpillContractKind, type SpillEvent, type SpillSpecialty, type SpillUtility } from "./spill-content";
+import { admitSpillEnemies, beginSpillCombatWave, captureSpillCombatMotion, clearSpillCombat, createSpillCombat,
+  resizeSpillCombat, restoreSpillCombat, spillCombatPressure, spillCombatPulse, spillCombatRockClear, stepSpillCombat,
+  type SpillCombat } from "./spill-combat";
 
 // ---------------------------------------------------------------- tuning
 
@@ -318,6 +321,8 @@ export type SpillPhase = "ready" | "countdown" | "wave" | "drain" | "docking" | 
 export type SpillKind = "shard" | "tumbler" | "hulk" | "spinner";
 
 export type SpillRock = {
+  /** Projectile damage is lazy; original rocks retain their exact spawn shape until hit. */
+  hp?: number;
   x: number;
   y: number;
   vx: number;
@@ -344,7 +349,8 @@ export type SpillBurst = { x: number; y: number; n: number; power: number; tone:
 export type SpillCue =
   | "press" | "burst" | "lunge" | "hit" | "shatter" | "ore" | "gold" | "shield" | "hull" | "graze"
   | "pulse" | "wave" | "go" | "count" | "clear" | "dock" | "depot" | "armed" | "depot-close" | "buy" | "deny"
-  | "respawn" | "dead" | "mission" | "milestone" | "surge" | "warn" | "recharge" | "charged" | "contract" | "event";
+  | "respawn" | "dead" | "mission" | "milestone" | "surge" | "warn" | "recharge" | "charged" | "contract" | "event"
+  | "laser" | "cannon" | "enemy-fire" | "enemy-down";
 
 export type SpillDepot = {
   /** the shelves are inert until this runs out */
@@ -354,6 +360,7 @@ export type SpillDepot = {
 };
 
 export type SpillState = {
+  combat: SpillCombat;
   /** Cosmetic mission family; absent in legacy/endless checkpoints. */
   zoneEnv?: number;
   seed: number;
@@ -494,6 +501,7 @@ function rand(s: SpillState) {
 
 export function createSpill(W: number, H: number, seed: number, target = 0, hints = true, welcome = true): SpillState {
   return {
+    combat: createSpillCombat(seed),
     seed: seed >>> 0,
     rng: seed >>> 0,
     W,
@@ -583,6 +591,7 @@ export function resizeSpill(s: SpillState, W: number, H: number) {
   if (!(W > 0 && H > 0) || (W === s.W && H === s.H)) return;
   const sx = W / s.W;
   const sy = H / s.H;
+  resizeSpillCombat(s, sx, sy);
   for (const r of s.rocks) { r.x *= sx; r.y *= sy; r.vx *= sx; r.vy *= sy; r.arc *= sy; }
   for (const n of s.nuts) { n.x *= sx; n.y *= sy; n.vx *= sx; n.vy *= sy; }
   s.eventSafeY *= sy;
@@ -707,6 +716,7 @@ export function spillRockAt(s: SpillState, r: SpillRock, t: number) {
  * forward against every piece in flight, and any overlap rejects the spawn.
  */
 export function spillPathClear(s: SpillState, cand: SpillRock) {
+  if (!spillCombatRockClear(s, cand)) return false;
   for (const r of s.rocks) {
     if (r.dead) continue;
     for (let k = 0; k <= 18; k++) {
@@ -942,7 +952,7 @@ function firePulse(s: SpillState) {
   s.pulseFlash = 0.45;
   s.shake = 0.5;
   const reach = pulseRadius(s);
-  let hit = 0;
+  let hit = spillCombatPulse(s, reach);
   for (const r of s.rocks) {
     if (r.dead || r.warn > 0) continue;
     const dx = r.x - s.pilot.x;
@@ -970,6 +980,7 @@ export function spillPulse(s: SpillState) {
 // ---------------------------------------------------------------- waves
 
 function beginWave(s: SpillState) {
+  beginSpillCombatWave(s);
   s.phase = "wave";
   s.phaseT = 0;
   // the GO hands over a level ship at rest: gravity starts from zero, so
@@ -994,6 +1005,7 @@ function beginWave(s: SpillState) {
 /** the intermission: the ship flies itself home while the next wave is
  *  named and counted down. Control comes back on the GO */
 function beginCountdown(s: SpillState, n: number) {
+  clearSpillCombat(s);
   s.wave = n;
   s.spec = spillWaveSpec(n, s.seed);
   s.event = spillEventFor(n, s.seed);
@@ -1033,6 +1045,7 @@ function afterClear(s: SpillState) {
 }
 
 function endWave(s: SpillState) {
+  clearSpillCombat(s);
   // the wave is cleared the moment the field has drained. A mission ends
   // on a win here, not on the crash that was coming eventually
   s.cleared = s.wave;
@@ -1062,6 +1075,7 @@ export function spillDockDuration(s: SpillState) {
 }
 
 function beginDocking(s: SpillState) {
+  clearSpillCombat(s);
   s.phase = "docking";
   s.phaseT = 0;
   s.depotGag = undefined;
@@ -1222,7 +1236,7 @@ export function spillLeaveDepot(s: SpillState) {
 
 // ----------------------------------------------------------------- hits
 
-function takeHit(s: SpillState, r: SpillRock | null) {
+function takeHit(s: SpillState, r: SpillRock | null, cause: "STRUCK" | "GROUNDED" = r ? "STRUCK" : "GROUNDED") {
   if (s.iframes > 0 || s.gold > 0) return;
   // A boundary has no debris to shatter, but protection applies equally.
   const breakRock = (power = 1.2) => { if (r) shatter(s, r, power); };
@@ -1264,10 +1278,11 @@ function takeHit(s: SpillState, r: SpillRock | null) {
     say(s, s.hull === 1 ? "HEALTH CRITICAL" : "HEALTH LOST", 1.2);
     return;
   }
-  lose(s, r ? "STRUCK" : "GROUNDED");
+  lose(s, cause);
 }
 
 function lose(s: SpillState, cause: "STRUCK" | "GROUNDED") {
+  clearSpillCombat(s);
   if (s.coreArmed) {
     // the extra life: the field freezes, and the ship comes back whole and
     // golden, to the phase it left
@@ -1497,7 +1512,8 @@ function stepSpillBody(s: SpillState, dt: number) {
       s.phaseT = 0;
     }
   } else if (s.phase === "drain") {
-    const live = s.rocks.some((r) => !r.dead && r.x > -r.r);
+    const live = s.rocks.some((r) => !r.dead && r.x > -r.r)
+      || s.combat.enemies.some(e => !e.dead) || s.combat.shots.some(shot => !shot.dead && shot.team === "enemy");
     if (!live || s.phaseT >= SPILL.drainCap) {
       endWave(s);
       return;
@@ -1524,6 +1540,7 @@ function stepSpillBody(s: SpillState, dt: number) {
   }
 
   // ---- the ship
+  const combatMotion = captureSpillCombatMotion(s);
   if (s.iframes > 0) s.iframes = Math.max(0, s.iframes - dt);
   if (s.gold > 0) s.gold = Math.max(0, s.gold - dt);
   if (s.brakeCool > 0) s.brakeCool = Math.max(0, s.brakeCool - dt);
@@ -1600,15 +1617,18 @@ function stepSpillBody(s: SpillState, dt: number) {
   // ---- the spawn director
   if (s.phase === "wave") {
     stepEvent(s, dt);
+    admitSpillEnemies(s, dt);
     s.nextRock -= dt;
-    const cap = s.spec.cap + (spillMod(s, "swarm") ? 2 : 0) + (surging(s) ? 2 : 0);
+    const combatPressure = spillCombatPressure(s);
+    const cap = Math.max(2, s.spec.cap + (spillMod(s, "swarm") ? 2 : 0) + (surging(s) ? 2 : 0) - combatPressure * 2);
     if (s.nextRock <= 0 && s.rocks.filter((r) => !r.dead).length < cap) {
       const base = s.spec.interval;
       // a wave that is teaching something opens easier than its number
       const teaching = s.hintT > 0 && s.wave > 1 ? 1.35 : 1;
       const act = s.waveT / s.spec.dur;
       const pacing = act < 0.2 ? 1.35 : act < 0.5 ? 1 : act < 0.78 ? 0.8 : 1.4;
-      s.nextRock = Math.max(0.1, (surging(s) ? base * 0.45 : base) * teaching * pacing * (0.65 + rand(s) * 0.7));
+      s.nextRock = Math.max(0.1, (surging(s) ? base * 0.45 : base) * teaching * pacing * (0.65 + rand(s) * 0.7)
+        * (combatPressure ? 1.5 : 1));
       for (let k = 0; k < 6; k++) if (spawnRock(s)) break;
     }
     s.nextNut -= dt;
@@ -1624,7 +1644,6 @@ function stepSpillBody(s: SpillState, dt: number) {
   }
 
   // ---- debris
-  const golden = s.gold > 0;
   for (const r of s.rocks) {
     if (r.dead) continue;
     // a hulk waits offscreen while it warns. The frame the warning runs
@@ -1640,6 +1659,13 @@ function stepSpillBody(s: SpillState, dt: number) {
     r.x += r.vx * move;
     r.y += r.vy * move + (r.arc ? Math.cos(r.arcPhase + s.t * ARC_RATE) * r.arc * move : 0);
     r.rot += r.spin * move;
+  }
+  stepSpillCombat(s, dt, combatMotion, { shipRadius: SPILL.shipR,
+    shatter: rock => shatter(s, rock), damagePilot: () => takeHit(s, null, "STRUCK") });
+  if (!flying(s)) return;
+  const golden = s.gold > 0;
+  for (const r of s.rocks) {
+    if (r.dead || r.warn > 0) continue;
     const dx = r.x - s.pilot.x;
     const dy = r.y - s.pilot.y;
     const d2 = dx * dx + dy * dy;
@@ -1701,6 +1727,7 @@ export type SpillCheckpoint = { version: 1; state: SpillState };
 export function spillCheckpoint(s: SpillState): SpillCheckpoint | null {
   if (s.phase !== "depot" || !s.depot || s.target) return null;
   const state: SpillState = JSON.parse(JSON.stringify(s));
+  clearSpillCombat(state);
   delete state.depotGag; delete state.depotGagReady;
   state.rocks = []; state.nuts = []; state.bursts = []; state.cues = [];
   state.thrustT = 0; state.manual = false;
@@ -1723,6 +1750,9 @@ export function restoreSpill(raw: unknown, W: number, H: number): SpillState | n
       (s as any)[key] = n;
     }
   }
+  const combat = restoreSpillCombat(value.combat, s.seed);
+  if (!combat) return null;
+  s.combat = combat;
   s.welcome = value.welcome === true && s.wave === 0;
   s.freeUpgrade = s.welcome && value.freeUpgrade === true;
   if (!Number.isInteger(s.wave) || (!s.welcome && s.wave < 5) || s.wave % 5 || s.cleared !== s.wave || s.W <= 0 || s.H <= 0 || s.ore < 0) return null;

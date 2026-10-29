@@ -1,20 +1,38 @@
-# Browser extraction validation — 2026-10-29
+# Browser validation — 2026-10-29
 
-The authority is AcornautSandbox `b67bb50f3f3fa24b6a335133a1c176638a83f775`. The extraction preserves Spill rules, content, presentation and Depot gag source. Four LF-normalized SHA-256 checks and three seeded 900-frame full-state traces protect that baseline. Artwork provenance covers 125 exact upstream files, 10,529,964 bytes, including the two music tracks used here. The original source checkout remains unchanged.
+## Priority-one combat extension
 
-## Automated checks
+The combat extension passes TypeScript checking, clean browser build, asset verification and all 12 test files using existing Node24.19.0. No dependency or host package installation was needed. Docker was attempted again; its Desktop Linux engine pipe is unavailable. The existing Linux CI workflow supplies a separate platform check at PR time. `git diff --check` passes; there is no separate lint script.
+
+New coverage includes 14 combat rule cases (held fire, upgrades, forward assistance, moving-target sweeps, cover ties, damage/Pulse/extra life, once-only rewards, warning lead, admission caps, pressure allocation, drain/resize, legacy checkpoint migration, malformed-save rejection and deterministic mixed encounters). Host tests cover keyboard plus multiple pointer owners, release/cancel, pause/focus/visibility/resize, disabled controls, stop/restart, immediate purchase checkpoints and resume. Existing regressions still cover movement, progression, isolated storage and 192 equipment renders.
+
+The production renderer loads both generated PNGs and verifies six weapon/viewport frames at 320×760, 390×760 and 1280×720, plus Blackout and missing-image fallback. Frames were inspected for silhouettes, warning alignment and peripheral HUD placement. Original provenance remains 125 exact upstream files / 10,529,964 bytes; the two generated files total 2,042,667 bytes. Three unchanged content/presentation hashes and all three original 900-frame non-firing Wave 1 state traces still pass. Only the newly added combat state is omitted from those legacy trace hashes; combat remains enabled.
+
+Real browser smoke testing used the normal menu, opening Depot, Heavy Cannon selection, free Health upgrade, launch and pause. A continuous laser run used Space and held F to reach Wave 2 with 27 run coins; the screenshot shows the real laser, enemy and target marker. Pause showed Wave 2 correctly. The browser console had no warnings or errors. The narrow 319×629 Depot and flight controls were visually inspected; a 1280×720 pause layout had no horizontal overflow. The screenshot API works again after resetting the browser-control session, superseding the extraction-era capture limitation below. Temporary viewport overrides were reset.
+
+![Live browser combat at Wave 2](images/combat-browser.jpg)
+
+[Opening Depot screenshot](images/combat-depot.jpg)
+
+The live run is a short smoke check, not a natural five-wave completion or balance certification. Physical phone touch ergonomics, audio listening, sustained performance, late endless-wave combinations and native packaging remain unverified. Desktop browser input automation could not reliably hold the on-screen Fire pad; its multiple-pointer lifecycle is covered by DOM integration tests, while held keyboard firing was exercised live. No merge or live-site publication is part of these local results.
+
+## Extraction baseline (historical)
+
+The extraction authority was AcornautSandbox `b67bb50f3f3fa24b6a335133a1c176638a83f775`. That baseline preserved Spill rules, content, presentation and Depot gag source with four LF-normalized SHA-256 checks and three seeded 900-frame full-state traces. Combat now intentionally extends the rules as described above. The original source checkout remains unchanged.
+
+### Automated checks
 
 Use `npm run check` for TypeScript checking, a clean browser build, asset verification and the complete test suite. Local checks use existing Node24.19.0 and repository-local dependencies. The Docker engine was unavailable on this workstation; the provided Node22 Docker build and Linux CI workflow have separate execution status. `npm audit` reports zero known vulnerabilities after updating the test-only DOM dependency. No runtime npm dependencies are shipped in `dist/`.
 
 Coverage includes original rules, damage and progression, all four first-Depot choices, coins during countdown, contracts and 48 event sweeps, checkpoint banking, endless continuation, three deterministic traces, 192 ship render configurations, five arrival frames and 36 bear animation frames. Standalone checks exercise the actual bootstrap, early input during delayed asset loading, blocked other-mode launches, isolated storage including quota failure, settings, focus, multitouch ownership, pause, free starter, Wave5 Depot purchase, save/quit/resume and restart. Forced Wave5 setup verifies the checkpoint integration; it is not evidence of a complete natural five-wave playthrough.
 
-## Browser smoke check
+### Browser smoke check
 
 The local build was opened over HTTP in the desktop app's browser. The real UI reached the home screen, opening briefing, starter Depot, free Thrusters upgrade, Wave1 and pause after a thrust input. Browser console inspection reported no errors or warnings. Desktop1280×720 and narrow390×760 layout bounds were inspected; the narrow pause controls fit the viewport without horizontal overflow.
 
 The browser screenshot API failed to capture this tab. Therefore a complete visual comparison of the HTML overlays is **not verified**. Separate production-painter render images were generated and inspected; these are synthetic test scenes, not screenshots of the interactive browser. Audio listening, sustained play, physical mobile touch ergonomics, device performance, and native packaging remain unverified.
 
-## Preserved baseline behavior
+### Preserved baseline behavior
 
 Instruction prompts retain the original teaching-speed behavior. Abort-to-title does not bank an active run in the upstream engine; this extraction retains that behavior. Checkpoints save at Depots, not mid-wave. These are potential later design topics, not changes bundled into extraction.
 

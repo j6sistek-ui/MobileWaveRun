@@ -1,0 +1,18 @@
+{
+  "mode": "built-in image_gen",
+  "intent": "generate",
+  "date": "2026-10-29",
+  "transparent_background": true,
+  "assets": [
+    {
+      "id": "pursuer",
+      "path": "public/art/spill-combat/pursuer.png",
+      "prompt": "Create one production game sprite, use-case stylized-concept, for MobileWaveRun's side-scrolling debris combat. Asset: PURSUER enemy spaceship, complete and assembled, compact bullet-shaped salvage interceptor. STRICT DIRECTION: pointed nose and small weapon barrel at LEFT, rear engine bell at RIGHT; ship flying LEFT in pure side profile, slight top surfaces visible but no front view. Style matches a charming polished 3D illustrated arcade acorn spacecraft: hand-worked ivory metal panels, tarnished brass rivets, rounded chunky construction and walnut-brown accents, soft top-left light, clear readable silhouette at 64 pixels wide. Enemy recognition: dark oxblood-red armor panels, small amber cockpit and narrow golden detail; more angular aggressive nose than friendly acorn ship. One centered whole ship, horizontal, no pilot visible. Engine unlit; separate gameplay draws exhaust. No ground, no cast shadow outside hull, no labels, text, insignia, frame, stars, scenery, UI or extra objects. True transparent alpha background, generous clear padding, crisply antialiased opaque hull, no outer glow. Output square sprite image."
+    },
+    {
+      "id": "flanker",
+      "path": "public/art/spill-combat/flanker.png",
+      "prompt": "Create one production game sprite, use-case stylized-concept, for MobileWaveRun's side-scrolling debris combat. Asset: FLANKER enemy spaceship, complete and assembled, distinctive wide manta/kite silhouette with two curved short fins and paired rear engine bells. STRICT DIRECTION: pointed nose and small weapon barrel at LEFT, rear engines at RIGHT; ship flying LEFT in side profile with some top surfaces visible, no front view. Style matches a charming polished 3D illustrated arcade acorn spacecraft: hand-worked ivory metal panels, tarnished brass rivets, rounded chunky construction and walnut-brown accents, soft top-left light, clear readable silhouette at 72 pixels wide. Enemy recognition: deep teal-green armor panels, warm amber slit cockpit, copper details; flattened broad twin-engine shape clearly distinct from a compact bullet-shaped pursuer. One centered whole ship, horizontal, no pilot visible. Engines unlit; separate gameplay draws exhaust. No ground, no cast shadow outside hull, no labels, text, insignia, frame, stars, scenery, UI or extra objects. True transparent alpha background, generous clear padding, crisply antialiased opaque hull, no outer glow. Output square sprite image."
+    }
+  ]
+}
