@@ -27,5 +27,7 @@ async function rewrite(dir) {
 await rewrite(join(out, 'js'));
 await cp(join(root, 'public'), out, { recursive: true });
 await cp(join(root, 'illustrated-src/spill-workshop.css'), join(out, 'spill-workshop.css'));
+await cp(join(root, 'CNAME'), join(out, 'CNAME'));
+await writeFile(join(out, '.nojekyll'), '');
 await mkdir(join(out, 'js'), { recursive: true });
 console.log('Built browser game in dist/');

@@ -21,7 +21,9 @@ npm run check
 npm start
 ```
 
-Serve `dist/` from any static HTTP host for browser deployment, including a subdirectory. Do not open the HTML through `file://`; browser module loading requires HTTP. The PR workflow produces a downloadable `MobileWaveRun-browser` artifact. Hosting and native mobile packaging are separate from this first browser baseline.
+The owner's Pages domain is **quarterdrop.app**, preserved in `CNAME`. `.github/workflows/pages.yml` validates and publishes `dist/` on pushes to `main`; PRs only build and test. GitHub Pages must use **GitHub Actions** as its build source. The deployment job is limited to `main`, so this extraction does not publish until merged. Custom-domain DNS and TLS are managed by the existing Pages configuration.
+
+You can also serve `dist/` from any static HTTP host, including a subdirectory. Do not open the HTML through `file://`; browser module loading requires HTTP. The PR workflow produces a downloadable `MobileWaveRun-browser` artifact. Native mobile packaging is a later step.
 
 ## Play and saves
 
