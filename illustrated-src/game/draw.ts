@@ -41,6 +41,7 @@ import {
   type SpillState,
 } from "./spill";
 import { spillEngineColor } from "./spill-content";
+import { drawSpillCombat, drawSpillCombatHud } from "./spill-combat-view";
 import { SPILL_MODULE_MARKS, spillDockBear, spillDockView, spillPreviewState, type SpillBuild } from "./spill-presentation";
 import {
   RACE_ACORNS,
@@ -2262,6 +2263,7 @@ function drawSpillWorld(ctx: CanvasRenderingContext2D, w: World, save: SaveData,
     }
   }
 
+  drawSpillCombat(ctx, s, art);
   for (const p of w.particles) drawParticle(ctx, p);
 
   if (s.phase !== "over" && w.screen !== "dead") {
@@ -2419,7 +2421,7 @@ function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | n
       ctx.globalAlpha = 1;
     } else if (!unlocked && s.charge > 0) {
       ctx.fillStyle = "rgba(200,190,255,.6)";
-      ctx.fillText("PULSE · UNLOCK AT THE DEPOT", W / 2, 82);
+      ctx.fillText("UNLOCK PULSE", W / 2, 82);
     }
   }
   // Acorn Coins, top-left, where the acorns sit in every other mode
@@ -2452,6 +2454,7 @@ function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | n
   ctx.textAlign = "right"; ctx.font = "800 10px Figtree, system-ui";
   ctx.fillStyle = "#b3f1d2"; ctx.fillText("HEALTH", W - 58, 15);
   ctx.fillStyle = "#a3e6ff"; ctx.fillText(`SHIELDS ${s.shield}`, W - 58, 44);
+  drawSpillCombatHud(ctx, s);
   // status lines stack under the meter
   let hudY = 100;
   const hudLine = (text: string, color: string) => {

@@ -106,10 +106,13 @@ for(const kind of ['salvage','clean','shards'])for(const wins of [false,true]){
  assert.equal(s.ore,ore+(kind==='salvage'?c.target:0)+S.SPILL.clearOre+(wins?c.reward:0));
  step(s,5);assert.equal(s.contractsDone,wins?1:0);
 }
-// Events preserve a stock route across phone and desktop sizes, with caps.
+// Isolate the existing debris event admission guarantee. This geometric helper only
+// chooses lanes around rocks; it does not react to the new aimed enemy shots. Mixed
+// combat admission and warning/reaction guarantees are covered in test-spill-combat.
 let eventSweeps=0;
 for(const W of [320,390,1280])for(const event of ['cargo','vein','lanes','rig']){
  const s=flight(20,W);s.event=event;s.nextRock=0;s.nextNut=0;s.nextSpecial=1000;s.eventNext=0;
+ s.combat.nextEnemy=1000;
  step(s,35,x=>{x.pilot.y=S.spillEscapeY(x);x.pilot.vy=0;x.floorT=0;
    const cap=x.spec.cap+(x.liveMods.includes('swarm')?2:0)+(x.surgeT>0?2:0);assert(x.rocks.length<=cap,'event respects actor budget');});
  assert.equal(s.hits,0,`${event} has a stock escape route at ${W}px`);assert(s.eventPass>=3);eventSweeps+=s.eventPass;

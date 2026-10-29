@@ -9,6 +9,7 @@ import { SPILL_ENGINE_COLORS, SPILL_UTILITIES, SPILL_UTILITY_IDS, SPILL_SPECIALT
   spillEngineColor, spillContractOffers, type SpillUtility, type SpillSpecialty } from "./spill-content";
 import { spillBuildFromState } from "./spill-presentation";
 import { SPILL_SHOP, spillPrice, spillContractProgress, type SpillBuyable } from "./spill";
+import { SPILL_WEAPONS, spillWeaponPrice, spillWeaponStats, type SpillWeaponId } from "./spill-combat";
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = "", text = "") => {
   const n = document.createElement(tag); n.className = cls; n.textContent = text; return n;
@@ -204,9 +205,14 @@ function flightControlCards() {
     card.style.setProperty("--pad-edge", edge);
     card.append(el("b", "", input), el("span", "", action), el("small", "ac-sub", note)); controls.append(card);
   }
+  const fire = el("div", "ac-spillhelp-pad ac-spillhelp-fire");
+  fire.style.setProperty("--pad-light", "#ffe2ba");
+  fire.style.setProperty("--pad-edge", "#f4ac71");
+  fire.append(el("b", "", "HOLD FIRE"), el("span", "", "Shoot ahead"), el("small", "ac-sub", "Fire pad · hold F"));
+  controls.append(fire);
   return controls;
 }
-const harderKickNote = () => el("small", "ac-sub ac-spillhelp-extra", "Swipe up · harder kick · W");
+const harderKickNote = () => el("small", "ac-sub ac-spillhelp-extra", "Swipe up · harder kick · W. Hold Fire to shoot; tap and Space still fly. Aim assistance only follows enemies close to your forward line—match their height. Release to stop; press again after pausing.");
 
 /** The same instructions in Settings & Help and the replayable briefing. */
 export function drawSpillFlightHelp() {
@@ -305,7 +311,44 @@ export function drawDepotWorkshop(engine: Engine, view: DepotView, rerender: () 
     }
     details.append(choices); sheet.append(details);
   }
-  // The opening Depot offers only the four core upgrades. Utilities arrive after wave 5.
+  // Weapons are a separate choice: fitting either never spends the opening system upgrade.
+  const weapons = el("section", "ac-workshop-weapons"), weaponHead = el("div", "ac-workshop-sectionhead");
+  weaponHead.append(el("h3", "", "Weapons"), el("span", "", "Switch free · upgrades last this run"));
+  weapons.append(weaponHead);
+  const weaponGrid = el("div", "ac-workshop-weapongrid");
+  for (const id of Object.keys(SPILL_WEAPONS) as SpillWeaponId[]) {
+    const spec = SPILL_WEAPONS[id], level = sp.combat.levels[id], selected = sp.combat.weapon === id;
+    const stats = spillWeaponStats(sp, id);
+    const card = el("section", `ac-workshop-weapon${selected ? " fitted" : ""}`);
+    card.append(el("h4", "", spec.name), el("p", "", spec.description),
+      el("strong", "ac-weapon-stats", `Tier ${level}/3 · ${stats.damage} damage · ${(1 / stats.cooldown).toFixed(1)}/sec`));
+    const fit = el("button", "ac-workshop-buy", selected ? "Equipped" : "Equip free");
+    fit.dataset.spillControl = `weapon-${id}`;
+    fit.setAttribute("aria-pressed", String(selected));
+    fit.setAttribute("aria-label", `${spec.name}: ${selected ? "equipped" : "equip free"}`);
+    fit.disabled = arming || selected;
+    fit.onclick = () => {
+      feedback(`${spec.name} equipped`);
+      if (!engine.spillSelectWeapon(id)) { view.receipt = "Weapon unavailable"; rerender(); }
+    };
+    card.append(fit); weaponGrid.append(card);
+  }
+  weapons.append(weaponGrid);
+  const weaponPrice = spillWeaponPrice(sp), weaponName = SPILL_WEAPONS[sp.combat.weapon].name;
+  const upgradeRow = el("div", "ac-workshop-weaponupgrade"), upgrade = el("button", "ac-workshop-buy");
+  upgrade.dataset.spillControl = "weapon-upgrade";
+  upgrade.disabled = arming || weaponPrice === null || weaponPrice > sp.ore;
+  upgrade.setAttribute("aria-label", `${weaponName}: ${weaponPrice === null ? "fully upgraded" : `upgrade for ${weaponPrice} Acorn Coins`}`);
+  if (weaponPrice !== null) upgrade.append(coin());
+  upgrade.append(el("span", "", weaponPrice === null ? "Max tier" : String(weaponPrice)));
+  upgradeRow.append(el("span", "", weaponPrice === null ? `${weaponName} fully upgraded` : `Upgrade ${weaponName}`), upgrade);
+  upgrade.onclick = () => {
+    feedback(`${weaponName} upgraded`);
+    if (!engine.spillUpgradeWeapon()) { view.receipt = "Weapon upgrade unavailable"; rerender(); }
+  };
+  weapons.append(upgradeRow, el("p", "ac-workshop-note", "Hold F or the Fire pad in flight. Choose your free ship-system upgrade separately."));
+  sheet.append(weapons);
+  // Utilities arrive after wave 5; the original four core hardpoints stay unchanged.
   if (!sp.welcome) {
     const shelf = el("section", "ac-workshop-utilities"), shelfHead = el("div", "ac-workshop-sectionhead"), slots = el("div", "ac-workshop-slots");
     shelfHead.append(el("h3", "", `Utilities · ${sp.utilities.length} / 2 fitted`), el("span", "", sp.welcome ? "Buy after wave 5" : "Buy once this run · refit free")); shelf.append(shelfHead);

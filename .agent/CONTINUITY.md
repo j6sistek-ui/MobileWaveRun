@@ -1,9 +1,11 @@
 # MobileWaveRun continuity
 
 ## [PLANS]
+- 2026-10-29T16:50Z [USER] Extraction accepted and PR1 merged. Priority-one combat now authorized: two weapons and two enemy behaviors integrated into existing side-view waves, Depot, controls and checkpoints. Use imagegen for needed sprites. No navigable station, 3D conversion or licensed Unreal assets. PR required, do not auto-merge.
 - 2026-10-29T12:25Z [USER] Extract only The Spill into new repository https://github.com/j6sistek-ui/MobileWaveRun; retain current side-view gameplay and browser launch. Later review original SpaceSurvival scope beyond Phase1 for adaptation. No 3D/Phoenix adoption now.
 
 ## [DECISIONS]
+- 2026-10-29T17:13Z [CODE] Combat extends the extraction baseline: two free-selectable weapons with65/130 run upgrades, manual heldF/Fire pad, narrow forward assistance, Pursuer/Flanker encounters fromWave2. IndependentRNG and capped pressure replace some debris; existing shields/Pulse/coins/contracts/checkpoints integrate. Legacyv1 saves defaulttierI; oldassets unchanged, newimagegenprovenance separate. Sideview/Depot remain.
 - 2026-10-29T12:25Z [TOOL] Upstream AcornautSandbox pinned b67bb50f3f3fa24b6a335133a1c176638a83f775. Read-only source clone in task work/spill-source. New destination was empty; main initialized with empty commit2ac0fb7 so implementation can be reviewed as a PR on codex/extract-spill-browser.
 - 2026-10-29T12:25Z [CODE] Preserve rules/render/input timing; replace multi-mode host with Spill-only entry and isolate persistence. Shared supporting modules retained initially for parity; no other mode entry points allowed.
 
@@ -15,6 +17,7 @@
 - 2026-10-29T12:25Z [TOOL] Copied source support and original Spill design reference. Extraction in progress; no launch/visual/parity claim yet.
 
 ## [OUTCOMES]
+- 2026-10-29T17:13Z [TOOL] Supersedes extraction-only verification: cleanbuild/typecheck,127assetprovenancechecks,12testfiles(14combatcases,hostinput/save,6combatframes+Blackout,192shiprenders,legacytraces) anddiffcheck pass. DockerDesktop engine unavailable; existingNode24 fallback. BrowsernormalUI reachedWave2 withheldF/Space and27runcoins, enemy/laser screenshot docs/images/combat-browser.jpg; narrowDepot anddesktoppause checked, consoleclean. Physicalphone/audio/performance/latebalance UNCONFIRMED. Branchcodex/spill-weapons-combat readyforPR, no mergeorpublication.
 - 2026-10-29T12:46Z [TOOL] Supersedes pending implementation: Spill-only browser host, scoped loader, independent storage, static build, launcher and container/CI workflows implemented. npm run check passes typecheck/build/125 exact assets (10,529,964 bytes)/9 test files; audit and diff checks pass. Includes deterministic source parity and192 ship render configurations. Original source checkout and Unreal assets unchanged.
 - 2026-10-29T12:46Z [TOOL] Real browser UI reached free-upgrade Depot, Wave1 and pause, no console errors/warnings; desktop/narrow layout bounds inspected. Browser screenshots unavailable; full overlay visual comparison and physical-device/audio/performance acceptance UNCONFIRMED. See docs/VALIDATION.md. PR publication next, do not merge without owner approval.
 - 2026-10-29T12:50Z [USER] quarterdrop.app is configured on Pages. [TOOL] Preserved concurrent main CNAME commit26f6eb5 and merged it into extraction branch. Added validated main-only Pages artifact deployment; publish follows PR merge. PR1 open/unmerged. Pages was legacy main/root before this workflow; source must be GitHub Actions.

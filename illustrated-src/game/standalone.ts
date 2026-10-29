@@ -5,6 +5,7 @@ import { spillControlArt, SPILL_CONTROL_LAYOUT } from "./spill-control-art";
 import { SPILL_UTILITIES, spillMastery } from "./spill-content";
 import { spillBuildFromState, type SpillBuild } from "./spill-presentation";
 import { restoreSpill, type SpillState } from "./spill";
+import { SPILL_WEAPONS } from "./spill-combat";
 import { createDepotView, drawDepotWorkshop, drawSpillLaunchSetup, drawSpillStarters,
   drawSpillEnginePicker, drawSpillFlightHelp, drawSpillGuideSheet } from "./spill-workshop";
 
@@ -90,6 +91,45 @@ export async function bootStandalone(root: HTMLElement) {
   const thrust = el("button", "ac-thrust");
   const dive = el("button", "ac-dive");
   const lunge = el("button", "ac-lunge");
+  const flightPads = el("div", "ac-flightpads");
+  const fire = el("button", "ac-fire");
+  fire.type = "button";
+  fire.dataset.spillControl = "fire";
+  const fireWeapon = el("small");
+  fire.append(el("b", "", "FIRE"), el("span", "", "HOLD · F"), fireWeapon);
+  const firePointers = new Set<number>();
+  fire.onpointerdown = e => {
+    if (fire.disabled || (e.pointerType === "mouse" && e.button !== 0)) return;
+    e.preventDefault();
+    firePointers.add(e.pointerId);
+    fire.setPointerCapture?.(e.pointerId);
+    engine.spillFire(true, `pointer:${e.pointerId}`);
+    updateControls();
+  };
+  const releaseFirePointer = (e: PointerEvent) => {
+    if (!firePointers.delete(e.pointerId)) return;
+    engine.spillFire(false, `pointer:${e.pointerId}`);
+    if (fire.hasPointerCapture?.(e.pointerId)) fire.releasePointerCapture(e.pointerId);
+    updateControls();
+  };
+  fire.addEventListener("lostpointercapture", releaseFirePointer);
+  window.addEventListener("pointerup", releaseFirePointer);
+  window.addEventListener("pointercancel", releaseFirePointer);
+  fire.onkeydown = e => {
+    if (!["Space", "Enter"].includes(e.code)) return;
+    e.preventDefault(); e.stopPropagation();
+    if (!e.repeat) engine.spillFire(true, `fire-button:${e.code}`);
+    updateControls();
+  };
+  fire.onkeyup = e => {
+    if (["Space", "Enter"].includes(e.code)) { e.preventDefault(); e.stopPropagation(); }
+  };
+  window.addEventListener("keyup", e => {
+    if (["Space", "Enter"].includes(e.code)) {
+      engine.spillFire(false, `fire-button:${e.code}`); updateControls();
+    }
+  }, true);
+  fire.addEventListener("contextmenu", e => e.preventDefault());
   for (const [kind, button] of [["dive", dive], ["thrust", thrust], ["lunge", lunge]] as const) {
     button.type = "button";
     button.innerHTML = spillControlArt(kind);
@@ -120,18 +160,19 @@ export async function bootStandalone(root: HTMLElement) {
   thrust.onclick = e => { if (e.detail === 0) { engine.spillThrust(); updateControls(); } };
   dive.onclick = () => engine.spillDive();
   lunge.onclick = () => engine.spillLunge();
-  controls.append(dive, thrust, lunge);
+  flightPads.append(dive, thrust, lunge);
+  controls.append(flightPads, fire);
 
   let controlState = "";
   function updateControls() {
     const state = engine.world.spill;
     const visible = !!(engine.world.screen === "play" && state && !engine.save.spillButtonsOff
       && ["countdown", "wave", "drain"].includes(state.phase));
-    const key = visible ? `${state.phase}:${state.manual}:${state.lungeCharges}:${state.up.thrusters}:${(state.thrustT ?? 0) > 0}` : "hidden";
+    const key = visible ? `${state.phase}:${state.manual}:${state.lungeCharges}:${state.up.thrusters}:${(state.thrustT ?? 0) > 0}:${state.combat.weapon}:${state.combat.firing}` : "hidden";
     if (key === controlState) return;
     controlState = key;
     controls.hidden = !visible;
-    if (!visible) return;
+    if (!visible) { firePointers.clear(); return; }
     const manual = state.phase !== "countdown" || state.manual;
     dive.disabled = !manual;
     lunge.disabled = !manual || state.lungeCharges <= 0;
@@ -140,6 +181,11 @@ export async function bootStandalone(root: HTMLElement) {
     lungeStatus.textContent = state.lungeCharges ? `${state.lungeCharges}/${cap} READY` : "RECHARGING";
     lunge.setAttribute("aria-label", `Lunge: forward dash, ${state.lungeCharges} of ${cap} charges ready`);
     thrust.classList.toggle("firing", (state.thrustT ?? 0) > 0);
+    fire.disabled = !["wave", "drain"].includes(state.phase);
+    fire.classList.toggle("firing", state.combat.firing);
+    fire.setAttribute("aria-pressed", String(state.combat.firing));
+    fire.setAttribute("aria-label", `Hold fire: ${SPILL_WEAPONS[state.combat.weapon].name}. Keyboard F.`);
+    fireWeapon.textContent = SPILL_WEAPONS[state.combat.weapon].name;
   }
 
   function sheet(title: string, subtitle = "") {
@@ -226,7 +272,7 @@ export async function bootStandalone(root: HTMLElement) {
   function flightSettings() {
     const settings = el("section", "ac-spillsettings");
     settings.append(el("h3", "", "Flight controls"));
-    settings.append(toggle("buttons", "On-screen buttons", "Thrust, Dive and Lunge. Taps and swipes also work.",
+    settings.append(toggle("buttons", "On-screen buttons", "Thrust, Dive, Lunge and held Fire. Keyboard F also fires.",
       !engine.save.spillButtonsOff, () => engine.setSpillButtonsOff(!engine.save.spillButtonsOff)));
     const prompts = toggle("prompts", "Instructional prompts",
       engine.save.helpOff ? "Help is disabled in Settings." : "Control tips and wave lessons. Hazard warnings stay visible.",
@@ -276,7 +322,7 @@ export async function bootStandalone(root: HTMLElement) {
     for (const [label, value] of [
       ["Salvage score", Math.floor(state.score)], ["Acorn Coins mined", state.oreMined],
       ["Contracts completed", state.contractsDone], ["Health hits", state.hits],
-      ["Grazes", state.grazes], ["Debris shattered", state.shattered],
+      ["Grazes", state.grazes], ["Debris shattered", state.shattered], ["Enemies defeated", state.combat.kills],
       ["Best wave", engine.save.spillBest], ["Best salvage score", engine.save.spillRecords?.bestScore ?? 0],
     ] as const) {
       const row = el("div", "ac-row");

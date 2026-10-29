@@ -86,6 +86,9 @@ export type ArtBank = {
    *  in the lab's Ship Bench and read from transforms.json beside the art */
   spillShip: Record<string, Sprite>;
   spillShipFit: SpillShipFit | null;
+  /** Generated combat hulls remain separate from the pinned upstream kit. */
+  spillCombat: Partial<Record<"pursuer" | "flanker", Sprite>>;
+  spillCombatStatus: "pending" | "ready" | "fallback";
   spillScene?: { depot?: HTMLImageElement; panorama?: HTMLImageElement; bear?: DepotBearFrame[];
     vanguardDepot?: HTMLImageElement };
 };
@@ -98,6 +101,7 @@ export const SPILL_SHIP_IDS = [
   "cone-1", "cone-2", "cone-3",
   "cockpit-1", "cockpit-2", "cockpit-3",
 ];
+export const SPILL_ENEMY_IDS = ["pursuer", "flanker"] as const;
 
 declare global {
   interface Window {
@@ -223,6 +227,46 @@ function asSprite(img: HTMLImageElement): Sprite {
   return s;
 }
 
+// These large, padded source paintings are fitted by their alpha box. They do
+// not need the collision-core percentile sort used by the original debris.
+// Scan once at load, keep the original image, and never allocate masks per frame.
+function asCombatSprite(img: HTMLImageElement): Sprite {
+  const width = img.naturalWidth || img.width, height = img.naturalHeight || img.height;
+  const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  let left = width, top = height, right = -1, bottom = -1;
+  if (ctx) {
+    ctx.drawImage(img, 0, 0);
+    const pixels = ctx.getImageData(0, 0, width, height).data;
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      if (pixels[(y * width + x) * 4 + 3] < 16) continue;
+      left = Math.min(left, x); right = Math.max(right, x);
+      top = Math.min(top, y); bottom = Math.max(bottom, y);
+    }
+  }
+  if (right < left) { left = top = 0; right = width - 1; bottom = height - 1; }
+  const x = Math.max(0, left - 2), y = Math.max(0, top - 2);
+  const box = { x, y, w: Math.min(width, right + 3) - x, h: Math.min(height, bottom + 3) - y };
+  const sprite = img as Sprite;
+  sprite.box = box; sprite.core = Math.max(box.w, box.h);
+  sprite.coreX = box.x + box.w / 2; sprite.coreY = box.y + box.h / 2;
+  return sprite;
+}
+
+const combatLoads = new WeakMap<ArtBank, Promise<void>>();
+export function loadSpillCombat(bank: ArtBank): Promise<void> {
+  const existing = combatLoads.get(bank);
+  if (existing) return existing;
+  const promise = Promise.all(SPILL_ENEMY_IDS.map(async id => {
+    try { bank.spillCombat[id] = asCombatSprite(await loadImg(artUrl(`spill-combat/${id}.png`))); }
+    catch { /* A failed request uses the corresponding visible silhouette; readiness still settles. */ }
+  })).then(() => {
+    bank.spillCombatStatus = SPILL_ENEMY_IDS.every(id => bank.spillCombat[id]) ? "ready" : "fallback";
+  });
+  combatLoads.set(bank, promise);
+  return promise;
+}
+
 // One missing file must never sink the bank: a 404 among sixty-odd
 // sprites used to reject loadArt, and the game then drew NOTHING at all.
 async function many(prefix: string, n: number, start = 1) {
@@ -263,7 +307,7 @@ export function emptyArt(): ArtBank {
     suits: {}, sky: null, arcadeAcorn: null, frozen: null, shieldnut: null, ore: null,
     frozenAnim: [], shieldAnim: [], wormAnim: [], holeAnim: [], holeEnter: [],
     suitTail: {}, suitBody: {}, suitTap: {}, suitLoop: {}, suitTapTail: {}, suitBounce: {}, suitAsc: {}, suitDesc: {}, hyperRun: {},
-    spillShip: {}, spillShipFit: null,
+    spillShip: {}, spillShipFit: null, spillCombat: {}, spillCombatStatus: "pending",
   };
 }
 
@@ -609,6 +653,7 @@ export async function loadArt(_eagerSuits: string[] = [], _eagerPals: string[] =
     return out;
   }
   await Promise.all([
+    loadSpillCombat(bank),
     many(`${base}/squirrel/idle-`, 4).then(value => { bank.squirrelIdle = value; }),
     many(`${base}/squirrel/flap-`, 4).then(value => { bank.squirrelFlap = value; }),
     many(`${base}/acorn/`, 16).then(value => { bank.acorn = value; }),

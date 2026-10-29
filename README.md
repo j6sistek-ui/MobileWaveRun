@@ -1,6 +1,6 @@
 # MobileWaveRun
 
-The Spill (Debris Field) from AcornautSandbox, isolated as a browser game. This baseline keeps the current side-view flight, artwork, wave rules, upgrades, utilities, contracts, and Depot checkpoints. It is the starting point for quick gameplay experiments before considering front-facing flight or a mobile engine conversion.
+The Spill (Debris Field) from AcornautSandbox, developed as a standalone browser arcade game. Keep flying through debris, shoot a path with Rapid Laser or Heavy Cannon, and fight short enemy encounters between Depot visits. Side-view movement, utilities, contracts, endless waves and Depot checkpoints remain the foundation for quick experiments before considering front-facing flight or a mobile engine conversion.
 
 ## Play locally
 
@@ -27,7 +27,9 @@ You can also serve `dist/` from any static HTTP host, including a subdirectory. 
 
 ## Play and saves
 
-Start a new run from the menu, select a free starter upgrade in the first Depot, and launch. The in-game Controls sheet explains tapping to rise, diving, lunging, and equipment. Clear waves and visit the Depot every five waves. Save and quit from the Depot to resume that checkpoint later. Active flight is not a mid-wave save.
+Start a new run, choose a weapon and a free starter system in the first Depot, and launch. Both weapons are available immediately. Hold **F** or the separate **FIRE** pad to shoot; tapping the field or pressing **Space/Up** still raises the ship. Forward aim assistance helps line up nearby targets, but you choose when to fire. Wave 1 introduces shooting debris; enemy encounters begin at Wave 2. Enemy shots are warned before firing and debris can provide cover.
+
+Clear waves and visit the Depot every five waves. Switch weapons for free or spend run coins on weapon tiers, alongside the existing systems, utilities and contracts. Save and quit from the Depot to resume the build later; older checkpoints receive the default Rapid Laser. Active flight is not a mid-wave save. See [combat rules and tuning](docs/COMBAT.md).
 
 Saves use only `mobilewaverun:`-prefixed browser storage. Existing Acornaut saves are neither imported nor modified. Private browsing or unavailable storage falls back to the current session; clearing this site's browser data clears its saves. Use a consistent browser and URL/port to retain progress.
 
@@ -39,6 +41,6 @@ The host and asset loader are scoped to Spill. Some shared engine, renderer and 
 
 ## Origin and boundaries
 
-Extracted from [AcornautSandbox](https://github.com/j6sistek-ui/AcornautSandbox) commit `b67bb50f3f3fa24b6a335133a1c176638a83f775` (2026-10-28). See `docs/UPSTREAM_SPILL.md` for the original design reference and `asset-manifest.json` for copied asset paths and SHA-256 hashes. The parity checks normalize line endings only. Source and art retain the original proprietary license in `LICENSE`; public visibility does not grant reuse rights.
+Extracted from [AcornautSandbox](https://github.com/j6sistek-ui/AcornautSandbox) commit `b67bb50f3f3fa24b6a335133a1c176638a83f775` (2026-10-28). See `docs/UPSTREAM_SPILL.md` for the original design reference and `asset-manifest.json` for unchanged copied asset hashes. Combat is an authorized extension; unchanged content/presentation and non-firing Wave 1 traces retain upstream parity checks. New enemy sprites have separate generated provenance in [COMBAT_ASSETS](docs/COMBAT_ASSETS.md). Source and art retain the proprietary license in `LICENSE`; public visibility does not grant reuse rights.
 
-This extraction does not alter movement balance or convert the camera to 3D. Phoenix/Unreal assets are not included. Next is a review of SpaceSurvival's original scope beyond Phase1 to select mechanics worth trialing here. Physical phone performance, touch ergonomics and native packaging still require device testing.
+The SpaceSurvival scope review selected weapons and enemies as the first adaptation. There is no navigable station, camera conversion, Phoenix/Unreal asset import or new playable mode. Physical phone performance, touch ergonomics, long-run combat balance and native packaging still require device testing.

@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "provenance": "generated",
+  "generator": "built-in image_gen",
+  "generatedOn": "2026-10-29",
+  "prompts": "docs/combat-image-prompts.json",
+  "processing": "Copied unchanged from generated PNGs; original resolution and alpha preserved.",
+  "totalBytes": 2042667,
+  "files": [
+    {
+      "id": "pursuer",
+      "path": "public/art/spill-combat/pursuer.png",
+      "generationId": "exec-c2eda224-ee9d-4bcc-9a35-3ab587f58a86",
+      "bytes": 948672,
+      "sha256": "04a7c8f5efc74e14971d499e880ce336691df06e7622565df7653ad8c3327a33"
+    },
+    {
+      "id": "flanker",
+      "path": "public/art/spill-combat/flanker.png",
+      "generationId": "exec-859f055d-b8d6-4c94-8e7a-7ac18b11dd43",
+      "bytes": 1093995,
+      "sha256": "55c8d3843dfb435763a76af280d35acdceb24af42d349e33b8a61ee053e22736"
+    }
+  ]
+}
