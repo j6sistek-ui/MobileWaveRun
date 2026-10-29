@@ -1,0 +1,24 @@
+{
+  "name": "mobile-wave-run",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The Spill, extracted as a standalone browser arcade game",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "verify-assets": "node scripts/verify-assets.mjs",
+    "test": "node scripts/test.mjs",
+    "check": "npm run typecheck && npm run build && npm run verify-assets && npm test",
+    "start": "node scripts/serve.mjs",
+    "dev": "npm run build && npm start"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "0.1.80",
+    "happy-dom": "21.0.4",
+    "typescript": "5.9.2"
+  }
+}
