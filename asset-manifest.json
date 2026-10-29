@@ -1,0 +1,902 @@
+{
+  "schema": 1,
+  "upstream": {
+    "repository": "https://github.com/j6sistek-ui/AcornautSandbox",
+    "revision": "b67bb50f3f3fa24b6a335133a1c176638a83f775"
+  },
+  "policy": "Exact upstream bytes; no resizing, recompression, repainting or generated substitutions.",
+  "included": [
+    "Spill ship upgrade kit, utilities and fitting metadata; unused tiny cockpit/blue-hull alternatives remain with the complete kit.",
+    "Spill depot, panorama, bear marshal and workshop; the original README provenance travels with scene and ship art.",
+    "Default Flight pilot still, 12 tap and four dive frames; Clear helmet and eight original squirrel fallback frames.",
+    "27 legacy debris IDs selected by Spill; Acorn Coin and original animated acorn/golden fallback banks.",
+    "Hyper Run scout-ship is retained only as Spill's existing missing-kit fallback, not as a playable mode.",
+    "Self-hosted Figtree/Fraunces fonts with original CSS, README and OFL license texts.",
+    "Menu and Flight streamed music are the two tracks used by Spill; synthesized effects remain in audio.ts."
+  ],
+  "omitted": [
+    "Other pilot suits, helmets and PALs, all roster background prefetch and non-Spill zone loading.",
+    "Planet/zone sky libraries, later debris IDs27-54, vortex and Hyper Run portal art.",
+    "Vanguard-specific depot cameo; no Vanguard selection exists in this extracted baseline.",
+    "Other-mode pickup banks and marketing/shop/campaign art. Shared code/types remain for baseline parity.",
+    "Voyage music belongs to Hyper Run; Cosmos music belongs to retro play. Neither mode is launched here."
+  ],
+  "files": [
+    {
+      "path": "public/art/acorn/1.png",
+      "source": "docs/art/acorn/1.png",
+      "bytes": 22048,
+      "sha256": "8a3822b68571b1dc18a510a844b95fcb259e544168f312cb1433bd63f44287f5",
+      "gitBlob": "932cf2adb96656f3acfacff32a260de6eeb7baae"
+    },
+    {
+      "path": "public/art/acorn/10.png",
+      "source": "docs/art/acorn/10.png",
+      "bytes": 22028,
+      "sha256": "d078d3a7db5e0d432f58c70e3b8a8a1001e4b74b8c380dc375b1666df9173f57",
+      "gitBlob": "0e4af43afa7af07b72ba395064c637106d5fbd56"
+    },
+    {
+      "path": "public/art/acorn/11.png",
+      "source": "docs/art/acorn/11.png",
+      "bytes": 21994,
+      "sha256": "772fb7c972fbf8d7fbab2efa5cc70ad72040ff26b99423429dd551abb7eba1c5",
+      "gitBlob": "1493ab7f6b8c6b748b89d7f78369fd13d387bd0c"
+    },
+    {
+      "path": "public/art/acorn/12.png",
+      "source": "docs/art/acorn/12.png",
+      "bytes": 21991,
+      "sha256": "5d640251c144b547c733449f718a8b7db249064224b49cd322be603ade730eca",
+      "gitBlob": "b3ed21104332a325b1fa333ef45ea6b8276020d5"
+    },
+    {
+      "path": "public/art/acorn/13.png",
+      "source": "docs/art/acorn/13.png",
+      "bytes": 22052,
+      "sha256": "09e2cc5ff0c15bad6d2d33ecaf9d854aef69c7d1975ef803d0927ed77372914d",
+      "gitBlob": "a77ceaa74a0149dc8f90d82e0de7839be36213e6"
+    },
+    {
+      "path": "public/art/acorn/14.png",
+      "source": "docs/art/acorn/14.png",
+      "bytes": 22024,
+      "sha256": "95fc199b5bca706bdaaf5d453337436b75c066092f41b63a97862d9c54d23c72",
+      "gitBlob": "68e662c15e4f978c697677d8220e650f43aeb29f"
+    },
+    {
+      "path": "public/art/acorn/15.png",
+      "source": "docs/art/acorn/15.png",
+      "bytes": 22089,
+      "sha256": "0924fd36066a85b38c1fe28654e2f1122ce5bafb1a24c26fd381b816fe8769d7",
+      "gitBlob": "2e1d1b6f0e2b4e803306715d19f5694b3918048f"
+    },
+    {
+      "path": "public/art/acorn/16.png",
+      "source": "docs/art/acorn/16.png",
+      "bytes": 22033,
+      "sha256": "687e71011652e68414e86fed8320b6efcb6f9032bc9ef217115db8884ce94314",
+      "gitBlob": "dd3b7fca5d2486ed2960335ffdd160548ea00d63"
+    },
+    {
+      "path": "public/art/acorn/2.png",
+      "source": "docs/art/acorn/2.png",
+      "bytes": 22031,
+      "sha256": "28442b808c401539c83d38f398eac7e679cdcbd3ee23c8f02c968c9e7cbb2e38",
+      "gitBlob": "41ad9b682a18de9c68b48c1d40ca79832436e585"
+    },
+    {
+      "path": "public/art/acorn/3.png",
+      "source": "docs/art/acorn/3.png",
+      "bytes": 22005,
+      "sha256": "23ffef3560eb2f66f3f790ced2819307f800f99073e6ba3619f27d9c8d42c879",
+      "gitBlob": "09f4b447baa3977878d11817a43fdc3cbaebb30b"
+    },
+    {
+      "path": "public/art/acorn/4.png",
+      "source": "docs/art/acorn/4.png",
+      "bytes": 22108,
+      "sha256": "3f4b1cd79a30e83fb0483734354f337bd660311204b960df26e1f00fe9920da1",
+      "gitBlob": "0e57fb0dd1b9caf03bb72fc55d28f0595cbf2165"
+    },
+    {
+      "path": "public/art/acorn/5.png",
+      "source": "docs/art/acorn/5.png",
+      "bytes": 21896,
+      "sha256": "481fe5e6672f64a619074bdc44602171ad0b06b58620cd96dac73e6feff3303b",
+      "gitBlob": "0dfdbae996700139bcef7d52d77f8c80ee9e20f1"
+    },
+    {
+      "path": "public/art/acorn/6.png",
+      "source": "docs/art/acorn/6.png",
+      "bytes": 22011,
+      "sha256": "dac615b4b782af1259b0693b8c6e5402bfc7a27c4bd1bb3fd486dd9b26847e6e",
+      "gitBlob": "e9e2e492057ed80758bfdaa039bace9ac57a0386"
+    },
+    {
+      "path": "public/art/acorn/7.png",
+      "source": "docs/art/acorn/7.png",
+      "bytes": 21950,
+      "sha256": "a8c79ff5f10ccab35b4e1b8405074700c5a3cb72f9735463af699ab1b2306705",
+      "gitBlob": "0b27023aeb01b4216b3540dc00ee50d4f554284a"
+    },
+    {
+      "path": "public/art/acorn/8.png",
+      "source": "docs/art/acorn/8.png",
+      "bytes": 22029,
+      "sha256": "340a4b6ae0638e82693207dfd73811aee903fcb61a0011d53b0095bd5a3b368c",
+      "gitBlob": "08b0311e4699f62725141283f93a9297eec0f14e"
+    },
+    {
+      "path": "public/art/acorn/9.png",
+      "source": "docs/art/acorn/9.png",
+      "bytes": 22046,
+      "sha256": "3bbf850a7f53b0e5380e7725eb55c75a6e51544361b3472ec40e2e0e537b584a",
+      "gitBlob": "ca62d855522a174874aeb36ee165b74c378cd87a"
+    },
+    {
+      "path": "public/art/debris/0.png",
+      "source": "docs/art/debris/0.png",
+      "bytes": 92117,
+      "sha256": "25a41798c738ec0f2f6ff764d90907edeeaad46afa6c31158d5123cd0b6786f1",
+      "gitBlob": "11d9685ca35be9775e100a6ee95389ccff5adc8a"
+    },
+    {
+      "path": "public/art/debris/1.png",
+      "source": "docs/art/debris/1.png",
+      "bytes": 69227,
+      "sha256": "be69dc4deaca442f2a4f9110fee177a426762aa6251dbe4e38601ca055db05b4",
+      "gitBlob": "a110b8609c49d83591f115b7c6853799bac05c02"
+    },
+    {
+      "path": "public/art/debris/10.png",
+      "source": "docs/art/debris/10.png",
+      "bytes": 82564,
+      "sha256": "30975c3162253ab9eb269387a44e31361e0db147d9f12748373aa40341ff0d2a",
+      "gitBlob": "ca3772ab242ae706717f07be58a3faa7b5ed7a35"
+    },
+    {
+      "path": "public/art/debris/11.png",
+      "source": "docs/art/debris/11.png",
+      "bytes": 82272,
+      "sha256": "aed89ea0bc5f2a31d4f79fff23599bfdf1810a7aec023c6d28efa1b7c7bc5059",
+      "gitBlob": "ada5c189e562ec8ee9706c0491c8d8b0cf8aeba3"
+    },
+    {
+      "path": "public/art/debris/12.png",
+      "source": "docs/art/debris/12.png",
+      "bytes": 76350,
+      "sha256": "22ec681879156731c0507e99aedfe2d2328c141f4e0f3b90751dced7c382a249",
+      "gitBlob": "d91655295ba94cb3ec19ffe240a92ac8b045139c"
+    },
+    {
+      "path": "public/art/debris/13.png",
+      "source": "docs/art/debris/13.png",
+      "bytes": 62619,
+      "sha256": "7aa0b5c8b3e372edbf6e361f85d6a78015593da9cf1c3ee19cc46455e7912696",
+      "gitBlob": "f0fa4b30883a803de84053dd5f026840f350a60c"
+    },
+    {
+      "path": "public/art/debris/14.png",
+      "source": "docs/art/debris/14.png",
+      "bytes": 75538,
+      "sha256": "dbf59ac705df65a397d86d005b7bf24aa96e251cb92e474ec0e893f448f68cb0",
+      "gitBlob": "05c24af14b9a193f392dbab74cc992137e17f80d"
+    },
+    {
+      "path": "public/art/debris/15.png",
+      "source": "docs/art/debris/15.png",
+      "bytes": 94343,
+      "sha256": "6b118d6d1c90d198a4f6fb0377c0f25f310816931e6b77a47430d164bac888eb",
+      "gitBlob": "6d2d656735947a38217a851760084c59f3ca390e"
+    },
+    {
+      "path": "public/art/debris/16.png",
+      "source": "docs/art/debris/16.png",
+      "bytes": 55389,
+      "sha256": "ebb43797b225792f3d82e21dd273295fa927e67975481d82bf7cf80788d07af0",
+      "gitBlob": "ef386dc47b8eebb9788be052b4765d164c020266"
+    },
+    {
+      "path": "public/art/debris/17.png",
+      "source": "docs/art/debris/17.png",
+      "bytes": 103957,
+      "sha256": "50dccf2dfea0825f67b51a6f20ef694d1a5f190dab6b43f10421043ae9d70b1e",
+      "gitBlob": "d725cf04b5cc90e6049b658814fe35520a406749"
+    },
+    {
+      "path": "public/art/debris/18.png",
+      "source": "docs/art/debris/18.png",
+      "bytes": 44695,
+      "sha256": "3a22df6f24def34acd4cc0c9dda12e0e28ce11e78f81c4a2faf30cc608ce8ddb",
+      "gitBlob": "e557725228f0c8a27b438cb3c6441e9111d9aeca"
+    },
+    {
+      "path": "public/art/debris/19.png",
+      "source": "docs/art/debris/19.png",
+      "bytes": 51768,
+      "sha256": "e9b3dab25e9511a6531f3ab374158616126df5d1e36b084aca1cb8cd56e9565f",
+      "gitBlob": "e5e57f1a2399c52b99b8b6106a60a830b428569b"
+    },
+    {
+      "path": "public/art/debris/2.png",
+      "source": "docs/art/debris/2.png",
+      "bytes": 65908,
+      "sha256": "10c5b29fce3f0abb23eb0d699248f21886d7c1687de9bebb61bdf902da982a40",
+      "gitBlob": "a1bf2dbf1b38e659b88085e942f60637dee41308"
+    },
+    {
+      "path": "public/art/debris/20.png",
+      "source": "docs/art/debris/20.png",
+      "bytes": 98067,
+      "sha256": "bec67a9a364702131eabc900acb673d8513c484decfda8012cf7e84859eda234",
+      "gitBlob": "e025834949887b2dea2209453e7e581316f4c76a"
+    },
+    {
+      "path": "public/art/debris/21.png",
+      "source": "docs/art/debris/21.png",
+      "bytes": 72668,
+      "sha256": "240d80ed49779f3881ac5595492e5b7a0c38174244019de603c61e0b5850d2c5",
+      "gitBlob": "4a2dce6293352bd0e386a3bd697c2c9114a21243"
+    },
+    {
+      "path": "public/art/debris/22.png",
+      "source": "docs/art/debris/22.png",
+      "bytes": 82021,
+      "sha256": "28cb72a49985e1d4926c1323cb8f065008d85f22f270e5f8b832805fb88173a7",
+      "gitBlob": "54492574d0021abc40069a4906ce3ad90b8b168f"
+    },
+    {
+      "path": "public/art/debris/23.png",
+      "source": "docs/art/debris/23.png",
+      "bytes": 72585,
+      "sha256": "03ed3db8c3a1a3c939d2bce11257a09f1d6ee7119d85601230e467a30d3e7c6b",
+      "gitBlob": "b64339faf66de58090e2d49e396f31fd84e88c56"
+    },
+    {
+      "path": "public/art/debris/24.png",
+      "source": "docs/art/debris/24.png",
+      "bytes": 91420,
+      "sha256": "c85430f3ea5621894ac48a10d6ed355d1e6288a6d99ac376165b941afc233049",
+      "gitBlob": "8181c3cb38b795486a233429f87ab4099d44c4fd"
+    },
+    {
+      "path": "public/art/debris/25.png",
+      "source": "docs/art/debris/25.png",
+      "bytes": 102841,
+      "sha256": "f8bd3aa246184d4fac7c3e2a79549f3c79315fb709f037473d808cd03c1b540d",
+      "gitBlob": "960c5008770108a1f51fdabfafff2bcbb8b6600d"
+    },
+    {
+      "path": "public/art/debris/26.png",
+      "source": "docs/art/debris/26.png",
+      "bytes": 75603,
+      "sha256": "f17900685248a225c811e38a2cdc5882cd6850147d1dcdfde505406007c76f96",
+      "gitBlob": "a89beffdcd73e1e19589ae0d8831acfc2c5295bf"
+    },
+    {
+      "path": "public/art/debris/3.png",
+      "source": "docs/art/debris/3.png",
+      "bytes": 80384,
+      "sha256": "ed4e8c7569e7dd529803de39ab62cb47a57a18cddca1337b441567ea4bdb551a",
+      "gitBlob": "8853c4342f07bef75d021b19a5aa42f495f28fcd"
+    },
+    {
+      "path": "public/art/debris/4.png",
+      "source": "docs/art/debris/4.png",
+      "bytes": 91077,
+      "sha256": "06b3aec181ab9cc6e0b97d6e3e30949f9df0358710b14a2e2a874dd248a53f11",
+      "gitBlob": "35d02fd12fd29e525d3f9627d107fc823115adbe"
+    },
+    {
+      "path": "public/art/debris/5.png",
+      "source": "docs/art/debris/5.png",
+      "bytes": 49156,
+      "sha256": "334b60165364c96d1b3c9c5d22311e0576d3b91f63d60c4677dd5da24e1d923c",
+      "gitBlob": "3dd138f19e91791648f727f8f6a07a91b4e9da81"
+    },
+    {
+      "path": "public/art/debris/6.png",
+      "source": "docs/art/debris/6.png",
+      "bytes": 75063,
+      "sha256": "d982ec21f41546738ceee8210e18b64840d3c174cef9e006cd9d015845e73968",
+      "gitBlob": "3117237eb250d6eceadf8cc315199666595a5880"
+    },
+    {
+      "path": "public/art/debris/7.png",
+      "source": "docs/art/debris/7.png",
+      "bytes": 61730,
+      "sha256": "84fc7463b5c035dcfe60f65d0f952b1f7af59adf7c63a8dc709d8f83c86dfbb2",
+      "gitBlob": "73fb9f15114dcefbc151e294c91ea349b00c5625"
+    },
+    {
+      "path": "public/art/debris/8.png",
+      "source": "docs/art/debris/8.png",
+      "bytes": 88920,
+      "sha256": "7f237b17f698b7a9d76ae4f18440287355d9c1763bc9e33c29852cb845928360",
+      "gitBlob": "77e4f4464cfa1f485e6aaad92abfacc207b1e858"
+    },
+    {
+      "path": "public/art/debris/9.png",
+      "source": "docs/art/debris/9.png",
+      "bytes": 47010,
+      "sha256": "625a51a2165e86c12b3a63fc82de66249b2303973f5475d475b70387cd455d4f",
+      "gitBlob": "c11b5d2db799515726455f981e8894d03cc81392"
+    },
+    {
+      "path": "public/art/golden/1.png",
+      "source": "docs/art/golden/1.png",
+      "bytes": 23025,
+      "sha256": "ccd43b0ce850cf9226c67e1f32d47a252abf56b0c346393db7f41e4097834e5e",
+      "gitBlob": "6f814bb7be0997db2f7a8210979fb2270bbc17a8"
+    },
+    {
+      "path": "public/art/golden/10.png",
+      "source": "docs/art/golden/10.png",
+      "bytes": 23474,
+      "sha256": "33574d54b7a4585a48b61999ede80237bf9790ba20d25ab6999461736b655b65",
+      "gitBlob": "14b342fe6ae6d2da518a37544ecc07ad836b19bc"
+    },
+    {
+      "path": "public/art/golden/11.png",
+      "source": "docs/art/golden/11.png",
+      "bytes": 26036,
+      "sha256": "a59fde41413484451ae8ca77aea3108e7f7a31c3aa29e5c7c49557a080961a53",
+      "gitBlob": "35cd6834a3d88b0510cf8b9a63d8bc73ec285d81"
+    },
+    {
+      "path": "public/art/golden/12.png",
+      "source": "docs/art/golden/12.png",
+      "bytes": 26591,
+      "sha256": "90b70bf55baa9f3c3aa3fe9bf69b5348f323c8b179b797b3efded5d48469f28b",
+      "gitBlob": "a8a5333fa1cd8c4a173e748cef4beead1de7aeb2"
+    },
+    {
+      "path": "public/art/golden/13.png",
+      "source": "docs/art/golden/13.png",
+      "bytes": 26424,
+      "sha256": "382b6f6186d54c117236a15f66a5ce53bb89577504f30ade8cf4f3d83269ef62",
+      "gitBlob": "09b981fc00a6cdf3b4f362530c17bcbcc54dd112"
+    },
+    {
+      "path": "public/art/golden/14.png",
+      "source": "docs/art/golden/14.png",
+      "bytes": 24074,
+      "sha256": "37c24dd1ef35274a52a3c38ca90c952cf32a958f44b04ba87f9fe40ba6a10e89",
+      "gitBlob": "53e139e0b63c31d2fd638472f75ac6524eb8f46e"
+    },
+    {
+      "path": "public/art/golden/15.png",
+      "source": "docs/art/golden/15.png",
+      "bytes": 23707,
+      "sha256": "995aa1c9cb32e02c788d738b8ec0a2c5f0187f85754b64ade8ea6c06f91dbb00",
+      "gitBlob": "c40f59947d2c502ab8115cfa05fbcf94d85e442e"
+    },
+    {
+      "path": "public/art/golden/16.png",
+      "source": "docs/art/golden/16.png",
+      "bytes": 23850,
+      "sha256": "c733e5337c72c15b4c4c0a8c143d85928245edf4b9e8e6126bdaf9ec7fafabf4",
+      "gitBlob": "cce41ab41ab3d95dbac8551763378c5d8c81a553"
+    },
+    {
+      "path": "public/art/golden/2.png",
+      "source": "docs/art/golden/2.png",
+      "bytes": 23152,
+      "sha256": "afafeecad5c46f7c5ee87989f8eefa1dc1820e9330855fb7c133fafafacc168b",
+      "gitBlob": "fcff1c621b8de9bc5eedf357f187712638c79d4a"
+    },
+    {
+      "path": "public/art/golden/3.png",
+      "source": "docs/art/golden/3.png",
+      "bytes": 24563,
+      "sha256": "5c41f5a7cc0ad143456ea1e0f0732d26970af83cddfebf1b05636168b73c5cca",
+      "gitBlob": "ed1a2b81e76e8820432bd3bf143bb0a2221e2c95"
+    },
+    {
+      "path": "public/art/golden/4.png",
+      "source": "docs/art/golden/4.png",
+      "bytes": 24394,
+      "sha256": "5dabc942a5ac2c823b9f05b0b6490fff2bd328fe97c89a2f930fa8f2567cabdf",
+      "gitBlob": "b841c7fba78c0d287993d4f207e3017232ed4d22"
+    },
+    {
+      "path": "public/art/golden/5.png",
+      "source": "docs/art/golden/5.png",
+      "bytes": 23881,
+      "sha256": "256dc8b604f06d3c7d089a728486a658686742aa287021f1dfa598934a346672",
+      "gitBlob": "972e3c7fc2cf161b9ceffe86354e48408c3f2f63"
+    },
+    {
+      "path": "public/art/golden/6.png",
+      "source": "docs/art/golden/6.png",
+      "bytes": 24332,
+      "sha256": "5a86e7c0eb984c412888488041eed0d497cb78ea15521c5702df9d627ec20cf0",
+      "gitBlob": "cb979dd4a0146c9ac624f424391dba59acf23438"
+    },
+    {
+      "path": "public/art/golden/7.png",
+      "source": "docs/art/golden/7.png",
+      "bytes": 24325,
+      "sha256": "30be9e26f4623c72c2414dbac258a5e47c26e05ecbb8fe7856d4528051c15cac",
+      "gitBlob": "5140b415380b23f376f24ba2c8779afc826aae32"
+    },
+    {
+      "path": "public/art/golden/8.png",
+      "source": "docs/art/golden/8.png",
+      "bytes": 23804,
+      "sha256": "02cc49a0ca13286902a36fe40965021ec690be69d8f224a597491218ed2506a3",
+      "gitBlob": "7673f6aeed8522069bf6d5510e4bf5e8ae0cb43e"
+    },
+    {
+      "path": "public/art/golden/9.png",
+      "source": "docs/art/golden/9.png",
+      "bytes": 23550,
+      "sha256": "9b2bf6b8f5b3566d5bbfc06773e5e2eb1c55427681d3cde23ee22109375fde45",
+      "gitBlob": "2c05870064f52350276fb796ced2726acd800155"
+    },
+    {
+      "path": "public/art/helms/clear.png",
+      "source": "docs/art/helms/clear.png",
+      "bytes": 60677,
+      "sha256": "77cf59bf573d732deb24d8da8ab836937f880c648e3183f4cbce09477066ad32",
+      "gitBlob": "b4554e3be17a458d144259530f5aec345751807b"
+    },
+    {
+      "path": "public/art/hyper-run/scout-ship.png",
+      "source": "docs/art/hyper-run/scout-ship.png",
+      "bytes": 40186,
+      "sha256": "b34a61a440cb77845c6ee6e960079c3261a037953252312cc3ac3168fea93226",
+      "gitBlob": "203900dcb887d8ce4b440f14f8f1fffdf8a2e193"
+    },
+    {
+      "path": "public/art/music/flight.mp3",
+      "source": "docs/art/music/flight.mp3",
+      "bytes": 405045,
+      "sha256": "9fb77a01cb8ac1cb71dc53f693615034e9b0d6fa1d542eec82a7125070b50cde",
+      "gitBlob": "976ac5552eaa12e6881e6cd395332f8dd95fcafe"
+    },
+    {
+      "path": "public/art/music/menu.mp3",
+      "source": "docs/art/music/menu.mp3",
+      "bytes": 347367,
+      "sha256": "f03f640cf78a059941a7f45e8ceeda8d97429877dd457dd897cec38d9f412dc8",
+      "gitBlob": "11a0ae1df4e88a5a8d6a4a5060dcba896f7748d0"
+    },
+    {
+      "path": "public/art/pickups/acorn-coin.svg",
+      "source": "docs/art/pickups/acorn-coin.svg",
+      "bytes": 1134,
+      "sha256": "a7a8e3823aa388bbea0763d3321940e5fa546148e1d61f52d5e66e3e369ba8b3",
+      "gitBlob": "7f2c48347da1760109d0d4b6039f1ae81fc3f470"
+    },
+    {
+      "path": "public/art/spill-scene/README.md",
+      "source": "docs/art/spill-scene/README.md",
+      "bytes": 1891,
+      "sha256": "d2486cb04f4de4d83a52dbed9171b08fa124351370224d1ce78a236bb208b7f2",
+      "gitBlob": "f069abf9c94fc8e59f91e15cf72a8be59a9d7276"
+    },
+    {
+      "path": "public/art/spill-scene/depot-bear.jpg",
+      "source": "docs/art/spill-scene/depot-bear.jpg",
+      "bytes": 509355,
+      "sha256": "8a41a7bcb0997f85561e433652b69cce0d8adce662c24b900dc5dd920c2bb4f3",
+      "gitBlob": "a73a1116bf9bfda27460343a2bf4fec48f1c3b03"
+    },
+    {
+      "path": "public/art/spill-scene/depot.png",
+      "source": "docs/art/spill-scene/depot.png",
+      "bytes": 2340462,
+      "sha256": "38ce560c09bd2ae778d5a0f2e1f088aa6dafea381fa559c24d25b8fd91c1b777",
+      "gitBlob": "db699d58974a45cf36f8eccc7643c60728ac3172"
+    },
+    {
+      "path": "public/art/spill-scene/panorama.png",
+      "source": "docs/art/spill-scene/panorama.png",
+      "bytes": 2225962,
+      "sha256": "ccfa2a58f23d58d2e2f17a67e515e0446d65613938852278e8cbc6cf38560ab1",
+      "gitBlob": "68eb1013e02892eed1da592dd2596f1506369b3f"
+    },
+    {
+      "path": "public/art/spill-scene/workshop.webp",
+      "source": "docs/art/spill-scene/workshop.webp",
+      "bytes": 336720,
+      "sha256": "55e3dc3fc29b8e9497e3fd9fd579ad1d763f8f6c40d9c84348152d44d17b1232",
+      "gitBlob": "47d3d125f8db9d806328c41380f158f8b3c2d676"
+    },
+    {
+      "path": "public/art/spill-ship/README.md",
+      "source": "docs/art/spill-ship/README.md",
+      "bytes": 3638,
+      "sha256": "803b01add7c6bb43bbeb3ba335bbefddaa7570d8847602edd15909e12d2b8cff",
+      "gitBlob": "19efa3b627cecc642d448085403a521747ef0dc4"
+    },
+    {
+      "path": "public/art/spill-ship/cockpit-1.png",
+      "source": "docs/art/spill-ship/cockpit-1.png",
+      "bytes": 6773,
+      "sha256": "54863816cf4477aa00dc36393dcefc36a75d7b868cdfbd62bb8ba75dff552732",
+      "gitBlob": "8fc0675122e814cb29db99bc9befe45579b0bf54"
+    },
+    {
+      "path": "public/art/spill-ship/cockpit-2.png",
+      "source": "docs/art/spill-ship/cockpit-2.png",
+      "bytes": 8934,
+      "sha256": "a9a4cc340f93e206986fbe7f61b35402b9b2eb7a962bcaff1fa5a3542b577e7f",
+      "gitBlob": "798846fbe2e9077013252f7db23aed5899367d87"
+    },
+    {
+      "path": "public/art/spill-ship/cockpit-3.png",
+      "source": "docs/art/spill-ship/cockpit-3.png",
+      "bytes": 8378,
+      "sha256": "dd0d57753c158ac44ab8a3abbf21ab7760d15b472ee5a7da9fcc12f5faa6c936",
+      "gitBlob": "54ec2ce080e3331bbccd90b2b8933fc60f65422c"
+    },
+    {
+      "path": "public/art/spill-ship/cone-1.png",
+      "source": "docs/art/spill-ship/cone-1.png",
+      "bytes": 7090,
+      "sha256": "90dfcea377ac9fc75a8a3769f2f03092884270f4a5464eedb2a740d5423ae7ae",
+      "gitBlob": "985737e4be418502774cefcd1031e2cc1041aec9"
+    },
+    {
+      "path": "public/art/spill-ship/cone-2.png",
+      "source": "docs/art/spill-ship/cone-2.png",
+      "bytes": 7163,
+      "sha256": "0df46bc352b7afff5f66681c387d85d4957f651f9ed47016c8ba77f7dbf9f7a7",
+      "gitBlob": "9c86ad6b936f1b6104281296138070dbaac83b3d"
+    },
+    {
+      "path": "public/art/spill-ship/cone-3.png",
+      "source": "docs/art/spill-ship/cone-3.png",
+      "bytes": 9726,
+      "sha256": "fdebcf0e1e48a4e540716953f98f4159d0f3ead72b1cd970d7ba19cc9c0f62d2",
+      "gitBlob": "028c70d66f3f3e8d0e64094f2f110e6f081ebad1"
+    },
+    {
+      "path": "public/art/spill-ship/frame.json",
+      "source": "docs/art/spill-ship/frame.json",
+      "bytes": 115,
+      "sha256": "27d2f68d3f2cebbb46f5e193274a978124b5ab848c5d6bd00216eb43fcb398e5",
+      "gitBlob": "33208a8112342fbe0aec1278fc17ca855cd99c34"
+    },
+    {
+      "path": "public/art/spill-ship/hull-0.png",
+      "source": "docs/art/spill-ship/hull-0.png",
+      "bytes": 46060,
+      "sha256": "8bc22f46fb434112ef56fad331f18daf2654f9bd3be74fdadf7aec189734c9d1",
+      "gitBlob": "075fae72dfab33eb85363c835a4ff19a2032deb3"
+    },
+    {
+      "path": "public/art/spill-ship/hull-1.png",
+      "source": "docs/art/spill-ship/hull-1.png",
+      "bytes": 50018,
+      "sha256": "fde03fcb2b6b13e6cd3ec9c162e700042bdd7fcadc16a5b7d7ff8ec8729ca273",
+      "gitBlob": "634e8882a1e8bebfbb93d17ef72da9923cbf84f8"
+    },
+    {
+      "path": "public/art/spill-ship/hull-2-blue.png",
+      "source": "docs/art/spill-ship/hull-2-blue.png",
+      "bytes": 48698,
+      "sha256": "0c8fe50bac4873cca381379fff4c7208b76f372c7e8186b498d0b02a16089a2b",
+      "gitBlob": "bef3881547f9acd2cbfaa0cb4b98bdffe22cf39d"
+    },
+    {
+      "path": "public/art/spill-ship/hull-2.png",
+      "source": "docs/art/spill-ship/hull-2.png",
+      "bytes": 46376,
+      "sha256": "830f0a48af569f22c077b74d23138021e0c03e6bb43afa7462df45c6e2e74cf2",
+      "gitBlob": "ac48c35a4774d7fc15053c23cc1fda055291ce52"
+    },
+    {
+      "path": "public/art/spill-ship/hull-3.png",
+      "source": "docs/art/spill-ship/hull-3.png",
+      "bytes": 40540,
+      "sha256": "e74261d792a618760bda6e077f902cdd9cd97583fd67ada8d8782af574d45d05",
+      "gitBlob": "ab4ab6e8f2a94a854aee6fd11b8811c9b665cda9"
+    },
+    {
+      "path": "public/art/spill-ship/manifest.json",
+      "source": "docs/art/spill-ship/manifest.json",
+      "bytes": 282,
+      "sha256": "6fed188095c2057e2c8328135e4ee610378604fc9c262415faa321d0eaab63f5",
+      "gitBlob": "50d981dc12eeeee5923e5354e40f9c6a2143ea4c"
+    },
+    {
+      "path": "public/art/spill-ship/thrust-1.png",
+      "source": "docs/art/spill-ship/thrust-1.png",
+      "bytes": 6133,
+      "sha256": "8ace9c209f366bae139563e5bdfb079413b7ee9d703485ec52efb759e8368bab",
+      "gitBlob": "8b38d0e1e92c9aa0efc83d6b38d9961e406eb6be"
+    },
+    {
+      "path": "public/art/spill-ship/thrust-2.png",
+      "source": "docs/art/spill-ship/thrust-2.png",
+      "bytes": 5827,
+      "sha256": "d929c6a0aac92e7c0a40eb28dc1c27086a1b281ca9b08cb99beac58ea4b05ddf",
+      "gitBlob": "d8f62b732a6d315aae9361ef359de6129be06efd"
+    },
+    {
+      "path": "public/art/spill-ship/thrust-3.png",
+      "source": "docs/art/spill-ship/thrust-3.png",
+      "bytes": 9648,
+      "sha256": "9e98e575a2b27010cf5d6f23ce0db8ad15c7ff19b860b2b5434ed58e1edc9b86",
+      "gitBlob": "e645462ee2baa936eefe026898fc80053efe74a0"
+    },
+    {
+      "path": "public/art/spill-ship/transforms.json",
+      "source": "docs/art/spill-ship/transforms.json",
+      "bytes": 1933,
+      "sha256": "051d0569a19f8cab261a843ea9f4eee4d5aaa19ae412da652e66c92afc1293df",
+      "gitBlob": "7c4d9fb382264861533c8327f24c476be395b4cc"
+    },
+    {
+      "path": "public/art/spill-ship/utilities/brake.webp",
+      "source": "docs/art/spill-ship/utilities/brake.webp",
+      "bytes": 13624,
+      "sha256": "b4010326388418864666036e07e53ab6e0bcaa7c0881046f975a4ff5b601dac1",
+      "gitBlob": "ca26bd9f2d2dbbec5ac8420251b098d67e9c839c"
+    },
+    {
+      "path": "public/art/spill-ship/utilities/capacitor.webp",
+      "source": "docs/art/spill-ship/utilities/capacitor.webp",
+      "bytes": 17734,
+      "sha256": "f5b63d50b3b7f2270c6cac2fa3e2f80b6ed38776276e2e347ec50ebbcbf77692",
+      "gitBlob": "b2119b9af1ec91375d0d1ae70e1a09293be1974b"
+    },
+    {
+      "path": "public/art/spill-ship/utilities/magnet.webp",
+      "source": "docs/art/spill-ship/utilities/magnet.webp",
+      "bytes": 16926,
+      "sha256": "10be0e727c358b4c945974d1d17a0bf88236074062304291e7697f62b1d7e737",
+      "gitBlob": "d3b7c6662cf2e3217eba520cae0156cffb07ffba"
+    },
+    {
+      "path": "public/art/spill-ship/utilities/scanner.webp",
+      "source": "docs/art/spill-ship/utilities/scanner.webp",
+      "bytes": 12160,
+      "sha256": "6903d757a28077a2d7e69340fd46f5e2030cc015454c06f203957ff885d694c0",
+      "gitBlob": "446707fdb3d8793df4e89acb8a05fe9601048ab5"
+    },
+    {
+      "path": "public/art/squirrel/flap-1.png",
+      "source": "docs/art/squirrel/flap-1.png",
+      "bytes": 57907,
+      "sha256": "5ddc9a7b314dcd37793c1164fd8dcf953b87e8111458775b6fb3a721e4a93e8c",
+      "gitBlob": "294305f89dc5058dcde574810a8bbe9cba0cd141"
+    },
+    {
+      "path": "public/art/squirrel/flap-2.png",
+      "source": "docs/art/squirrel/flap-2.png",
+      "bytes": 62088,
+      "sha256": "743226f0caa0644f1daa5a83dc1a32aa5a00ec0b6534ae0a4167d8a2270757f0",
+      "gitBlob": "4bf60909500fc5ff403646080bfef027fa35ce16"
+    },
+    {
+      "path": "public/art/squirrel/flap-3.png",
+      "source": "docs/art/squirrel/flap-3.png",
+      "bytes": 61528,
+      "sha256": "9e63a3d4b8c6b4cc0d9cc79c47aff1540376234403901b1592f823d008d27645",
+      "gitBlob": "3b11f77566770a4f67f8fb248fc72d5204562c70"
+    },
+    {
+      "path": "public/art/squirrel/flap-4.png",
+      "source": "docs/art/squirrel/flap-4.png",
+      "bytes": 55275,
+      "sha256": "d08576f9c9045794f0538469d36cbb0f630fadfef320fd3b89eae194f8671a3d",
+      "gitBlob": "1e262d32def51cd913453b5df8bc3d847b7bdfa2"
+    },
+    {
+      "path": "public/art/squirrel/idle-1.png",
+      "source": "docs/art/squirrel/idle-1.png",
+      "bytes": 64376,
+      "sha256": "dec590e3b1d1b68279680b88f1bc70576983a39ed44ce6e3ccae218741f23007",
+      "gitBlob": "41cdeec7d320f843b1346725642bc978fc9b1fb1"
+    },
+    {
+      "path": "public/art/squirrel/idle-2.png",
+      "source": "docs/art/squirrel/idle-2.png",
+      "bytes": 64499,
+      "sha256": "1e3844f1fb696817879fe8b1773e9eaf861ce6fffee1901ce773cd13a7b96f22",
+      "gitBlob": "fb5f3f7d142663ad88e9c1dcb2ab19c7865a26e4"
+    },
+    {
+      "path": "public/art/squirrel/idle-3.png",
+      "source": "docs/art/squirrel/idle-3.png",
+      "bytes": 64287,
+      "sha256": "23b25a27d83784899d9a8853c43eb1610771b329a713e66828e11d1fc5b28f64",
+      "gitBlob": "c25d244dd26870f8f404d35b3979f8ea22250e0f"
+    },
+    {
+      "path": "public/art/squirrel/idle-4.png",
+      "source": "docs/art/squirrel/idle-4.png",
+      "bytes": 64362,
+      "sha256": "3349fb524019f1f280e7399238a6827bc8430c4664969b6bbd9c588c0d45fe79",
+      "gitBlob": "83b626e58b47615e1435b4483f46135d5febe3e8"
+    },
+    {
+      "path": "public/art/suits/flight-desc-1.png",
+      "source": "docs/art/suits/flight-desc-1.png",
+      "bytes": 26154,
+      "sha256": "b5305abfd3efd9f46d05c29f5923f4eab223610a5d35a449109c0398e0cbeef1",
+      "gitBlob": "45e3a9f694194e48b9fea8aa3938db8953f822e3"
+    },
+    {
+      "path": "public/art/suits/flight-desc-2.png",
+      "source": "docs/art/suits/flight-desc-2.png",
+      "bytes": 25232,
+      "sha256": "58a9a1a04e76df419f44cbf7a7afa5bc8a80bf1f676fef81e54e399b6f75d17d",
+      "gitBlob": "17e6d0b1cc6a755d708651bae2ac289b8559d588"
+    },
+    {
+      "path": "public/art/suits/flight-desc-3.png",
+      "source": "docs/art/suits/flight-desc-3.png",
+      "bytes": 23999,
+      "sha256": "1a4e988720f3e1fa42036028ca28cd54ffdd6466d5bc22a6eb07a5edf0671064",
+      "gitBlob": "f9a3898a780e4ff8870daeb73975345345b5e20a"
+    },
+    {
+      "path": "public/art/suits/flight-desc-4.png",
+      "source": "docs/art/suits/flight-desc-4.png",
+      "bytes": 22862,
+      "sha256": "b23cf5734f9ffac65cb8d6b5509f2882e3695c53d9282e73046b953bf4537eca",
+      "gitBlob": "554224026048ccc6746748b0204309236def5fff"
+    },
+    {
+      "path": "public/art/suits/flight-tap-1.png",
+      "source": "docs/art/suits/flight-tap-1.png",
+      "bytes": 26154,
+      "sha256": "b5305abfd3efd9f46d05c29f5923f4eab223610a5d35a449109c0398e0cbeef1",
+      "gitBlob": "45e3a9f694194e48b9fea8aa3938db8953f822e3"
+    },
+    {
+      "path": "public/art/suits/flight-tap-10.png",
+      "source": "docs/art/suits/flight-tap-10.png",
+      "bytes": 23446,
+      "sha256": "cf4cabf015d936c80a146e90163f703308d3189153a10b35d2791d5484cffa85",
+      "gitBlob": "4e47325e0240735b48eaeea9410289be54206f9a"
+    },
+    {
+      "path": "public/art/suits/flight-tap-11.png",
+      "source": "docs/art/suits/flight-tap-11.png",
+      "bytes": 23857,
+      "sha256": "11a0fdb129937d3430070e855a1d268119f13088b576b743751ac7a2bf76aff6",
+      "gitBlob": "03640b1fbe42bf10a2dba58786e594517c3de730"
+    },
+    {
+      "path": "public/art/suits/flight-tap-12.png",
+      "source": "docs/art/suits/flight-tap-12.png",
+      "bytes": 25205,
+      "sha256": "053e2ba34dcc8d33d0481d03e1a6337062910c8b504d87957398b7a33646d19a",
+      "gitBlob": "c675c516f88d54d28ebfbcc625ff7bad4dab911a"
+    },
+    {
+      "path": "public/art/suits/flight-tap-2.png",
+      "source": "docs/art/suits/flight-tap-2.png",
+      "bytes": 24115,
+      "sha256": "3834fab1a004f6c28be907920a6e445519d2e8bc9370a16b84b0d813e7b209c4",
+      "gitBlob": "93b1e5e4aad1ce3823b0a08ba855adb62cff7661"
+    },
+    {
+      "path": "public/art/suits/flight-tap-3.png",
+      "source": "docs/art/suits/flight-tap-3.png",
+      "bytes": 23705,
+      "sha256": "00b8f82662c2980930ca286773c200748ae773fe1c58121ddb1fe2a65eaaee18",
+      "gitBlob": "436f074e58d0bf0dfeb2eda16fd46867c6f8a2eb"
+    },
+    {
+      "path": "public/art/suits/flight-tap-4.png",
+      "source": "docs/art/suits/flight-tap-4.png",
+      "bytes": 23710,
+      "sha256": "d037a446f1ce0c10a358826d3bd25422811c303b7330cbb7ba6ebc470218c521",
+      "gitBlob": "22b5b515ed5a951bda3fd4318f98fb9d9d186e44"
+    },
+    {
+      "path": "public/art/suits/flight-tap-5.png",
+      "source": "docs/art/suits/flight-tap-5.png",
+      "bytes": 23724,
+      "sha256": "118fc826e3164f4af2598c1e8e3de351c02c8e17512c197dc1395068e38336be",
+      "gitBlob": "49a8cbf483d94bb67015bb047ee03078de335ac9"
+    },
+    {
+      "path": "public/art/suits/flight-tap-6.png",
+      "source": "docs/art/suits/flight-tap-6.png",
+      "bytes": 24294,
+      "sha256": "5889e3d4687cae477035f6f4f2fd7f83fa8071fbec0389f48b741c350aa1969b",
+      "gitBlob": "eefaf22097ad4dd536ffaed4bdba469dffd16807"
+    },
+    {
+      "path": "public/art/suits/flight-tap-7.png",
+      "source": "docs/art/suits/flight-tap-7.png",
+      "bytes": 25725,
+      "sha256": "f2650cba5623325119cc404f1c12a8a64968b8e412dbbaa938698ffb9f3bd9ab",
+      "gitBlob": "bb83e4b337e8db465899519d75ea79b7d8896fef"
+    },
+    {
+      "path": "public/art/suits/flight-tap-8.png",
+      "source": "docs/art/suits/flight-tap-8.png",
+      "bytes": 26218,
+      "sha256": "f2ecef024e0e741aca9dad20b627896497934adec93598f2c6977fa90d8af030",
+      "gitBlob": "8c4215b68b3a3cbcee0a9aed9b5d03635803274c"
+    },
+    {
+      "path": "public/art/suits/flight-tap-9.png",
+      "source": "docs/art/suits/flight-tap-9.png",
+      "bytes": 25338,
+      "sha256": "1e1f4139c85e7727332bfef7a3da3a48c0a6f0a57c10ffaed27ad41e1c1f8aa4",
+      "gitBlob": "1e8aabd447621560a170d36e443e2ef3ce57555c"
+    },
+    {
+      "path": "public/art/suits/flight.png",
+      "source": "docs/art/suits/flight.png",
+      "bytes": 26154,
+      "sha256": "b5305abfd3efd9f46d05c29f5923f4eab223610a5d35a449109c0398e0cbeef1",
+      "gitBlob": "45e3a9f694194e48b9fea8aa3938db8953f822e3"
+    },
+    {
+      "path": "public/fonts/OFL-Figtree.txt",
+      "source": "docs/fonts/OFL-Figtree.txt",
+      "bytes": 4388,
+      "sha256": "140d37233e7f3ce7313798befa9600893bcceaf41a55fa0fa5ad52f7f657a268",
+      "gitBlob": "80b12bb3d0c0942676657ef6d125daf4a1e1346d"
+    },
+    {
+      "path": "public/fonts/OFL-Fraunces.txt",
+      "source": "docs/fonts/OFL-Fraunces.txt",
+      "bytes": 4391,
+      "sha256": "bdf4c22802eaf804f998195871c6b8938aac2ac14b2d78a8bd66a6f1eced833b",
+      "gitBlob": "22fa7ce5733434d0c634f6e55116f410858e938c"
+    },
+    {
+      "path": "public/fonts/README.md",
+      "source": "docs/fonts/README.md",
+      "bytes": 667,
+      "sha256": "f8315325a3056a2e7efe1728c02b69c41f589f0359e9bb1f00564215f35acf5b",
+      "gitBlob": "e695cc36548151ba03bd3d55cd26c16532e6270a"
+    },
+    {
+      "path": "public/fonts/figtree-v9-_Xms-HUzqDCFdgfMm4S9DaRvzig.woff2",
+      "source": "docs/fonts/figtree-v9-_Xms-HUzqDCFdgfMm4S9DaRvzig.woff2",
+      "bytes": 20184,
+      "sha256": "8330490a01c60c196eae00b823de8102275aaa5862e7b76a7af21b8745338928",
+      "gitBlob": "fcf1c90f13aee716dfc648591b2da5340c3850ee"
+    },
+    {
+      "path": "public/fonts/figtree-v9-_Xms-HUzqDCFdgfMm4q9DaRvziissg.woff2",
+      "source": "docs/fonts/figtree-v9-_Xms-HUzqDCFdgfMm4q9DaRvziissg.woff2",
+      "bytes": 10228,
+      "sha256": "f153aa07c1b16fbb12391c2512860c97819a0a9fd014f338b2b3f12496479d13",
+      "gitBlob": "5bfe5297e7b045b267578b73a23fd8b963dddd90"
+    },
+    {
+      "path": "public/fonts/fonts.css",
+      "source": "docs/fonts/fonts.css",
+      "bytes": 5832,
+      "sha256": "ca9857e0207f7384d04cd5fa74fba3c4b2992320d8e87b77dc2d79a83ba4d6fe",
+      "gitBlob": "047101f9a09ee17e4359f95c62c178ca2402e538"
+    },
+    {
+      "path": "public/fonts/fraunces-v38-6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxC9TeP2Xz5c.woff2",
+      "source": "docs/fonts/fraunces-v38-6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxC9TeP2Xz5c.woff2",
+      "bytes": 67388,
+      "sha256": "48282a415ec22e31beaf0a0666e6fae0c8cbddcd0b1f6e729f27c3ade8a64e43",
+      "gitBlob": "4c7b557f06062d123a1f2184469c032914ce228a"
+    },
+    {
+      "path": "public/fonts/fraunces-v38-6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxCBTeP2Xz5fU8w.woff2",
+      "source": "docs/fonts/fraunces-v38-6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxCBTeP2Xz5fU8w.woff2",
+      "bytes": 19748,
+      "sha256": "7e3c04662669cd2b8ee672e4e5d63146d21f6aa36654b211718af5fe0bb3bd51",
+      "gitBlob": "62012553217d8203ab75ca548b7bd740fb8aaea4"
+    },
+    {
+      "path": "public/fonts/fraunces-v38-6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxCFTeP2Xz5fU8w.woff2",
+      "source": "docs/fonts/fraunces-v38-6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxCFTeP2Xz5fU8w.woff2",
+      "bytes": 59540,
+      "sha256": "f120089b9440f3e35a980a2137347b1851ad46ee4b8ad5c63b6c07e053fa40e2",
+      "gitBlob": "864dec1b960a8331e40cbe1b4d578413161284e5"
+    }
+  ],
+  "totalBytes": 10529964
+}

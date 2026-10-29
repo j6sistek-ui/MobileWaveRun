@@ -1,0 +1,37 @@
+{
+  "frame": "spill-ship 256px sprite frame; dx/dy in frame px, rot in degrees, scale about the part's own centre",
+  "parts": {
+    "cone-1": { "dx": 5, "dy": 0, "scale": 0.6596, "rot": 0, "behind": false },
+    "thrust-1": { "dx": -0.32, "dy": -4.53, "scale": 1.2339, "rot": 0.87, "behind": false },
+    "cockpit-1": { "dx": 9.5, "dy": -2.92, "scale": 1.0444, "rot": -5.53, "behind": false },
+    "cone-2": { "dx": -0.45, "dy": -0.46, "scale": 0.7992, "rot": -0.85, "behind": false },
+    "cone-3": { "dx": 0, "dy": 0, "scale": 0.7433, "rot": -0.55, "behind": false },
+    "cockpit-2": { "dx": 9.38, "dy": -6.41, "scale": 1.3462, "rot": -8.29, "behind": false },
+    "cockpit-3": { "dx": 11.21, "dy": -1.15, "scale": 1.0193, "rot": -4.76, "behind": false },
+    "thrust-2": { "dx": -0.96, "dy": 0, "scale": 1.2585, "rot": 360.92, "behind": false },
+    "thrust-3": { "dx": -8.92, "dy": 3.66, "scale": 1.2527, "rot": -9.63, "behind": false }
+  },
+  "overrides": {
+    "hull-2": {
+      "cone-1": { "dx": 6.77, "dy": -0.4, "scale": 0.6216, "rot": 0 },
+      "thrust-1": { "dx": -1.99, "dy": -1.67, "scale": 1.5124, "rot": 1.1 },
+      "thrust-2": { "dx": 0.71, "dy": 1.43, "scale": 1.38, "rot": 358.98 },
+      "thrust-3": { "dx": -7.01, "dy": -3.01, "scale": 1.4461, "rot": -3.98 }
+    },
+    "hull-0": {
+      "thrust-1": { "dx": 2.78, "dy": -1.43, "scale": 1.2339, "rot": 0.87 },
+      "thrust-2": { "dx": 1.67, "dy": 1.2, "scale": 1.1045, "rot": 361.69 },
+      "thrust-3": { "dx": -4.87, "dy": -3.73, "scale": 1.29, "rot": -3.26 }
+    },
+    "hull-1": {
+      "thrust-3": { "dx": -9.64, "dy": -1.58, "scale": 1.4641, "rot": -3.83 }
+    },
+    "hull-3": {
+      "thrust-3": { "dx": -13.45, "dy": 0.32, "scale": 1.3959, "rot": -4.88 }
+    },
+    "hull-2-blue": {
+      "thrust-3": { "dx": -8.92, "dy": 3.42, "scale": 1.2168, "rot": -3.62 },
+      "cockpit-1": { "dx": 9.5, "dy": -2.92, "scale": 1.0509, "rot": -5.08 }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "hulls": ["hull-0", "hull-1", "hull-2", "hull-3", "hull-2-blue"],
+  "parts": {
+    "thrust": ["thrust-1", "thrust-2", "thrust-3"],
+    "cone": ["cone-1", "cone-2", "cone-3"],
+    "cockpit": ["cockpit-1", "cockpit-2", "cockpit-3"]
+  },
+  "order": ["thrust", "cone", "cockpit"]
+}
