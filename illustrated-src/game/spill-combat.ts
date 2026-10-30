@@ -1,4 +1,5 @@
 import type { SpillRock, SpillState } from "./spill";
+import { clearSpillBuildEffects, createSpillBuild, restoreSpillBuild, type SpillBuildState } from "./spill-builds";
 
 /** Combat stays in the same 60 Hz authority as the field. Nothing here owns input or rendering. */
 export type SpillWeaponId = "laser" | "cannon";
@@ -20,9 +21,11 @@ export type SpillEnemy = {
 export type SpillShot = {
   id: number; team: "player" | "enemy"; weapon: SpillWeaponId;
   x: number; y: number; vx: number; vy: number; r: number; damage: number; life: number; dead: boolean;
+  echo?: boolean; blastRadius?: number;
 };
 export type SpillCombat = {
   version: 1; weapon: SpillWeaponId; levels: Record<SpillWeaponId, number>;
+  build: SpillBuildState;
   firing: boolean; pendingFire: number; cooldown: number; enemies: SpillEnemy[]; shots: SpillShot[];
   kills: number; waveKills: number; rng: number; nextId: number; nextEnemy: number; spawned: number;
   /** Keeps enemy warnings from all committing on the same frame. */
@@ -51,7 +54,7 @@ function random(c: SpillCombat) {
 
 export function createSpillCombat(seed: number): SpillCombat {
   return { version: 1, weapon: "laser", levels: { laser: 1, cannon: 1 }, firing: false, pendingFire: 0,
-    cooldown: 0, enemies: [], shots: [], kills: 0, waveKills: 0,
+    build: createSpillBuild(), cooldown: 0, enemies: [], shots: [], kills: 0, waveKills: 0,
     rng: (seed ^ 0x63a94f21) >>> 0, nextId: 1, nextEnemy: 4.5, spawned: 0,
     enemyFireGap: 0, targetId: null, muzzleFlash: 0 };
 }
@@ -84,7 +87,7 @@ export function spillWeaponPrice(s: SpillState): number | null {
 export function spillWeaponStats(s: SpillState, id: SpillWeaponId = s.combat.weapon) {
   const weapon = SPILL_WEAPONS[id], level = s.combat.levels[id];
   return { ...weapon, damage: weapon.damage * level,
-    cooldown: weapon.cooldown * (1 - (level - 1) * 0.07) };
+    cooldown: weapon.cooldown * (1 - (level - 1) * 0.07) * (s.combat.build.artifact === "siege" ? 1.3 : 1) };
 }
 export function spillUpgradeWeapon(s: SpillState): boolean {
   const price = spillWeaponPrice(s);
@@ -100,10 +103,12 @@ export function clearSpillCombat(s: SpillState) {
   const c = s.combat;
   spillClearFireInput(s); c.cooldown = 0; c.enemies = []; c.shots = [];
   c.targetId = null; c.muzzleFlash = 0; c.enemyFireGap = 0;
+  clearSpillBuildEffects(s);
 }
 export function beginSpillCombatWave(s: SpillState) {
   clearSpillCombat(s);
   s.combat.waveKills = 0; s.combat.spawned = 0;
+  s.combat.build.salvageDrops = 0;
   s.combat.nextEnemy = 4.5 + random(s.combat) * 1.5;
 }
 export function resizeSpillCombat(s: SpillState, sx: number, sy: number) {
@@ -114,6 +119,7 @@ export function resizeSpillCombat(s: SpillState, sx: number, sy: number) {
     e.shotSpeed *= Math.min(sx, sy);
   }
   for (const shot of s.combat.shots) { shot.x *= sx; shot.y *= sy; shot.vx *= sx; shot.vy *= sy; }
+  for (const blast of s.combat.build.blasts) { blast.x *= sx; blast.y *= sy; }
 }
 
 export function captureSpillCombatMotion(s: SpillState): SpillCombatMotion {
@@ -195,6 +201,47 @@ function killEnemy(s: SpillState, e: SpillEnemy) {
   s.cues.push("enemy-down");
 }
 
+/** Only player-weapon destruction enters this path; Pulse/dodge retain their own rewards. */
+function damageRock(s: SpillState, rock: SpillRock, damage: number, effects: SpillCombatEffects) {
+  if (rock.dead) return;
+  const maxHp = rock.kind === "hulk" ? 10 : rock.kind === "tumbler" ? 4 : rock.kind === "spinner" ? 2 : 1;
+  rock.hp = (rock.hp ?? maxHp) - damage;
+  if (rock.hp > 0) return;
+  effects.shatter(rock);
+  const build = s.combat.build;
+  if (rock.dead && build.artifact === "reclaimer" && build.salvageDrops < 8) {
+    build.salvageDrops++;
+    s.nuts.push({ x: rock.x, y: rock.y, vx: -60 * scale(s), vy: 0,
+      got: false, bob: build.salvageDrops, kind: "ore" });
+  }
+}
+
+/** The direct swept hit triggers one bounded splash, never a chain reaction. */
+function impactBlast(s: SpillState, shot: SpillShot, rockHit: SpillRock | null, enemyHit: SpillEnemy | null,
+  effects: SpillCombatEffects, rockPoint: (r: SpillRock) => Point, enemyPoint: (e: SpillEnemy) => Point) {
+  const radius = shot.blastRadius ?? 0;
+  if (shot.team !== "player" || radius <= 0) return;
+  const build = s.combat.build;
+  build.blasts.push({ x: shot.x, y: shot.y, r: radius, life: .22 });
+  if (build.blasts.length > 12) build.blasts.shift();
+  let budget = 12;
+  for (const rock of s.rocks) {
+    if (!budget) break;
+    if (rock === rockHit || rock.dead || rock.warn > 0) continue;
+    const p = rockPoint(rock);
+    if (Math.hypot(p.x - shot.x, p.y - shot.y) > radius + rock.r) continue;
+    budget--; damageRock(s, rock, shot.damage * .5, effects);
+  }
+  for (const e of s.combat.enemies) {
+    if (!budget) break;
+    if (e === enemyHit || e.dead) continue;
+    const p = enemyPoint(e);
+    if (Math.hypot(p.x - shot.x, p.y - shot.y) > radius + e.r) continue;
+    budget--; e.hp -= shot.damage * .5; e.hitFlash = .12;
+    if (e.hp <= 0) killEnemy(s, e);
+  }
+}
+
 /** The existing impact pulse also clears nearby hostile fire and damages nearby enemies. */
 export function spillCombatPulse(s: SpillState, radius: number): number {
   let hits = 0;
@@ -225,6 +272,9 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
   c.cooldown = Math.max(0, c.cooldown - dt);
   c.muzzleFlash = Math.max(0, c.muzzleFlash - dt);
   c.enemyFireGap = Math.max(0, c.enemyFireGap - dt);
+  c.build.echo = Math.max(0, c.build.echo - dt);
+  for (const blast of c.build.blasts) blast.life -= dt;
+  c.build.blasts = c.build.blasts.filter(blast => blast.life > 0);
   const enemyBefore = new Map<SpillEnemy, Point>();
   const emitted: SpillShot[] = [];
   for (const e of c.enemies) {
@@ -276,7 +326,15 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
     emitted.push({ id: c.nextId++, team: "player", weapon: c.weapon,
       x: muzzleX, y: s.pilot.y,
       vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-      r: weapon.radius, damage: weapon.damage, life: 1.4, dead: false });
+      r: weapon.radius, damage: weapon.damage, life: 1.4, dead: false,
+      ...(c.build.artifact === "siege" ? { blastRadius: 56 } : {}) });
+    if (c.build.artifact === "slipstream" && c.build.echo > 0 && c.shots.length + emitted.length < 64) {
+      emitted.push({ id: c.nextId++, team: "player", weapon: c.weapon, echo: true,
+        x: muzzleX - Math.cos(angle) * 12, y: s.pilot.y - Math.sin(angle) * 12,
+        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+        r: weapon.radius * .8, damage: weapon.damage * .5, life: 1.4, dead: false });
+      c.build.echo = 0;
+    }
     c.cooldown = weapon.cooldown;
     c.pendingFire = 0;
     c.muzzleFlash = 0.075;
@@ -321,16 +379,22 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
     if (first !== Infinity) {
       shot.dead = true;
       if (rockHit && shot.team === "player") {
-        const maxHp = rockHit.kind === "hulk" ? 10 : rockHit.kind === "tumbler" ? 4 : rockHit.kind === "spinner" ? 2 : 1;
-        rockHit.hp = (rockHit.hp ?? maxHp) - shot.damage;
-        if (rockHit.hp <= 0) effects.shatter(rockHit);
-        else s.bursts.push({ x: shot.x, y: shot.y, n: 3, power: 0.3, tone: "hit" });
+        damageRock(s, rockHit, shot.damage, effects);
+        if (!rockHit.dead) s.bursts.push({ x: shot.x, y: shot.y, n: 3, power: 0.3, tone: "hit" });
       } else if (enemyHit) {
         enemyHit.hp -= shot.damage; enemyHit.hitFlash = 0.12;
         if (enemyHit.hp <= 0) killEnemy(s, enemyHit);
       } else if (pilotHit) {
         effects.damagePilot();
         if (!active(s)) return;
+      }
+      if (shot.team === "player" && shot.blastRadius && (rockHit || enemyHit)) {
+        const atImpact = (before: Point, after: Point) => ({
+          x: before.x + (after.x - before.x) * fraction * first,
+          y: before.y + (after.y - before.y) * fraction * first,
+        });
+        impactBlast(s, shot, rockHit, enemyHit, effects,
+          r => atImpact(motion.rocks.get(r) ?? r, r), e => atImpact(enemyBefore.get(e) ?? e, e));
       }
     }
     if (shot.life <= 0 || shot.x < -60 || shot.x > s.W + 100 || shot.y < -60 || shot.y > s.H + 60) shot.dead = true;
@@ -340,7 +404,7 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
 }
 
 /** Checkpoints are only written at the Depot. Live entities/input must never be accepted from storage. */
-export function restoreSpillCombat(value: unknown, seed: number): SpillCombat | null {
+export function restoreSpillCombat(value: unknown, seed: number, wave = 0): SpillCombat | null {
   if (value === undefined) return createSpillCombat(seed); // original version-1 checkpoints
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const c = value as SpillCombat;
@@ -354,6 +418,8 @@ export function restoreSpillCombat(value: unknown, seed: number): SpillCombat | 
   if (c.firing !== false || c.cooldown !== 0 || c.enemyFireGap !== 0 || c.targetId !== null || c.muzzleFlash !== 0) return null;
   if (c.pendingFire !== undefined && c.pendingFire !== 0) return null;
   if (!Array.isArray(c.enemies) || c.enemies.length || !Array.isArray(c.shots) || c.shots.length) return null;
-  return { ...createSpillCombat(seed), weapon: c.weapon, levels: { laser: c.levels.laser, cannon: c.levels.cannon },
+  const build = restoreSpillBuild(c.build, seed, wave);
+  if (!build) return null;
+  return { ...createSpillCombat(seed), build, weapon: c.weapon, levels: { laser: c.levels.laser, cannon: c.levels.cannon },
     kills: c.kills, waveKills: c.waveKills, rng: c.rng, nextId: c.nextId, nextEnemy: c.nextEnemy, spawned: c.spawned };
 }

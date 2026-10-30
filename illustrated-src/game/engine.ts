@@ -75,6 +75,7 @@ import { raceViewport } from "./race-viewport";
 import { spillBuy, spillLeaveDepot, spillLunge, spillSteer, spillUtility, spillSpecialize, spillTakeContract,
   spillCheckpoint, restoreSpill, type SpillBuyable, type SpillCue } from "./spill";
 import { spillSetFiring, spillTapFire, spillClearFireInput, spillSelectWeapon, spillUpgradeWeapon, type SpillWeaponId } from "./spill-combat";
+import { spillClaimArtifact, spillEquipArtifact, type SpillArtifactId } from "./spill-builds";
 import { createSpillStick, moveSpillStick, sampleSpillStick, spillStickAxis, type SpillStick } from "./spill-gesture";
 import { SPILL_UTILITIES, SPILL_ENGINE_COLORS, spillEngineColor, type SpillEngineColor, type SpillUtility, type SpillSpecialty, type SpillContractKind } from "./spill-content";
 import { bankSpill, suitPitchFor, takeReceipt, buyBoost, skipLevel, unlockReward, ownsPremium, settleStarRewards, sealSave } from "./save";
@@ -182,6 +183,8 @@ export type Engine = {
   spillControls: () => { active: boolean; x: number; y: number; dx: number; dy: number };
   spillSelectWeapon: (id: SpillWeaponId) => boolean;
   spillUpgradeWeapon: () => boolean;
+  spillClaimArtifact: (id: SpillArtifactId) => boolean;
+  spillEquipArtifact: (id: SpillArtifactId | null) => boolean;
   setSpillButtonsOff: (off: boolean) => void;
   setSpillPromptsOff: (off: boolean) => void;
   spillBuy: (what: SpillBuyable) => string;
@@ -825,6 +828,18 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
     spillUpgradeWeapon() {
       if (world.screen !== "play" || !world.spill) return false;
       const ok = spillUpgradeWeapon(world.spill);
+      if (ok) { checkpointSpill(); sfx.ui(); } else sfx.warning();
+      notify(); return ok;
+    },
+    spillClaimArtifact(id) {
+      if (world.screen !== "play" || !world.spill) return false;
+      const ok = spillClaimArtifact(world.spill, id);
+      if (ok) { checkpointSpill(); sfx.ui(); } else sfx.warning();
+      notify(); return ok;
+    },
+    spillEquipArtifact(id) {
+      if (world.screen !== "play" || !world.spill) return false;
+      const ok = spillEquipArtifact(world.spill, id);
       if (ok) { checkpointSpill(); sfx.ui(); } else sfx.warning();
       notify(); return ok;
     },

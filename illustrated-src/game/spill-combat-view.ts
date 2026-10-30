@@ -1,6 +1,7 @@
 import { drawSprite, type ArtBank } from "./art";
 import { SPILL, type SpillState } from "./spill";
-import { SPILL_WEAPONS, type SpillEnemy, type SpillShot } from "./spill-combat";
+import { spillWeaponStats, type SpillEnemy, type SpillShot } from "./spill-combat";
+import { SPILL_ARTIFACTS } from "./spill-builds";
 
 const TAU = Math.PI * 2;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
@@ -84,6 +85,10 @@ function drawEnemy(ctx: CanvasRenderingContext2D, s: SpillState, art: ArtBank, e
 function drawShot(ctx: CanvasRenderingContext2D, shot: SpillShot) {
   const length = Math.max(1, Math.hypot(shot.vx, shot.vy));
   const dx = shot.vx / length, dy = shot.vy / length;
+  if (shot.echo) {
+    ctx.strokeStyle = SPILL_ARTIFACTS.slipstream.color; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(shot.x, shot.y, shot.r + 3, 0, TAU); ctx.stroke();
+  }
   if (shot.team === "enemy") {
     // An orange-red diamond and dark rim distinguish hostile rounds from both
     // cyan laser streaks and round, gold cannon shells, including in Blackout.
@@ -115,6 +120,19 @@ function drawShot(ctx: CanvasRenderingContext2D, shot: SpillShot) {
 export function drawSpillCombat(ctx: CanvasRenderingContext2D, s: SpillState, art: ArtBank) {
   if (!s.combat || !flight(s)) return;
   ctx.save(); ctx.beginPath(); ctx.rect(0, 0, s.W, s.H); ctx.clip();
+  // Artifact cues follow the actual simulation timers; painting never advances them.
+  if (s.combat.build.echo > 0) {
+    ctx.strokeStyle = SPILL_ARTIFACTS.slipstream.color; ctx.lineWidth = 1.5;
+    ctx.globalAlpha = .35 + Math.min(1, s.combat.build.echo) * .3;
+    ctx.beginPath(); ctx.arc(s.pilot.x, s.pilot.y, SPILL.shipR + 8, 0, TAU); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  for (const blast of s.combat.build.blasts) {
+    ctx.strokeStyle = SPILL_ARTIFACTS.siege.color; ctx.lineWidth = 2;
+    ctx.globalAlpha = clamp(blast.life / .22, 0, 1) * .7;
+    ctx.beginPath(); ctx.arc(blast.x, blast.y, blast.r, 0, TAU); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
   for (const enemy of s.combat.enemies) {
     if (enemy.dead || enemy.telegraph <= 0) continue;
     const progress = clamp(1 - enemy.telegraph / Math.max(.01, enemy.telegraphTotal), 0, 1);
@@ -143,15 +161,18 @@ export function drawSpillCombatHud(ctx: CanvasRenderingContext2D, s: SpillState)
   if (!s.combat || !flight(s)) return;
   const c = s.combat, x = s.W - 104, y = 53, width = 92, height = 34;
   const cannon = c.weapon === "cannon", level = c.levels[c.weapon];
-  const color = cannon ? "#ffda91" : "#9ceeff";
+  const artifact = c.build.artifact;
+  const color = artifact ? SPILL_ARTIFACTS[artifact].color : cannon ? "#ffda91" : "#9ceeff";
   ctx.save(); ctx.fillStyle = "rgba(9,17,30,.82)";
   ctx.fillRect(x, y, width, height);
   ctx.fillStyle = color; ctx.fillRect(x, y, 2, height);
   ctx.textAlign = "left"; ctx.font = "800 10px Figtree,system-ui";
   ctx.fillText(`${cannon ? "CANNON" : "LASER"} ${["", "I", "II", "III"][level] ?? "I"}`, x + 8, y + 12);
   ctx.fillStyle = c.firing ? color : "#b9c5d3"; ctx.font = "600 8px Figtree,system-ui";
-  ctx.fillText(c.firing ? "FIRING" : "2ND TOUCH / F", x + 8, y + 24);
-  const duration = SPILL_WEAPONS[c.weapon].cooldown * (1 - (level - 1) * .07);
+  const status = c.build.echo > 0 ? "ECHO READY" : artifact === "reclaimer" ? `SALVAGE ${c.build.salvageDrops}/8`
+    : artifact === "siege" ? "SIEGE CORE" : artifact === "slipstream" ? "DODGE TO PRIME" : c.firing ? "FIRING" : "2ND TOUCH / F";
+  ctx.fillText(status, x + 8, y + 24);
+  const duration = spillWeaponStats(s).cooldown;
   ctx.fillStyle = "rgba(255,255,255,.14)"; ctx.fillRect(x + 8, y + 29, width - 16, 2);
   ctx.fillStyle = color; ctx.fillRect(x + 8, y + 29, (width - 16) * clamp(1 - c.cooldown / duration, 0, 1), 2);
   ctx.restore();

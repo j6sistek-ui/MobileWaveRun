@@ -1,5 +1,19 @@
 # Browser validation — 2026-10-29
 
+## Phase 2 builds — 2026-10-30
+
+`npm run check` passes typecheck, clean build, unchanged asset verification and **17 test files** on existing Node24.19.0. Docker's Linux engine remains unavailable; no packages were installed. Ten new rule cases cover deterministic milestone recovery, free refits, legacy/malformed saves, capped physical salvage and collection, Pulse/dodge reward isolation, manual echo firing/expiry, death/extra-life cleanup, resize, slower Siege cadence and bounded splash at the swept impact position. The new host suite uses the actual bootstrap, Depot controls and storage to verify opening choices, recovery/refit checkpoints, no rerolls, scrolling, rotation, pause/results summaries and new-run reset.
+
+Six additional production-render frames cover all three artifacts at 390×760 and 844×390. Echo priming/round marks, blast rings and unchanged HUD bounds pass with no paint-time state mutation. Existing combat, steering, gesture, progression, source guards, 192 ship renders and 125 upstream plus two generated asset checks continue to pass. A final CSS-only header correction was rebuilt and verified in the browser; `git diff --check` passes.
+
+For browser review, a disposable, visibly labeled **synthetic Depot scene** loaded the production host and controls with memory-only saves. It verified wave-5 recovery, wave-15 recovery retaining the prior core, free refitting with 250 coins unchanged, and the correct shared weapon cadence. At 390×844 and 844×390, the Depot's scroll width equals its client width, the choices remain reachable, and its footer stays visible. The check found and fixed a pre-existing nowrap header that pushed the Help button outside narrow Depots. Console warnings/errors were empty. The fixture page was removed from the generated output, its tab closed, viewport override reset, and the normal game preview restored.
+
+These milestone fixtures are **not** natural survival through fifteen waves. Physical-phone landscape/two-finger feel, artifact economy balance, sustained performance, audio and native packaging remain unverified. The owner previously accepted the gesture-control check; Phase 2 needs its own playtest after publication. See [BUILDS.md](BUILDS.md).
+
+![Production Depot at wave 5 in a labeled layout fixture](images/build-depot-fixture.jpg)
+
+[Landscape refitting fixture](images/build-landscape-fixture.jpg)
+
 ## Landscape revision — 2026-10-30
 
 Typecheck, clean build, asset verification and all 15 test files pass on existing Node24.19.0. Docker's Linux engine remains unavailable; no host packages were installed. The new landscape regression covers portrait/landscape round trips, DPR, run progress and actor geometry, invalid sizes, stale input, height-only changes and coalesced duplicate events. Whitespace checks pass; there is no separate lint script.

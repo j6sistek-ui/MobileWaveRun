@@ -4,6 +4,8 @@ Read `.agent/CONTINUITY.md` and `README.md` before substantive changes.
 
 This repository develops AcornautSandbox's extracted The Spill/Debris Field as a standalone browser game. The owner authorized priority-one weapons/enemies and then floating joystick flight with second-finger firing and left/right dodge on 2026-10-29. Keep the side view and existing Depot; do not restore tap-to-fly or fixed flight pads. No navigable station. Do not introduce a new engine, 3D flight, Phoenix assets, monetization, or other playable modes without owner direction.
 
+The owner subsequently approved landscape support and Phase2 distinct builds. Phase2 adds optional run-only artifact cores, existing-module build guidance and Depot recovery/refitting; keep all choices in the Depot and preserve the accepted gesture controls. See `docs/BUILDS.md` for the rules and scope.
+
 Edit TypeScript under `illustrated-src/game/`. `docs/UPSTREAM_SPILL.md` preserves the extraction baseline; subsequent authorized gameplay changes are documented separately. Preserve unchanged upstream artwork and provenance. Shared rendering/simulation support may remain; only Spill may be launched. Keep saves isolated from Acornaut.
 
 Default verification uses the repository Dockerfile: `docker build -t mobile-wave-run .` then `docker run --rm mobile-wave-run`. Never install host system packages. If Docker is unavailable, record the limitation and use existing Node with workspace-local `npm ci`; run build, typecheck and tests. No lint script: use typecheck and `git diff --check`.

@@ -25,6 +25,7 @@ import { VANGUARD_DEPOT_SECONDS } from "./spill-depot-gag";
 // either direction. The earlier tap/gravity hand is retired for this mode.
 
 import { ENVS, LEGACY_DEBRIS_COUNT, PHYS } from "./catalog";
+import { spillPrimeEcho } from "./spill-builds";
 import { SPILL_EVENTS, SPILL_SPECIALTIES, SPILL_UTILITIES, SPILL_UTILITY_IDS, spillContractOffers, spillEventFor,
   type SpillContract, type SpillContractKind, type SpillEvent, type SpillSpecialty, type SpillUtility } from "./spill-content";
 import { admitSpillEnemies, beginSpillCombatWave, captureSpillCombatMotion, clearSpillCombat, createSpillCombat,
@@ -879,6 +880,7 @@ export function spillLunge(s: SpillState, dir: -1 | 1 = 1) {
   s.lunge = SPILL.lungeTime;
   s.lungeDir = dir;
   s.lungeCharges -= 1;
+  spillPrimeEcho(s);
   if (spillHas(s, "brake") || s.specialties.thrusters === "precision") s.pilot.vy *= 0.25;
   if (s.cool <= 0) s.cool = SPILL.lungeCooldown;
   burst(s, s.pilot.x - dir * 14, s.pilot.y, 8, "lunge", 0.5);
@@ -1698,7 +1700,7 @@ export function restoreSpill(raw: unknown, W: number, H: number): SpillState | n
       (s as any)[key] = n;
     }
   }
-  const combat = restoreSpillCombat(value.combat, s.seed);
+  const combat = restoreSpillCombat(value.combat, s.seed, s.wave);
   if (!combat) return null;
   s.combat = combat;
   s.welcome = value.welcome === true && s.wave === 0;

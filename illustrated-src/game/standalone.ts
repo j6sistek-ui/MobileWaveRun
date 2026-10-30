@@ -4,6 +4,8 @@ import { paintShipPreview } from "./draw";
 import { SPILL_UTILITIES, spillMastery } from "./spill-content";
 import { spillBuildFromState, type SpillBuild } from "./spill-presentation";
 import { restoreSpill, type SpillState } from "./spill";
+import { SPILL_WEAPONS } from "./spill-combat";
+import { SPILL_ARTIFACTS } from "./spill-builds";
 import { createDepotView, drawDepotWorkshop, drawSpillLaunchSetup, drawSpillStarters,
   drawSpillEnginePicker, drawSpillFlightHelp, drawSpillGuideSheet } from "./spill-workshop";
 
@@ -170,6 +172,7 @@ export async function bootStandalone(root: HTMLElement) {
     const saved = restoreSpill(engine.save.spillSuspended, engine.world.W, engine.world.H);
     if (saved) {
       box.append(el("h3", "", `Saved ship · wave ${saved.wave} Depot`), preview(spillBuildFromState(saved)),
+        loadoutSummary(saved),
         el("p", "ac-sub", `Health ${saved.hull}/${saved.maxHull} · ${saved.ore} Acorn Coins. Your saved build is unchanged.`));
     }
     box.append(action("MAIN MENU", "home", home));
@@ -220,12 +223,20 @@ export async function bootStandalone(root: HTMLElement) {
     const state = engine.world.spill!;
     const box = sheet("PAUSED", `WAVE ${state.wave} · ${state.ore} ACORN COINS`);
     box.classList.add("ac-pause");
-    box.append(flightSettings());
+    box.append(loadoutSummary(state), flightSettings());
     const actions = el("div", "ac-pauseact");
     actions.append(action("RESUME", "resume", () => engine.resume(), true),
       action("ABORT TO TITLE", "home", home));
     box.append(actions);
     return box;
+  }
+
+  function loadoutSummary(state: SpillState) {
+    const id = state.combat.build.artifact, artifact = id ? SPILL_ARTIFACTS[id] : null;
+    const summary = el("p", "ac-sub ac-loadout-summary",
+      `${SPILL_WEAPONS[state.combat.weapon].name} ${state.combat.levels[state.combat.weapon]}/3 · ${artifact ? `${artifact.style} / ${artifact.name}` : "No artifact fitted"}`);
+    summary.setAttribute("aria-label", "Current loadout");
+    return summary;
   }
 
   function drawResults(state: SpillState) {
@@ -246,7 +257,7 @@ export async function bootStandalone(root: HTMLElement) {
       row.append(el("span", "", label), el("span", "ac-rowgold", String(value))); rows.append(row);
     }
     const mastery = spillMastery(engine.save.spillBest);
-    box.append(rows, el("p", "ac-sub", `LAST RUN · Health upgrades ${state.up.plating} · Thrusters ${state.up.thrusters} · Pulse ${state.up.pulse}`),
+    box.append(rows, loadoutSummary(state), el("p", "ac-sub", `LAST RUN · Health upgrades ${state.up.plating} · Thrusters ${state.up.thrusters} · Pulse ${state.up.pulse}`),
       el("p", "ac-sub", state.utilities.map(id => SPILL_UTILITIES[id].name).join(" + ") || "Stock utilities"),
       el("p", "ac-gold", mastery.current.title),
       el("p", "ac-sub", mastery.next ? `Next: clear wave ${mastery.next.at} for ${mastery.next.title} and a new engine color.` : "Every engine color earned. Beat your best wave."),

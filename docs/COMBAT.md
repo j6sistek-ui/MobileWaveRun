@@ -17,6 +17,8 @@ Shots travel forward. A narrow forward cone gently aims at an enemy already near
 
 Each tier reduces its base interval by 7% per additional tier. The shared `spillWeaponStats` function supplies firing and the Depot's displayed values. Upgrades cost 65 coins for tier II and 130 for tier III, separately for each weapon; the selected weapon and both tiers persist through Depot checkpoints. Ammunition is unlimited. There are no permanent power unlocks or extra currencies in this iteration.
 
+Phase 2 adds optional artifact interactions to both weapons: Reclaimer's capped debris salvage, Slipstream Relay's dodge-primed echo, and Siege Core's splash with a 30% longer firing interval. Base values above remain unchanged when no artifact is fitted. See [BUILDS.md](BUILDS.md) for recovery, equipment synergies, tradeoffs and persistence.
+
 Debris health is 1 for shards, 2 for spinners, 4 for tumblers and 10 for hulks. Destroying it uses the existing shatter, contract and equipped Pulse salvage rules. Destroyed Pursuers drop three collectible coins; Flankers drop four. Coins enter the existing run economy only when collected. Enemy defeats also award score and appear in the run's kill count; escaping enemies do not award a kill.
 
 ## Encounters and fairness
