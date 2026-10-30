@@ -4,12 +4,13 @@ import { spillAppearance } from "./spill-appearance";
 import { SUITS } from "./catalog";
 import { paintShipPreview, type ShipPick } from "./draw";
 import { writeSave } from "./save";
-import { SPILL_ENGINE_COLORS, SPILL_UTILITIES, SPILL_UTILITY_IDS, SPILL_SPECIALTIES,
-  spillEngineColor, spillContractOffers, type SpillUtility, type SpillSpecialty } from "./spill-content";
+import { SPILL_ENGINE_COLORS, SPILL_UTILITIES, SPILL_UTILITY_IDS, SPILL_SPECIALTIES, SPILL_EVENTS,
+  spillEngineColor, spillContractOffers, spillEventFor, type SpillUtility, type SpillSpecialty } from "./spill-content";
 import { spillBuildFromState } from "./spill-presentation";
 import { SPILL_SHOP, spillPrice, spillContractProgress, type SpillBuyable } from "./spill";
 import { SPILL_WEAPONS, spillWeaponPrice, spillWeaponStats, type SpillWeaponId } from "./spill-combat";
 import { SPILL_ARTIFACTS, SPILL_BUILD_RECIPES, spillArtifactOffers, type SpillArtifactId } from "./spill-builds";
+import { SPILL_HAZARDS, SPILL_HAZARD_IDS, spillHazardPlan } from "./spill-hazards";
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = "", text = "") => {
   const n = document.createElement(tag); n.className = cls; n.textContent = text; return n;
@@ -126,8 +127,8 @@ export function drawSpillLaunchSetup(engine: Engine, onGuide: () => void) {
   actions.append(back, go); wrap.append(actions); return wrap;
 }
 
-export type DepotView = { key: string; part: System; extras: boolean; specialties: boolean; builds: boolean; guide: boolean; swap: SpillUtility | null; receipt: string; flashAt: number; openedAt: number; picked: boolean };
-export const createDepotView = (): DepotView => ({ key: "", part: "plating", extras: false, specialties: false, builds: false, guide: false, swap: null, receipt: "", flashAt: -10000, openedAt: performance.now(), picked: false });
+export type DepotView = { key: string; part: System; extras: boolean; specialties: boolean; builds: boolean; forecast: boolean; guide: boolean; swap: SpillUtility | null; receipt: string; flashAt: number; openedAt: number; picked: boolean };
+export const createDepotView = (): DepotView => ({ key: "", part: "plating", extras: false, specialties: false, builds: false, forecast: false, guide: false, swap: null, receipt: "", flashAt: -10000, openedAt: performance.now(), picked: false });
 /** THE FREE-PICK NUDGE (owner, 26 Sep 2026: "after a few seconds a pulsing ring
  *  around the free button and arrows to each of the upgraded options to help
  *  prompt a selection pick and clear selection route"). It waits this long
@@ -157,6 +158,7 @@ function drawDepotGuide(engine: Engine, onClose: () => void, closeLabel: string)
     item.append(spillUtilityArt(id), el("b", "", u.short)); kit.append(item);
   }
   sheet.append(kit);
+  sheet.append(hazardGuide());
   sheet.append(el("p", "ac-guide-services", "Rare artifacts: choose one after waves 5, 15, 25… Fit one at a time; refit free at a Depot."));
   const carry = el("div", "ac-guide-carry"), lost = el("div", "ac-guide-loss"), kept = el("div", "ac-guide-keep");
   lost.append(el("h3", "", "Out of lives"), el("p", "", "Wave 1. Acorn Coins, upgrades & artifacts reset."));
@@ -171,7 +173,7 @@ export function drawSpillGuideSheet(engine: Engine, onClose: () => void, closeLa
   const wrap = el("div", "ac-lvlsheet ac-depotwrap ac-workshop ac-spillhelpwrap");
   wrap.style.setProperty("--workshop-art", `url("${artUrl("spill-scene/workshop.webp")}")`);
   const sheet = drawDepotGuide(engine, onClose, closeLabel);
-  sheet.querySelector(".ac-guide-collect")?.before(drawSpillFlightHelp());
+  sheet.querySelector(".ac-guide-collect")?.before(drawSpillFlightHelp(false));
   wrap.append(sheet);
   wrap.onclick = e => { if (e.target === wrap) onClose(); };
   // Keys read by a modal must not tap or launch the ready ship behind it.
@@ -201,12 +203,46 @@ function flightControlCards() {
 const harderKickNote = () => el("small", "ac-sub ac-spillhelp-extra", "Hold anywhere on the field: a faint stick follows your steering finger. While holding, tap elsewhere with another finger to fire. Aim assistance follows enemies close to your forward line - match their height. After pausing, press again to steer or fire.");
 
 /** The same instructions in Settings & Help and the replayable briefing. */
-export function drawSpillFlightHelp() {
+export function drawSpillFlightHelp(includeHazards = true) {
   const section = el("section", "ac-spillflighthelp");
   section.setAttribute("aria-label", "How to fly · Debris Field");
   section.append(el("p", "ac-kicker ac-secthead", "HOW TO FLY · DEBRIS FIELD"), flightControlCards(), harderKickNote(),
     el("p", "ac-sub", "Depot every 5 waves · spend Acorn Coins · first upgrade free."));
+  if (includeHazards) section.append(hazardGuide());
   return section;
+}
+
+/** Shared rule metadata keeps the forecast and field guide aligned with admission. */
+function hazardGuide() {
+  const section = el("section", "ac-hazard-guide");
+  section.setAttribute("aria-label", "Space hazard field guide");
+  section.append(el("h3", "", "Read the field"));
+  for (const id of SPILL_HAZARD_IDS) {
+    const spec = SPILL_HAZARDS[id], row = el("div"); row.dataset.hazard = id;
+    row.append(el("b", "", `${spec.name} · wave ${spec.unlock}+`), el("p", "", spec.teach));
+    section.append(row);
+  }
+  section.append(el("p", "ac-workshop-note", "Warnings give you time to move. Later waves combine lessons; no particular weapon or artifact is required."));
+  return section;
+}
+
+function hazardForecast(engine: Engine, view: DepotView) {
+  const sp = engine.world.spill!, details = el("details", "ac-hazard-forecast");
+  details.dataset.spillControl = "hazard-forecast"; details.open = view.forecast;
+  details.append(el("summary", "", "Next five waves"));
+  details.ontoggle = () => { if (details.isConnected) view.forecast = details.open; };
+  const list = el("ol");
+  for (let wave = sp.wave + 1; wave <= sp.wave + 5; wave++) {
+    const plan = spillHazardPlan(wave, sp.seed), event = spillEventFor(wave, sp.seed), row = el("li");
+    row.dataset.spillForecastWave = String(wave);
+    const names = plan.families.map(id => SPILL_HAZARDS[id].name);
+    const label = event !== "none" ? SPILL_EVENTS[event].name : names.join(" + ") || "Debris & flight practice";
+    row.append(el("b", "", `Wave ${wave}`), el("span", "", label));
+    if (plan.families.length) row.append(el("small", "", plan.maxActive > 1 ? "Compatible pairs" : plan.advanced ? "Advanced patterns · one at a time" : "One hazard at a time"));
+    list.append(row);
+  }
+  details.append(list, el("p", "ac-workshop-note", "Forecast shows hazard families. Encounters wait for safe space; fifth-wave events have their own lanes."), hazardGuide());
+  return details;
 }
 
 /** Readable build identity and optional planning live at the Depot, away from flight input. */
@@ -435,6 +471,7 @@ export function drawDepotWorkshop(engine: Engine, view: DepotView, rerender: () 
     : "Second-finger tap or F / Space fires. Weapon upgrades stay with this run."));
   sheet.append(weapons);
   sheet.append(drawArtifactWorkshop(engine, view, arming, feedback, rerender));
+  sheet.append(hazardForecast(engine, view));
   // Utilities arrive after wave 5; the original four core hardpoints stay unchanged.
   if (!sp.welcome) {
     const shelf = el("section", "ac-workshop-utilities"), shelfHead = el("div", "ac-workshop-sectionhead"), slots = el("div", "ac-workshop-slots");

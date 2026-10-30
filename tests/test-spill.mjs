@@ -22,6 +22,7 @@ globalThis.document = { createElement: () => ({ getContext: () => null, style: {
 globalThis.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
 
 const Spill = await import("../dist/js/spill.js");
+const Hazards = await import("../dist/js/spill-hazards.js");
 // Stock-flight rule fixtures bypass the opening Depot; test-spill-welcome covers that flow.
 const S = {...Spill, createSpill: (W,H,seed,target=0,hints=true) => Spill.createSpill(W,H,seed,target,hints,false)};
 const sim = await import("../dist/js/sim.js");
@@ -91,13 +92,27 @@ const dock = (seed) => {
     if (n <= S.SPILL_AUTHORED_WAVES) ok(w.mods.length <= 1, `an authored wave teaches one rule (wave ${n})`);
     prev = w;
   }
-  const order = ["surge", "lowg", "heavy", "cross", "blackout", "swarm", "drift"];
-  const seen = order.map((m) => firstSeen[m]);
-  ok(seen.every((n, i) => i === 0 || n > seen[i - 1]), `rules are taught in order: ${JSON.stringify(firstSeen)}`);
-  ok(firstSeen.surge === 3 && firstSeen.lowg === 6 && firstSeen.drift === 18, `the taught waves match the ladder: ${JSON.stringify(firstSeen)}`);
+  // Phase3 deliberately isolates new hazard lessons and filters conflicting
+  // modifiers. The old exact order after HEAVY no longer describes the game;
+  // preserve the initial lessons and prove all modifiers remain reachable.
+  ok(firstSeen.surge === 3 && firstSeen.lowg === 6 && firstSeen.heavy === 8,
+    `the initial movement lessons retain their authored waves: ${JSON.stringify(firstSeen)}`);
+  for (const seed of [0, 1, 7, 19, 71, 99, 997, 0xffffffff]) {
+    const available = new Set();
+    for (let n = 1; n <= 80; n++) {
+      const w = S.spillWaveSpec(n, seed), plan = Hazards.spillHazardPlan(n, seed);
+      for (const mod of w.mods) available.add(mod);
+      ok(w.mods.length <= (n <= S.SPILL_AUTHORED_WAVES ? 1 : 2), `modifier pressure stays bounded at wave ${n}, seed ${seed}`);
+      if ([4, 7, 11, 16].includes(n)) ok(w.mods.length === 0, `new hazard lesson ${n} carries no extra modifier`);
+      if (plan.families.includes("gravity")) ok(!w.mods.some(mod => ["heavy", "cross", "drift"].includes(mod)),
+        `gravity countersteering is not combined with conflicting movement at wave ${n}, seed ${seed}`);
+      if (plan.families.includes("ion")) ok(!w.mods.includes("blackout"), `ion bands remain visible at wave ${n}, seed ${seed}`);
+    }
+    for (const mod of S.SPILL_MODS) ok(available.has(mod), `${mod} is still available by wave80 for seed ${seed}`);
+  }
   const a = S.spillWaveSpec(27, 99), b = S.spillWaveSpec(27, 99);
   ok(JSON.stringify(a) === JSON.stringify(b), "an endless wave is the same for the same seed");
-  ok(S.spillWaveSpec(26, 99).mods.length === 2, "two rules roll from wave 26");
+  ok(S.spillWaveSpec(26, 99).mods.length <= 2, "up to two compatible rules remain after endless filtering");
 }
 
 // ------------------------------------------------------------- the hand

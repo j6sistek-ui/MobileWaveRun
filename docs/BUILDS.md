@@ -16,6 +16,8 @@ The opening Depot keeps the original free system upgrade and weapon selection. B
 
 Reclaimer's extra pickups participate in normal Magnet attraction, coin collection, Salvage Armor repairs and contract progress. Salvage Coil keeps its existing rewards alongside Reclaimer's limited bonus. Slipstream works with either dodge direction and either weapon; holding the fire finger still counts as deliberate firing. Siege works with either weapon and reuses the ordinary destruction and enemy-reward paths. Its blast cannot hurt the player or trigger another blast, and it skips warned/dead debris. Each impact affects at most 12 additional targets. Pulse Battery still requires an Impact pulse upgrade.
 
+With Phase 3, echo rounds and Siege blasts also damage active comet cores and mines. Siege keeps the same 12-target secondary budget across debris, enemies and hazards. Mines provide their normal single disarm coin, without a Reclaimer rock bonus or enemy-kill credit. Scanner extends initial hazard warnings; the Depot forecast helps choose a build for the next block. Every hazard retains a movement-based answer for the stock ship. See [HAZARDS.md](HAZARDS.md).
+
 ## Readability and interruptions
 
 The Depot shows the active build, effect, tradeoff, recovery options and owned cores. Pause, saved-ship planning and results identify the weapon and fitted artifact. The existing weapon HUD shows salvage allowance used, an echo-ready cue, or Siege Core without adding a fixed gameplay button. Primed echoes outline the ship; echo rounds and impact blast rings distinguish their effects.
@@ -34,4 +36,4 @@ Automated rule and host tests cover recovery, refitting, old saves, invalid save
 
 At the first recovery stop, try the available cores on the same weapon and compare their survival choices. Reclaimer should encourage collecting safely, Slipstream should reward dodge-and-return-fire timing, and Siege should favor clustered threats at the cost of cadence. Check the Depot's readability in both orientations. Suggested gear is optional; artifacts remain useful without a complete recipe.
 
-Broader hazard combinations, fifth-wave climaxes, optional risks with forecasts, and permanent ship/weapon/module unlocks are later priorities. Front-facing flight and a mobile engine conversion remain separate feel and platform decisions. No navigable station or licensed Unreal assets are added.
+Phase 3 now supplies broader hazard combinations and a read-only five-wave forecast. Fifth-wave climaxes, opt-in risk/reward contracts, and permanent ship/weapon/module unlocks remain later priorities. Front-facing flight and a mobile engine conversion remain separate feel and platform decisions. No navigable station or licensed Unreal assets are added.

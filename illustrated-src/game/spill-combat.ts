@@ -1,5 +1,6 @@
 import type { SpillRock, SpillState } from "./spill";
 import { clearSpillBuildEffects, createSpillBuild, restoreSpillBuild, type SpillBuildState } from "./spill-builds";
+import { damageSpillHazard, spillHazardPressure, spillHazardPulse, type SpillHazard, type SpillHazardContact } from "./spill-hazards";
 
 /** Combat stays in the same 60 Hz authority as the field. Nothing here owns input or rendering. */
 export type SpillWeaponId = "laser" | "cannon";
@@ -32,11 +33,12 @@ export type SpillCombat = {
   enemyFireGap: number; targetId: number | null; muzzleFlash: number;
 };
 type Point = { x: number; y: number };
-export type SpillCombatMotion = { pilot: Point; rocks: Map<SpillRock, Point> };
+export type SpillCombatMotion = { pilot: Point; rocks: Map<SpillRock, Point>; hazards?: Map<SpillHazard, Point> };
 export type SpillCombatEffects = {
   shipRadius: number;
   shatter: (rock: SpillRock) => void;
   damagePilot: () => void;
+  hazardContacts?: SpillHazardContact[];
 };
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -123,7 +125,8 @@ export function resizeSpillCombat(s: SpillState, sx: number, sy: number) {
 }
 
 export function captureSpillCombatMotion(s: SpillState): SpillCombatMotion {
-  return { pilot: { x: s.pilot.x, y: s.pilot.y }, rocks: new Map(s.rocks.map(r => [r, { x: r.x, y: r.y }])) };
+  return { pilot: { x: s.pilot.x, y: s.pilot.y }, rocks: new Map(s.rocks.map(r => [r, { x: r.x, y: r.y }])),
+    hazards: new Map(s.hazards.actors.map(h => [h, { x: h.x, y: h.y }])) };
 }
 
 /** Combat has its own pressure allocation, replacing some ambient rocks rather than adding to their cap. */
@@ -165,7 +168,7 @@ function spawnEnemy(s: SpillState): boolean {
 
 /** Admission is separate from stepping so the ambient director sees the new pressure immediately. */
 export function admitSpillEnemies(s: SpillState, dt: number) {
-  if (s.phase !== "wave" || s.wave < 2 || s.waveT >= s.spec.dur - 4) return;
+  if (s.phase !== "wave" || s.wave < 2 || s.waveT >= s.spec.dur - 4 || spillHazardPressure(s) > 0) return;
   const c = s.combat;
   c.nextEnemy -= dt;
   const cap = s.wave < 10 ? 2 : 3;
@@ -218,7 +221,8 @@ function damageRock(s: SpillState, rock: SpillRock, damage: number, effects: Spi
 
 /** The direct swept hit triggers one bounded splash, never a chain reaction. */
 function impactBlast(s: SpillState, shot: SpillShot, rockHit: SpillRock | null, enemyHit: SpillEnemy | null,
-  effects: SpillCombatEffects, rockPoint: (r: SpillRock) => Point, enemyPoint: (e: SpillEnemy) => Point) {
+  hazardHit: SpillHazard | null, effects: SpillCombatEffects, rockPoint: (r: SpillRock) => Point,
+  enemyPoint: (e: SpillEnemy) => Point, hazardPoint: (h: SpillHazard) => Point) {
   const radius = shot.blastRadius ?? 0;
   if (shot.team !== "player" || radius <= 0) return;
   const build = s.combat.build;
@@ -240,11 +244,18 @@ function impactBlast(s: SpillState, shot: SpillShot, rockHit: SpillRock | null, 
     budget--; e.hp -= shot.damage * .5; e.hitFlash = .12;
     if (e.hp <= 0) killEnemy(s, e);
   }
+  for (const h of s.hazards.actors) {
+    if (!budget) break;
+    if (h === hazardHit || h.dead || h.hp <= 0 || h.warn > 0 || h.phase !== "active") continue;
+    const p = hazardPoint(h);
+    if (Math.hypot(p.x - shot.x, p.y - shot.y) > radius + h.r) continue;
+    budget--; damageSpillHazard(s, h, shot.damage * .5);
+  }
 }
 
 /** The existing impact pulse also clears nearby hostile fire and damages nearby enemies. */
 export function spillCombatPulse(s: SpillState, radius: number): number {
-  let hits = 0;
+  let hits = spillHazardPulse(s, radius);
   for (const shot of s.combat.shots)
     if (shot.team === "enemy" && Math.hypot(shot.x - s.pilot.x, shot.y - s.pilot.y) < radius) shot.dead = true;
   for (const e of s.combat.enemies) {
@@ -256,8 +267,9 @@ export function spillCombatPulse(s: SpillState, radius: number): number {
 }
 
 function aimTarget(s: SpillState) {
-  let best: SpillEnemy | null = null, distance = Infinity;
-  for (const e of s.combat.enemies) {
+  let best: SpillEnemy | SpillHazard | null = null, distance = Infinity;
+  const targets = [...s.combat.enemies, ...s.hazards.actors.filter(h => h.hp > 0 && h.warn <= 0 && h.phase === "active")];
+  for (const e of targets) {
     const dx = e.x - s.pilot.x, dy = e.y - s.pilot.y;
     if (e.dead || dx <= 20 || e.x > s.W || Math.abs(Math.atan2(dy, dx)) > 0.24) continue;
     const d = Math.hypot(dx, dy);
@@ -305,7 +317,7 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
     e.x = Math.max(homeX, e.x + e.vx * dt);
     e.y = clamp(e.y + e.vy * dt, 45, s.H - 85);
     e.cooldown = Math.max(0, e.cooldown - dt);
-    if (e.cooldown === 0 && e.x <= s.W - e.r && e.x - s.pilot.x > 50 && c.enemyFireGap === 0 && s.eventWarn <= 0 && s.surgeT <= 0) {
+    if (e.cooldown === 0 && e.x <= s.W - e.r && e.x - s.pilot.x > 50 && c.enemyFireGap === 0 && s.eventWarn <= 0 && s.surgeT <= 0 && spillHazardPressure(s) === 0) {
       e.aimX = s.pilot.x; e.aimY = s.pilot.y;
       const distance = Math.hypot(e.x - e.aimX, e.y - e.aimY);
       // After the 0.9 s frozen warning, the projectile still grants >=0.75 s to contact.
@@ -317,7 +329,7 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
   }
 
   const target = aimTarget(s);
-  c.targetId = target?.id ?? null;
+  c.targetId = target && (target.kind === "pursuer" || target.kind === "flanker") ? target.id : null;
   if ((c.firing || c.pendingFire > 0) && c.cooldown === 0 && c.shots.length < 60) {
     const weapon = spillWeaponStats(s);
     const muzzleX = s.pilot.x + effects.shipRadius + 4;
@@ -347,35 +359,83 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
   // Publish them now so an impact pulse in this tick clears them too.
   c.shots = c.shots.concat(emitted);
   const newShots = new Set(emitted);
+  const paths = new Map<SpillShot, { from: Point; to: Point; time: number; fraction: number }>();
   for (const shot of c.shots) {
     if (shot.dead || newShots.has(shot)) continue;
     const time = Math.min(dt, Math.max(0, shot.life));
     if (time <= 0) { shot.dead = true; continue; }
     const fraction = time / dt;
     const from = { x: shot.x, y: shot.y }, to = { x: shot.x + shot.vx * time, y: shot.y + shot.vy * time };
+    paths.set(shot, { from, to, time, fraction });
+  }
+  const contacts = [...(effects.hazardContacts ?? [])].sort((a, b) => a.time - b.time);
+  const ordered = contacts.length > 0;
+  let cursor = 0;
+  const pointAt = (before: Point, after: Point, time: number) => ({
+    x: before.x + (after.x - before.x) * time, y: before.y + (after.y - before.y) * time,
+  });
+  const trace = (shot: SpillShot) => {
+    const path = paths.get(shot)!;
+    const { fraction } = path;
+    const start = Math.min(cursor, fraction);
+    const from = pointAt(path.from, path.to, start / fraction), to = path.to;
     let first = Infinity;
-    let rockHit: SpillRock | null = null, enemyHit: SpillEnemy | null = null, pilotHit = false;
-    const atEnd = (before: Point, after: Point) => ({ x: before.x + (after.x - before.x) * fraction, y: before.y + (after.y - before.y) * fraction });
+    let rockHit: SpillRock | null = null, enemyHit: SpillEnemy | null = null, hazardHit: SpillHazard | null = null, pilotHit = false;
+    const contact = (before: Point, after: Point, radius: number) => {
+      if (fraction < cursor - 1e-9) return null;
+      const hit = sweep(from, to, pointAt(before, after, start), pointAt(before, after, fraction), radius);
+      return hit === null ? null : start + hit * (fraction - start);
+    };
     for (const rock of s.rocks) {
       if (rock.dead || rock.warn > 0) continue;
       const before = motion.rocks.get(rock) ?? rock;
-      const hit = sweep(from, to, before, atEnd(before, rock), shot.r + rock.r);
+      const hit = contact(before, rock, shot.r + rock.r);
       if (hit !== null && hit < first) { first = hit; rockHit = rock; enemyHit = null; pilotHit = false; }
+    }
+    for (const h of s.hazards.actors) {
+      if (h.dead || h.hp <= 0 || h.warn > 0 || h.phase !== "active") continue;
+      const before = motion.hazards?.get(h) ?? h;
+      const hit = contact(before, h, shot.r + h.r);
+      if (hit !== null && hit < first - 1e-9) { first = hit; hazardHit = h; rockHit = null; enemyHit = null; pilotHit = false; }
     }
     if (shot.team === "player") {
       for (const e of c.enemies) {
         if (e.dead) continue;
         const before = enemyBefore.get(e) ?? e;
-        const hit = sweep(from, to, before, atEnd(before, e), shot.r + e.r);
-        if (hit !== null && hit < first - 1e-9) { first = hit; enemyHit = e; rockHit = null; }
+        const hit = contact(before, e, shot.r + e.r);
+        if (hit !== null && hit < first - 1e-9) { first = hit; enemyHit = e; rockHit = null; hazardHit = null; }
       }
     } else {
-      const hit = sweep(from, to, motion.pilot, atEnd(motion.pilot, s.pilot), shot.r + effects.shipRadius);
-      if (hit !== null && hit < first - 1e-9) { first = hit; pilotHit = true; rockHit = null; }
+      const hit = contact(motion.pilot, s.pilot, shot.r + effects.shipRadius);
+      if (hit !== null && hit < first - 1e-9) { first = hit; pilotHit = true; rockHit = null; hazardHit = null; }
     }
+    return { first, rockHit, enemyHit, hazardHit, pilotHit };
+  };
+  // A shootable hazard's impact/fuse and already-flying shots share one frame
+  // timeline. Re-trace after each event: an earlier destroyed cover piece must
+  // not eat a later shot, and a later shot cannot undo an earlier hull contact.
+  while (paths.size || contacts.length) {
+    for (const shot of paths.keys()) if (shot.dead) paths.delete(shot);
+    let shot: SpillShot | null = null, hit: ReturnType<typeof trace> | null = null;
+    for (const candidate of paths.keys()) {
+      const candidateHit = trace(candidate);
+      if (!shot || candidateHit.first < hit!.first) { shot = candidate; hit = candidateHit; }
+      if (!ordered) break;
+    }
+    if (contacts.length && (!hit || contacts[0].time < hit.first - 1e-9)) {
+      const contact = contacts.shift()!;
+      cursor = Math.max(cursor, contact.time); contact.resolve();
+      if (!active(s)) return;
+      continue;
+    }
+    if (!shot || !hit) break;
+    const { from, to, time, fraction } = paths.get(shot)!;
+    paths.delete(shot);
+    const { first, rockHit, enemyHit, hazardHit, pilotHit } = hit;
+    if (ordered && first !== Infinity) cursor = Math.max(cursor, first);
     shot.life -= time;
-    shot.x = from.x + (to.x - from.x) * Math.min(1, first);
-    shot.y = from.y + (to.y - from.y) * Math.min(1, first);
+    shot.x = from.x + (to.x - from.x) * Math.min(1, first / fraction);
+    shot.y = from.y + (to.y - from.y) * Math.min(1, first / fraction);
     if (first !== Infinity) {
       shot.dead = true;
       if (rockHit && shot.team === "player") {
@@ -384,23 +444,27 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
       } else if (enemyHit) {
         enemyHit.hp -= shot.damage; enemyHit.hitFlash = 0.12;
         if (enemyHit.hp <= 0) killEnemy(s, enemyHit);
+      } else if (hazardHit && shot.team === "player") {
+        damageSpillHazard(s, hazardHit, shot.damage);
       } else if (pilotHit) {
         effects.damagePilot();
         if (!active(s)) return;
       }
-      if (shot.team === "player" && shot.blastRadius && (rockHit || enemyHit)) {
+      if (shot.team === "player" && shot.blastRadius && (rockHit || enemyHit || hazardHit)) {
         const atImpact = (before: Point, after: Point) => ({
-          x: before.x + (after.x - before.x) * fraction * first,
-          y: before.y + (after.y - before.y) * fraction * first,
+          x: before.x + (after.x - before.x) * first,
+          y: before.y + (after.y - before.y) * first,
         });
-        impactBlast(s, shot, rockHit, enemyHit, effects,
-          r => atImpact(motion.rocks.get(r) ?? r, r), e => atImpact(enemyBefore.get(e) ?? e, e));
+        impactBlast(s, shot, rockHit, enemyHit, hazardHit, effects,
+          r => atImpact(motion.rocks.get(r) ?? r, r), e => atImpact(enemyBefore.get(e) ?? e, e),
+          h => atImpact(motion.hazards?.get(h) ?? h, h));
       }
     }
     if (shot.life <= 0 || shot.x < -60 || shot.x > s.W + 100 || shot.y < -60 || shot.y > s.H + 60) shot.dead = true;
   }
   c.shots = c.shots.filter(shot => !shot.dead).slice(0, 64);
   c.enemies = c.enemies.filter(e => !e.dead);
+  s.hazards.actors = s.hazards.actors.filter(h => !h.dead);
 }
 
 /** Checkpoints are only written at the Depot. Live entities/input must never be accepted from storage. */

@@ -26,6 +26,10 @@ import { VANGUARD_DEPOT_SECONDS } from "./spill-depot-gag";
 
 import { ENVS, LEGACY_DEBRIS_COUNT, PHYS } from "./catalog";
 import { spillPrimeEcho } from "./spill-builds";
+import { admitSpillHazards, beginSpillHazardWave, clearSpillHazards, createSpillHazards,
+  resizeSpillHazards, restoreSpillHazards, spillGravityBend, spillGravityBendDelta, spillGravityDrift,
+  spillHazardPathClear, spillHazardPlan, spillHazardPressure, stepSpillHazards, SPILL_HAZARDS,
+  type SpillHazardState, type SpillHazardContact } from "./spill-hazards";
 import { SPILL_EVENTS, SPILL_SPECIALTIES, SPILL_UTILITIES, SPILL_UTILITY_IDS, spillContractOffers, spillEventFor,
   type SpillContract, type SpillContractKind, type SpillEvent, type SpillSpecialty, type SpillUtility } from "./spill-content";
 import { admitSpillEnemies, beginSpillCombatWave, captureSpillCombatMotion, clearSpillCombat, createSpillCombat,
@@ -205,12 +209,19 @@ function intervalFor(n: number) {
   return Math.max(0.22, 0.78 - 0.42 * ramp - 0.01 * beyond);
 }
 
+function hazardCompatibleMods(n: number, seed: number, mods: SpillMod[]) {
+  const plan = spillHazardPlan(n, seed);
+  if (plan.families.some(kind => SPILL_HAZARDS[kind].unlock === n)) return [];
+  return mods.filter(mod => !(plan.families.includes("gravity") && ["heavy", "cross", "drift"].includes(mod))
+    && !(plan.families.includes("ion") && mod === "blackout"));
+}
+
 /** what wave n asks of the pilot. Authored through 20; rolled from the seed
  *  after that, so one run's wave 27 is repeatable and another run's is not */
 export function spillWaveSpec(n: number, seed = 0): SpillWaveSpec {
   if (n >= 1 && n <= SPILL_AUTHORED_WAVES) {
     const [dur, cap, speed, mod, hulks] = LADDER[n - 1];
-    return { n, dur, cap, speed, mods: mod === "none" ? [] : [mod], hulks, interval: intervalFor(n) };
+    return { n, dur, cap, speed, mods: hazardCompatibleMods(n, seed, mod === "none" ? [] : [mod]), hulks, interval: intervalFor(n) };
   }
   const beyond = Math.max(1, n - SPILL_AUTHORED_WAVES);
   const roll = hash(seed, n);
@@ -226,7 +237,7 @@ export function spillWaveSpec(n: number, seed = 0): SpillWaveSpec {
     dur: 40,
     cap: Math.min(16, 14 + Math.floor((beyond - 1) / 3)),
     speed: Math.min(2.05, 1.9 * Math.pow(1.02, beyond)),
-    mods,
+    mods: hazardCompatibleMods(n, seed, mods),
     hulks: 2,
     interval: intervalFor(n),
   };
@@ -288,6 +299,9 @@ export type SpillKind = "shard" | "tumbler" | "hulk" | "spinner";
 export type SpillRock = {
   /** Projectile damage is lazy; original rocks retain their exact spawn shape until hit. */
   hp?: number;
+  /** Captured, bounded gravity arc; prediction and integration use its exact integral. */
+  gravityBend?: { start: number; duration: number; strength: number };
+  gravityWell?: number;
   x: number;
   y: number;
   vx: number;
@@ -326,6 +340,7 @@ export type SpillDepot = {
 
 export type SpillState = {
   combat: SpillCombat;
+  hazards: SpillHazardState;
   /** Cosmetic mission family; absent in legacy/endless checkpoints. */
   zoneEnv?: number;
   seed: number;
@@ -469,6 +484,7 @@ function rand(s: SpillState) {
 export function createSpill(W: number, H: number, seed: number, target = 0, hints = true, welcome = true): SpillState {
   return {
     combat: createSpillCombat(seed),
+    hazards: createSpillHazards(seed),
     seed: seed >>> 0,
     rng: seed >>> 0,
     W,
@@ -560,9 +576,12 @@ export function resizeSpill(s: SpillState, W: number, H: number) {
   const sx = W / s.W;
   const sy = H / s.H;
   resizeSpillCombat(s, sx, sy);
+  resizeSpillHazards(s, sx, sy);
   s.steerY = 0; s.lunge = 0; s.lungeDir = 1;
   s.pilot.vx = 0; s.pilot.vy = 0;
-  for (const r of s.rocks) { r.x *= sx; r.y *= sy; r.vx *= sx; r.vy *= sy; r.arc *= sy; }
+  for (const r of s.rocks) { r.x *= sx; r.y *= sy; r.vx *= sx; r.vy *= sy; r.arc *= sy;
+    if (r.gravityBend) r.gravityBend.strength *= sy;
+  }
   for (const n of s.nuts) { n.x *= sx; n.y *= sy; n.vx *= sx; n.vy *= sy; }
   s.eventSafeY *= sy;
   s.pilot.x *= sx;
@@ -677,6 +696,7 @@ export function spillRockAt(s: SpillState, r: SpillRock, t: number) {
     const t0 = s.t + r.warn;
     y += (Math.sin(r.arcPhase + ARC_RATE * (t0 + move)) - Math.sin(r.arcPhase + ARC_RATE * t0)) * r.arc / ARC_RATE;
   }
+  y += spillGravityBendDelta(r, s.t, s.t + move);
   return { x, y };
 }
 
@@ -687,6 +707,7 @@ export function spillRockAt(s: SpillState, r: SpillRock, t: number) {
  */
 export function spillPathClear(s: SpillState, cand: SpillRock) {
   if (!spillCombatRockClear(s, cand)) return false;
+  if (!spillHazardPathClear(s, cand, ahead => spillRockAt(s, cand, ahead))) return false;
   for (const r of s.rocks) {
     if (r.dead) continue;
     for (let k = 0; k <= 18; k++) {
@@ -936,6 +957,7 @@ export function spillPulse(s: SpillState) {
 
 function beginWave(s: SpillState) {
   beginSpillCombatWave(s);
+  beginSpillHazardWave(s);
   s.phase = "wave";
   s.phaseT = 0;
   // A held stick during the countdown keeps its direction through GO.
@@ -958,6 +980,7 @@ function beginWave(s: SpillState) {
  *  named and counted down. Control comes back on the GO */
 function beginCountdown(s: SpillState, n: number) {
   clearSpillCombat(s);
+  clearSpillHazards(s);
   s.wave = n;
   s.spec = spillWaveSpec(n, s.seed);
   s.event = spillEventFor(n, s.seed);
@@ -984,6 +1007,11 @@ function beginCountdown(s: SpillState, n: number) {
     s.hint = SPILL_CONTROL_HINT;
     s.hintT = s.hints ? SPILL.countdown + SPILL.hintTime : 0;
   }
+  const hazardLesson = spillHazardPlan(n, s.seed).families.find(kind => SPILL_HAZARDS[kind].unlock === n);
+  if (hazardLesson) {
+    s.hint = SPILL_HAZARDS[hazardLesson].teach;
+    s.hintT = s.hints ? SPILL.countdown + SPILL.hintTime : 0;
+  }
   if (s.event !== "none" && s.hints) {
     s.hint = SPILL_EVENTS[s.event].hint;
     s.hintT = SPILL.countdown + SPILL.hintTime;
@@ -999,6 +1027,7 @@ function afterClear(s: SpillState) {
 
 function endWave(s: SpillState) {
   clearSpillCombat(s);
+  clearSpillHazards(s);
   s.steerY = 0; s.lunge = 0; s.lungeDir = 1;
   // the wave is cleared the moment the field has drained. A mission ends
   // on a win here, not on the crash that was coming eventually
@@ -1030,6 +1059,7 @@ export function spillDockDuration(s: SpillState) {
 
 function beginDocking(s: SpillState) {
   clearSpillCombat(s);
+  clearSpillHazards(s);
   s.steerY = 0; s.lungeDir = 1;
   s.phase = "docking";
   s.phaseT = 0;
@@ -1238,6 +1268,7 @@ function takeHit(s: SpillState, r: SpillRock | null, cause: "STRUCK" | "GROUNDED
 
 function lose(s: SpillState, cause: "STRUCK" | "GROUNDED") {
   clearSpillCombat(s);
+  clearSpillHazards(s);
   s.steerY = 0; s.lunge = 0; s.lungeDir = 1;
   if (s.coreArmed) {
     // the extra life: the field freezes, and the ship comes back whole and
@@ -1300,6 +1331,7 @@ function handHorizontal(s: SpillState, dt: number) {
   if (spillMod(s, "cross") && s.knock <= 0 && s.lunge <= 0) s.pilot.x -= 40 * lane(s) * ramp(s) * dt;
 
   s.pilot.x += s.pilot.vx * dt;
+  s.pilot.x += spillGravityDrift(s).x * dt;
 
   const lo = s.W * SPILL.bandLeft;
   const hi = s.W * SPILL.bandRight;
@@ -1312,9 +1344,10 @@ function handHorizontal(s: SpillState, dt: number) {
 function handVertical(s: SpillState, dt: number) {
   const axis = s.steerY;
   const top = 22, bottom = s.H - 22;
-  const room = axis < 0 ? s.pilot.y - top : bottom - s.pilot.y;
-  const edge = axis ? Math.max(0, Math.min(1, room / SPILL.edgeEase)) : 1;
-  const wanted = axis * SPILL.steerSpeed * edge;
+  const command = axis * SPILL.steerSpeed + spillGravityDrift(s).y;
+  const room = command < 0 ? s.pilot.y - top : bottom - s.pilot.y;
+  const edge = command ? Math.max(0, Math.min(1, room / SPILL.edgeEase)) : 1;
+  const wanted = command * edge;
   const braking = axis === 0 || (s.pilot.vy !== 0 && Math.sign(wanted) !== Math.sign(s.pilot.vy))
     || Math.abs(wanted) < Math.abs(s.pilot.vy);
   const acceleration = braking
@@ -1503,7 +1536,7 @@ function stepSpillBody(s: SpillState, dt: number) {
     s.waveT += dt;
     // the surge is a wave's mid-act: six seconds of doubled spawns, called
     // before it lands so a pilot can find a lane first
-    if (spillMod(s, "surge") && !s.surgeFired && s.waveT >= 8) {
+    if (spillMod(s, "surge") && !s.surgeFired && s.waveT >= 8 && spillHazardPressure(s) === 0) {
       s.surgeFired = true;
       s.surgeT = 6;
       say(s, "SURGE", 1.8);
@@ -1515,7 +1548,8 @@ function stepSpillBody(s: SpillState, dt: number) {
     }
   } else if (s.phase === "drain") {
     const live = s.rocks.some((r) => !r.dead && r.x > -r.r)
-      || s.combat.enemies.some(e => !e.dead) || s.combat.shots.some(shot => !shot.dead && shot.team === "enemy");
+      || s.combat.enemies.some(e => !e.dead) || s.combat.shots.some(shot => !shot.dead && shot.team === "enemy")
+      || spillHazardPressure(s) > 0;
     if (!live || s.phaseT >= SPILL.drainCap) {
       endWave(s);
       return;
@@ -1542,6 +1576,7 @@ function stepSpillBody(s: SpillState, dt: number) {
   }
 
   // ---- the ship
+  admitSpillHazards(s, dt, (rock, ahead) => spillRockAt(s, rock, ahead));
   const combatMotion = captureSpillCombatMotion(s);
   if (s.iframes > 0) s.iframes = Math.max(0, s.iframes - dt);
   if (s.gold > 0) s.gold = Math.max(0, s.gold - dt);
@@ -1562,7 +1597,8 @@ function stepSpillBody(s: SpillState, dt: number) {
     admitSpillEnemies(s, dt);
     s.nextRock -= dt;
     const combatPressure = spillCombatPressure(s);
-    const cap = Math.max(2, s.spec.cap + (spillMod(s, "swarm") ? 2 : 0) + (surging(s) ? 2 : 0) - combatPressure * 2);
+    const hazardPressure = spillHazardPressure(s);
+    const cap = Math.max(2, s.spec.cap + (spillMod(s, "swarm") ? 2 : 0) + (surging(s) ? 2 : 0) - combatPressure * 2 - hazardPressure * 3);
     if (s.nextRock <= 0 && s.rocks.filter((r) => !r.dead).length < cap) {
       const base = s.spec.interval;
       // a wave that is teaching something opens easier than its number
@@ -1570,7 +1606,7 @@ function stepSpillBody(s: SpillState, dt: number) {
       const act = s.waveT / s.spec.dur;
       const pacing = act < 0.2 ? 1.35 : act < 0.5 ? 1 : act < 0.78 ? 0.8 : 1.4;
       s.nextRock = Math.max(0.1, (surging(s) ? base * 0.45 : base) * teaching * pacing * (0.65 + rand(s) * 0.7)
-        * (combatPressure ? 1.5 : 1));
+        * (combatPressure || hazardPressure ? 1.5 : 1));
       for (let k = 0; k < 6; k++) if (spawnRock(s)) break;
     }
     s.nextNut -= dt;
@@ -1586,6 +1622,14 @@ function stepSpillBody(s: SpillState, dt: number) {
   }
 
   // ---- debris
+  for (const rock of s.rocks) {
+    const proposal = spillGravityBend(s, rock);
+    if (!proposal) continue;
+    rock.gravityWell = proposal.wellId;
+    const candidate = { ...rock, gravityBend: proposal.bend };
+    const withoutSelf = { ...s, rocks: s.rocks.filter(other => other !== rock) };
+    if (spillPathClear(withoutSelf, candidate) && escapeClear(s, candidate)) rock.gravityBend = proposal.bend;
+  }
   for (const r of s.rocks) {
     if (r.dead) continue;
     // a hulk waits offscreen while it warns. The frame the warning runs
@@ -1600,9 +1644,14 @@ function stepSpillBody(s: SpillState, dt: number) {
     }
     r.x += r.vx * move;
     r.y += r.vy * move + (r.arc ? Math.cos(r.arcPhase + s.t * ARC_RATE) * r.arc * move : 0);
+    r.y += spillGravityBendDelta(r, s.t - move, s.t);
     r.rot += r.spin * move;
   }
-  stepSpillCombat(s, dt, combatMotion, { shipRadius: SPILL.shipR,
+  const hazardContacts: SpillHazardContact[] = [];
+  stepSpillHazards(s, dt, combatMotion.pilot, { contacts: hazardContacts, damagePilot: () => takeHit(s, null, "STRUCK"),
+    predictRock: (rock, ahead) => spillRockAt(s, rock, ahead) });
+  if (!flying(s)) return;
+  stepSpillCombat(s, dt, combatMotion, { shipRadius: SPILL.shipR, hazardContacts,
     shatter: rock => shatter(s, rock), damagePilot: () => takeHit(s, null, "STRUCK") });
   if (!flying(s)) return;
   const golden = s.gold > 0;
@@ -1670,6 +1719,7 @@ export function spillCheckpoint(s: SpillState): SpillCheckpoint | null {
   if (s.phase !== "depot" || !s.depot || s.target) return null;
   const state: SpillState = JSON.parse(JSON.stringify(s));
   clearSpillCombat(state);
+  clearSpillHazards(state);
   delete state.depotGag; delete state.depotGagReady;
   state.rocks = []; state.nuts = []; state.bursts = []; state.cues = [];
   state.thrustT = 0; state.manual = false;
@@ -1703,6 +1753,9 @@ export function restoreSpill(raw: unknown, W: number, H: number): SpillState | n
   const combat = restoreSpillCombat(value.combat, s.seed, s.wave);
   if (!combat) return null;
   s.combat = combat;
+  const hazards = restoreSpillHazards(value.hazards, s.seed);
+  if (!hazards) return null;
+  s.hazards = hazards;
   s.welcome = value.welcome === true && s.wave === 0;
   s.freeUpgrade = s.welcome && value.freeUpgrade === true;
   if (!Number.isInteger(s.wave) || (!s.welcome && s.wave < 5) || s.wave % 5 || s.cleared !== s.wave || s.W <= 0 || s.H <= 0 || s.ore < 0) return null;

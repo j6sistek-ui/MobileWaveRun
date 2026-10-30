@@ -189,6 +189,16 @@ body .ac-shipmenu .ac-sheet-scroll{padding-bottom:calc(24px + env(safe-area-inse
   .ac-menu.ac-shipmenu>.ac-sheet-scroll{grid-row:4;min-height:0}
 }
 .ac-spillflighthelp{margin:12px 0 16px}
+.ac-hazard-forecast{margin:12px 14px;padding:12px;border:1px solid #7951a766;border-radius:12px;background:#130f25;color:#f3ecff}
+.ac-hazard-forecast summary{cursor:pointer;min-height:32px;font-weight:700;line-height:1.6}
+.ac-hazard-forecast ol{list-style:none;margin:8px 0;padding:0;display:grid;gap:8px}
+.ac-hazard-forecast li{display:grid;grid-template-columns:70px minmax(0,1fr);gap:3px 8px;font-size:12px}
+.ac-hazard-forecast li small{grid-column:2;color:#c9bbe3}
+.ac-hazard-guide{margin:12px 0;padding-top:10px;border-top:1px solid #7951a766;line-height:1.4}
+.ac-hazard-guide h3{margin:0 0 8px;font-size:15px}
+.ac-hazard-guide>div{margin:8px 0}
+.ac-hazard-guide b{font-size:12px;color:#f9f4ff}
+.ac-hazard-guide p{margin:3px 0;font-size:12px;color:#c9bbe3;overflow-wrap:anywhere}
 .ac-spillhelp-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
 .ac-spillhelp-controls>div{display:flex;flex-direction:column;gap:5px;padding:12px 6px;border:1px solid #8656ba;border-radius:16px;background:linear-gradient(145deg,rgba(23,12,46,.93),rgba(8,6,24,.88));box-shadow:inset 0 0 0 1px #c386ff15,0 0 7px #aa69ee22;text-align:center}
 .ac-spillhelp-controls b{font-size:13px;color:#f9f4ff}

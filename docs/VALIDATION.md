@@ -1,5 +1,23 @@
 # Browser validation — 2026-10-29
 
+## Phase 3 hazards — 2026-10-30
+
+Final `npm run check` passes typecheck, clean build, asset provenance and **20 test files** on existing Node24.19.0. Docker's Linux engine remains unavailable; no packages or runtime dependencies were installed. `git diff --check` passes; there is no separate lint script. The original 125 asset hashes and two existing generated sprites are unchanged.
+
+Nineteen hazard rule cases cover the four lessons, deterministic endless plans, frozen harmless warnings, shared enemy/debris pressure, visible-rock preservation, stock-ship escape, gravity force limits and exact curved-debris prediction, common refuges, moving-well envelopes, swept contacts, true 16-pixel ship bounds, weapon/Pulse/cover/reward behavior, mine fuse escape, shifting ion bands, legacy/malformed saves and cleanup. Earlier-shot versus earlier-comet/mine-contact cases verify both orderings inside a simulation tick. Review found and fixed the previous oversized hazard hitbox, contact-before-counterfire ordering, and a moving well crossing its announced refuge. These are regressions against observed failures, not only metadata assertions.
+
+The scheduling suite ran **192 complete wave simulations** across 320×760, 390×844, 844×390 and 1280×720, waves 4/7/11/16/31/41, and eight seeds. It used stock systems with an invulnerability observer to keep the scheduler running: at least two hazards were admitted in each run, maximum concurrency was two, and 48 runs included real overlapping pairs. These runs prove scheduling coverage, not survival balance. Separate stock-hull tests verify the tested escape routes and three advanced ion pulses. The original exact modifier lesson-order assertions are intentionally superseded: new hazard lessons and incompatible force/visibility combinations now suppress old modifiers, while availability and early 3/6/8 lessons remain checked.
+
+The production host suite verifies the shared five-wave forecast, field guide, unchanged controls, RNG-neutral reading, Depot scrolling, saves/legacy resume and pause/rotation of frozen warning paths. Twenty-four production hazard frames plus Blackout and a bent-debris cue frame verify warning/active geometry, portrait/landscape bounds, paint-only state, reduced motion and visible cues. Nine hint-visibility assertions cover the browser-discovered overlap with a gravity core: the reminder now hides when it would obscure the ship or live danger geometry. Existing combat, artifacts, gesture, storage, progression and 192 ship-render checks continue to pass.
+
+Browser checks followed the normal home/briefing/free-upgrade/launch/fire/pause path. A disposable **labeled synthetic fixture**, using production host/rules and memory-only saves, exercised gravity movement/firing and the wave-30 Depot forecast. Expanded forecast scroll/client widths matched at 359/359 in portrait and 669/669 in landscape; its launch footer remained reachable. Browser console warnings/errors were empty. The fixture is excluded from the repository and removed from final generated output; it is not a shipped wave selector or debug door.
+
+![Production gravity encounter in a labeled browser fixture](images/hazard-gravity-fixture.jpg)
+
+[Expanded narrow Depot forecast fixture](images/hazard-forecast-fixture.jpg)
+
+Physical phone ergonomics, audio, sustained performance, and natural late-run balance remain unverified. This comparison uses published game design sources, not measured competitor playtests. See [HAZARDS.md](HAZARDS.md) and [HAZARD_BENCHMARK.md](HAZARD_BENCHMARK.md). No merge or live Pages deployment is included in these checks.
+
 ## Phase 2 builds — 2026-10-30
 
 `npm run check` passes typecheck, clean build, unchanged asset verification and **17 test files** on existing Node24.19.0. Docker's Linux engine remains unavailable; no packages were installed. Ten new rule cases cover deterministic milestone recovery, free refits, legacy/malformed saves, capped physical salvage and collection, Pulse/dodge reward isolation, manual echo firing/expiry, death/extra-life cleanup, resize, slower Siege cadence and bounded splash at the swept impact position. The new host suite uses the actual bootstrap, Depot controls and storage to verify opening choices, recovery/refit checkpoints, no rerolls, scrolling, rotation, pause/results summaries and new-run reset.

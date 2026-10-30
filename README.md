@@ -37,6 +37,8 @@ Clear waves and visit the Depot every five waves. Switch weapons for free or spe
 
 **Phase 2 builds:** recover one free artifact at the wave 5 Depot, then waves 15, 25 and later ten-wave intervals while any remain unowned. Reclaimer rewards weapon salvage, Slipstream Relay adds a dodge-primed echo, and Siege Core trades firing speed for impact blasts. Fit one core at a time and refit owned cores free at the Depot. Optional build plans connect them to existing modules; nothing is purchased automatically. Artifacts last only for the current run. See [build rules and playtest](docs/BUILDS.md).
 
+**Phase 3 hazards:** comet strikes begin at wave 4, drifting mines at 7, ion storms at 11 and gravity wells at 16. Read the marked comet path, shoot or escape a mine's fuse radius, move out of a charging ion band, and countersteer around wells that also bend debris. Later waves introduce sequential families, selected pairs and advanced patterns. The Depot's **Next five waves** forecast and field guide help you prepare. See [hazard rules](docs/HAZARDS.md) and the [full-scope review and game benchmark](docs/HAZARD_BENCHMARK.md).
+
 Saves use only `mobilewaverun:`-prefixed browser storage. Existing Acornaut saves are neither imported nor modified. Private browsing or unavailable storage falls back to the current session; clearing this site's browser data clears its saves. Use a consistent browser and URL/port to retain progress.
 
 ## Development and checks
@@ -49,4 +51,4 @@ The host and asset loader are scoped to Spill. Some shared engine, renderer and 
 
 Extracted from [AcornautSandbox](https://github.com/j6sistek-ui/AcornautSandbox) commit `b67bb50f3f3fa24b6a335133a1c176638a83f775` (2026-10-28). See `docs/UPSTREAM_SPILL.md` for the original design reference and `asset-manifest.json` for unchanged copied asset hashes. Combat and joystick flight are authorized extensions; old tap/gravity movement traces are superseded by joystick regressions. New enemy sprites have separate generated provenance in [COMBAT_ASSETS](docs/COMBAT_ASSETS.md). Source and art retain the proprietary license in `LICENSE`; public visibility does not grant reuse rights.
 
-The SpaceSurvival scope review selected weapons/enemies first and distinct builds second. Both now extend the wave-and-Depot loop. There is no navigable station, camera conversion, Phoenix/Unreal asset import or new playable mode. Physical phone performance, touch ergonomics, long-run combat/build balance and native packaging still require device testing.
+The SpaceSurvival scope review selected weapons/enemies first, distinct builds second and broader hazards third. These extend the wave-and-Depot loop. There is no navigable station, camera conversion, Phoenix/Unreal asset import or new playable mode. Physical phone performance, touch ergonomics, long-run combat/build/hazard balance and native packaging still require device testing.

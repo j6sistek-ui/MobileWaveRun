@@ -9,7 +9,7 @@ Owner-requested controls revision, 2026-10-29. This prepares the side-view proto
 - Quickly flick the steering finger left or right to dodge in that direction. This spends the existing dodge charges; Thrusters upgrades retain their extra-charge benefits. A slow horizontal drag does not dodge.
 - On a keyboard, hold W/S or Up/Down to steer; press A/D or Left/Right to dodge; tap or hold F/Space to fire. A mouse drag also steers. Pause remains available.
 
-There are no fixed flight pads. The joystick is a non-interactive visual guide, so it cannot intercept the firing finger. Neutral input has no gravity. Vertical boundaries slow outward movement and clamp the ship without old floor-contact damage. Rocks and enemy shots still damage the ship.
+There are no fixed flight pads. The joystick is a non-interactive visual guide, so it cannot intercept the firing finger. Neutral input holds altitude outside an active gravity well; the well's marked influence can gently drift the ship until you steer away. Vertical boundaries slow outward movement and clamp the ship without old floor-contact damage. Rocks, enemy shots and active hazard cores/bands still damage the ship.
 
 ## Input and save behavior
 
@@ -18,6 +18,8 @@ Movement and combat remain in the existing fixed 60 Hz simulation. A firing pres
 Pause, focus loss, hidden tabs, resizing, stopping and leaving flight clear control ownership and pending fire. Resume requires fresh input. Depot checkpoints never retain held steering or shooting; older checkpoints migrate to neutral controls with their build intact.
 
 Thrusters improve movement response and dodging. Emergency Brake improves neutral stopping instead of forcing an upward kick near the former fatal floor. Low-G/Heavy modify steering response without making a released ship drift vertically.
+
+Phase 3 adds no input or camera mode. Use the same steering to leave a comet line or ion band, fire to destroy a comet or disarm a mine, and steer away from gravity cores. A mine gives a visible fuse before its ring explodes; moving out is always an alternative to shooting. The Depot forecast and Help field guide explain each family. See [HAZARDS.md](HAZARDS.md).
 
 ## Browser gestures
 
