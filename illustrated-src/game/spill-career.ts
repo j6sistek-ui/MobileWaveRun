@@ -51,8 +51,8 @@ export const SPILL_TRIALS: { id: SpillTrialId; name: string; detail: string; wav
   { id: "wreck", name: "Fracturing wreck", detail: "Break the weak point and read the released fragments.", wave: 27, seed: 7127 },
   { id: "climax", name: "Wave climax", detail: "Try a fifth-wave event and its elite encounter.", wave: 20, seed: 7120 },
   { id: "advanced", name: "Late combinations", detail: "Try later patterns with the same warnings and pressure ceiling.", wave: 41, seed: 7141 },
-  { id: "volatile", name: "Volatile route", detail: "A full five-wave route: harder warned patterns, then a 45-coin completion bonus.", wave: 6, endWave: 10, risk: "volatile", seed: 7206 },
-  { id: "patrol", name: "Patrol route", detail: "A full five-wave route: extra guards within the pressure cap, then a 60-coin bonus.", wave: 6, endWave: 10, risk: "bounty", seed: 7306 },
+  { id: "volatile", name: "Volatile route", detail: "A full five-wave route: harder warned patterns, then a 45-Salvage completion bonus.", wave: 6, endWave: 10, risk: "volatile", seed: 7206 },
+  { id: "patrol", name: "Patrol route", detail: "A full five-wave route: extra guards within the pressure cap, then a 60-Salvage bonus.", wave: 6, endWave: 10, risk: "bounty", seed: 7306 },
 ];
 export const SPILL_TRIAL_BUILDS: { id: SpillTrialBuildId; name: string; detail: string }[] = [
   { id: "stock", name: "Stock ship", detail: "3 hull, original handling, both tier-I weapons; no artifact or utilities." },

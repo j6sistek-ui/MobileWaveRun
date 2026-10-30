@@ -155,7 +155,7 @@ export function drawSpillCombat(ctx: CanvasRenderingContext2D, s: SpillState, ar
   ctx.restore();
 }
 
-/** The top-right slot begins below HEALTH/SHIELDS and finishes above status
+/** The top-right slot begins below HULL/SHIELDS and finishes above status
  * banners. HUD caller already translates by the device's top safe area. */
 export function drawSpillCombatHud(ctx: CanvasRenderingContext2D, s: SpillState) {
   if (!s.combat || !flight(s)) return;
@@ -163,15 +163,22 @@ export function drawSpillCombatHud(ctx: CanvasRenderingContext2D, s: SpillState)
   const cannon = c.weapon === "cannon", level = c.levels[c.weapon];
   const artifact = c.build.artifact;
   const color = artifact ? SPILL_ARTIFACTS[artifact].color : cannon ? "#ffda91" : "#9ceeff";
-  ctx.save(); ctx.fillStyle = "rgba(9,17,30,.82)";
-  ctx.fillRect(x, y, width, height);
-  ctx.fillStyle = color; ctx.fillRect(x, y, 2, height);
-  ctx.textAlign = "left"; ctx.font = "800 10px Figtree,system-ui";
-  ctx.fillText(`${cannon ? "CANNON" : "LASER"} ${["", "I", "II", "III"][level] ?? "I"}`, x + 8, y + 12);
-  ctx.fillStyle = c.firing ? color : "#b9c5d3"; ctx.font = "600 8px Figtree,system-ui";
+  ctx.save();
+  const metal = ctx.createLinearGradient(x, y, x, y + height);
+  metal.addColorStop(0, "rgba(23,43,57,.92)"); metal.addColorStop(.25, "rgba(8,22,33,.88)");
+  metal.addColorStop(1, "rgba(3,12,22,.8)");
+  ctx.fillStyle = metal;
+  ctx.beginPath(); ctx.moveTo(x + 5, y); ctx.lineTo(x + width, y);
+  ctx.lineTo(x + width, y + height - 5); ctx.lineTo(x + width - 5, y + height);
+  ctx.lineTo(x, y + height); ctx.lineTo(x, y + 5); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = "rgba(136,177,198,.46)"; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = color; ctx.fillRect(x + 8, y, 22, 1);
+  ctx.textAlign = "left"; ctx.font = "700 10px Orbitron,sans-serif";
+  ctx.fillText(`${cannon ? "CANNON" : "LASER"} ${["", "I", "II", "III"][level] ?? "I"}`, x + 8, y + 13, width - 16);
+  ctx.fillStyle = c.firing ? color : "#b9c5d3"; ctx.font = "600 10px Rajdhani,sans-serif";
   const status = c.build.echo > 0 ? "ECHO READY" : artifact === "reclaimer" ? `SALVAGE ${c.build.salvageDrops}/8`
     : artifact === "siege" ? "SIEGE CORE" : artifact === "slipstream" ? "DODGE TO PRIME" : c.firing ? "FIRING" : "2ND TOUCH / F";
-  ctx.fillText(status, x + 8, y + 24);
+  ctx.fillText(status, x + 8, y + 24, width - 16);
   const duration = spillWeaponStats(s).cooldown;
   ctx.fillStyle = "rgba(255,255,255,.14)"; ctx.fillRect(x + 8, y + 29, width - 16, 2);
   ctx.fillStyle = color; ctx.fillRect(x + 8, y + 29, (width - 16) * clamp(1 - c.cooldown / duration, 0, 1), 2);

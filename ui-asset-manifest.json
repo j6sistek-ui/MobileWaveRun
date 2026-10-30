@@ -1,0 +1,396 @@
+{
+  "schema": 1,
+  "created": "2026-10-30",
+  "purpose": "Runtime artwork incorporated in The Spill; not a standalone asset pack.",
+  "sourcePack": "UIFBRCA Space Station / UF License Version 1.1 (2018)",
+  "prompts": "docs/ui-image-prompts.json",
+  "totalBytes": 2078969,
+  "files": [
+    {
+      "path": "public/art/space-ui/panel-frame.webp",
+      "bytes": 25520,
+      "sha256": "01cb2b983d4185c894b1cd5a23aeff3d312de158de9da592fa0890479f4d9201",
+      "provenance": "UIFBRCA Space Station",
+      "sources": [
+        {
+          "file": "Panels__02.png",
+          "sha256": "43112a6c6822f345f454c0e6760d8af0c34745fae86fcc5dbe2dc2f70ba85b0a",
+          "bytes": 4357965
+        }
+      ],
+      "recipe": "Resampled to 960x651; unchanged artwork."
+    },
+    {
+      "path": "public/art/space-ui/panel-surface.webp",
+      "bytes": 18606,
+      "sha256": "1396b2e90512d6592c66c8761c2878091eb6c7bdfbf5eb4b73db72c864fae042",
+      "provenance": "UIFBRCA Space Station",
+      "sources": [
+        {
+          "file": "Panels__01.png",
+          "sha256": "057fb91ca70a0ef38f4b3806be9f3df23fbad0b390fee9d35eab6e490a2739ac",
+          "bytes": 4283151
+        }
+      ],
+      "recipe": "Resampled to 960x625; unchanged artwork."
+    },
+    {
+      "path": "public/art/space-ui/button-idle.webp",
+      "bytes": 17554,
+      "sha256": "b588437c72ad1b21767a7ac12bda478682f091b9aa6006df0f4b4599651c5f23",
+      "provenance": "UIFBRCA Space Station",
+      "sources": [
+        {
+          "file": "Buttons_15.png",
+          "sha256": "afd84d42fbd8076728945cd65ca3a6f5d888040c90c8369ad3ef337777da9a66",
+          "bytes": 82839
+        },
+        {
+          "file": "Buttons_48.png",
+          "sha256": "500fe1723f28637e6a8b2b7e53d7ada6a9e5d6c34161cf9ff0cd1c11d99351fc",
+          "bytes": 56591
+        }
+      ],
+      "recipe": "Center supplied cyan face in supplied metal frame; resample 600x211. Labels remain real text."
+    },
+    {
+      "path": "public/art/space-ui/button-active.webp",
+      "bytes": 17394,
+      "sha256": "1f3d017db3428b67b34f6d4b508a9bf8fe341d526c4c5d3ee4013bac1b0cb8db",
+      "provenance": "UIFBRCA Space Station",
+      "sources": [
+        {
+          "file": "Buttons_15.png",
+          "sha256": "afd84d42fbd8076728945cd65ca3a6f5d888040c90c8369ad3ef337777da9a66",
+          "bytes": 82839
+        },
+        {
+          "file": "Buttons_49.png",
+          "sha256": "b8594bc7fe71f3a6f514cab150b78d962409a46630b638dd069d5cf233213c44",
+          "bytes": 56886
+        }
+      ],
+      "recipe": "Center supplied cyan face in supplied metal frame; resample 600x211. Labels remain real text."
+    },
+    {
+      "path": "public/art/space-ui/icon-play.webp",
+      "bytes": 7686,
+      "sha256": "238df151d0030d1bd5447596d4f3b13888eec4d2d16f10b69f7cb7648aa1ed5b",
+      "provenance": "UIFBRCA Space Station",
+      "sources": [
+        {
+          "file": "Buttons_01.png",
+          "sha256": "c200b273c2f304ab0f074ab18e1fd53d48b07232c9328cfda23edeb235ab9a7f",
+          "bytes": 392407
+        },
+        {
+          "file": "Buttons_02.png",
+          "sha256": "92e0dc93e96c0ae3aca3dd1900e106b49719c132e4e90a2f48907ca9803d466a",
+          "bytes": 292727
+        },
+        {
+          "file": "Buttons_18.png",
+          "sha256": "3a715762e6a661a7d6c4096290fb0e0211f1589b98b2300ecd255eb82a902ba7",
+          "bytes": 80568
+        }
+      ],
+      "recipe": "Center original frame, face and symbol; resample to 128x125."
+    },
+    {
+      "path": "public/art/space-ui/icon-play-active.webp",
+      "bytes": 7456,
+      "sha256": "0fe1041135d0e90cc83092d5c3b7db84a85ba4c3aeb056630bdea1301f673d58",
+      "provenance": "UIFBRCA Space Station",
+      "sources": [
+        {
+          "file": "Buttons_03.png",
+          "sha256": "1fe7f05b7795d994337dd91175351c1aefced9246568853dc2299c62f69344e8",
+          "bytes": 381263
+        },
+        {
+          "file": "Buttons_04.png",
+          "sha256": "38910425ec7bfc3cc4cadfcc5950bb94afb2b0df5b47cb965c21d095cc9a37c5",
+          "bytes": 278878
+        },
+        {
+          "file": "Buttons_17.png",
+          "sha256": "77ec1559f84e5da9809ebb82b901c20fe046e0d0d3b7789f5ae9fd0097a66ae0",
+          "bytes": 12954
+        }
+      ],
+      "recipe": "Center original frame, face and symbol; resample to 128x125."
+    },
+    {
+      "path": "public/art/space-ui/icon-trials.webp",
+      "bytes": 8024,
+      "sha256": "9ecbb5d7e71b8281ec2fab98e0898750d9fdaa6ad7f3a62552a1d88135f7607e",
+      "provenance": "UIFBRCA Space Station",
+      "sources": [
+        {
+          "file": "Buttons_01.png",
+          "sha256": "c200b273c2f304ab0f074ab18e1fd53d48b07232c9328cfda23edeb235ab9a7f",
+          "bytes": 392407
+        },
+        {
+          "file": "Buttons_02.png",
+          "sha256": "92e0dc93e96c0ae3aca3dd1900e106b49719c132e4e90a2f48907ca9803d466a",
+          "bytes": 292727
+        },
+        {
+          "file": "Buttons_22.png",
+          "sha256": "5adc2e7cfabf830a4503cb762bff4b65005b58fec78e9ce304ad889ef7a0b045",
+          "bytes": 91529
+        }
+      ],
+      "recipe": "Center original frame, face and symbol; resample to 128x125."
+    },
+    {
+      "path": "public/art/space-ui/icon-trials-active.webp",
+      "bytes": 7746,
+      "sha256": "9d3fc08393bf5daa89632dd505b4f85033e0b8e4f2663115aced377fab6d8036",
+      "provenance": "UIFBRCA Space Station",
+      "sources": [
+        {
+          "file": "Buttons_03.png",
+          "sha256": "1fe7f05b7795d994337dd91175351c1aefced9246568853dc2299c62f69344e8",
+          "bytes": 381263
+        },
+        {
+          "file": "Buttons_04.png",
+          "sha256": "38910425ec7bfc3cc4cadfcc5950bb94afb2b0df5b47cb965c21d095cc9a37c5",
+          "bytes": 278878
+        },
+        {
+          "file": "Buttons_21.png",
+          "sha256": "e65005d9a3615069113b8ec51c65155ac1e9c51e0980eccce6aabcb121a22a19",
+          "bytes": 16769
+        }
+      ],
+      "recipe": "Center original frame, face and symbol; resample to 128x125."
+    },
+    {
+      "path": "public/art/space-ui/icon-settings.webp",
+      "bytes": 8070,
+      "sha256": "f5a6395565a6b3b9e81a9687a1a32f4de43ed5977a3bc192cb51c1d06ffc5852",
+      "provenance": "UIFBRCA Space Station",
+      "sources": [
+        {
+          "file": "Buttons_01.png",
+          "sha256": "c200b273c2f304ab0f074ab18e1fd53d48b07232c9328cfda23edeb235ab9a7f",
+          "bytes": 392407
+        },
+        {
+          "file": "Buttons_02.png",
+          "sha256": "92e0dc93e96c0ae3aca3dd1900e106b49719c132e4e90a2f48907ca9803d466a",
+          "bytes": 292727
+        },
+        {
+          "file": "Buttons_24.png",
+          "sha256": "65b0b1b3e376d9c9bf1d578c66f5899f38274e2186ba579bdcb796a00b31b105",
+          "bytes": 69507
+        }
+      ],
+      "recipe": "Center original frame, face and symbol; resample to 128x125."
+    },
+    {
+      "path": "public/art/space-ui/icon-settings-active.webp",
+      "bytes": 7914,
+      "sha256": "8d23ce10d34a69edc60154fc00b988e9e902ddaab0006186e42082e84b5d4f36",
+      "provenance": "UIFBRCA Space Station",
+      "sources": [
+        {
+          "file": "Buttons_03.png",
+          "sha256": "1fe7f05b7795d994337dd91175351c1aefced9246568853dc2299c62f69344e8",
+          "bytes": 381263
+        },
+        {
+          "file": "Buttons_04.png",
+          "sha256": "38910425ec7bfc3cc4cadfcc5950bb94afb2b0df5b47cb965c21d095cc9a37c5",
+          "bytes": 278878
+        },
+        {
+          "file": "Buttons_23.png",
+          "sha256": "00f9dc0ccff805c12349b513c322c4e65888fac79ee54afb2d1f4f5855668db9",
+          "bytes": 20504
+        }
+      ],
+      "recipe": "Center original frame, face and symbol; resample to 128x125."
+    },
+    {
+      "path": "public/art/space-ui/icon-target.webp",
+      "bytes": 8314,
+      "sha256": "58c52d281f61afceef7c33800057139c6e8811774789a8bc4762c407979df928",
+      "provenance": "UIFBRCA Space Station",
+      "sources": [
+        {
+          "file": "Buttons_01.png",
+          "sha256": "c200b273c2f304ab0f074ab18e1fd53d48b07232c9328cfda23edeb235ab9a7f",
+          "bytes": 392407
+        },
+        {
+          "file": "Buttons_02.png",
+          "sha256": "92e0dc93e96c0ae3aca3dd1900e106b49719c132e4e90a2f48907ca9803d466a",
+          "bytes": 292727
+        },
+        {
+          "file": "Buttons_36.png",
+          "sha256": "639c0d1a273db340deb6386e5e791224431c50d0e14a825c18b3c585797d669e",
+          "bytes": 132202
+        }
+      ],
+      "recipe": "Center original frame, face and symbol; resample to 128x125."
+    },
+    {
+      "path": "public/art/space-ui/icon-target-active.webp",
+      "bytes": 8218,
+      "sha256": "da6fc42abe1584a2f480d462c3b8c2dfbe906bf3f3f4e4179f3a2cc3ad2bd552",
+      "provenance": "UIFBRCA Space Station",
+      "sources": [
+        {
+          "file": "Buttons_03.png",
+          "sha256": "1fe7f05b7795d994337dd91175351c1aefced9246568853dc2299c62f69344e8",
+          "bytes": 381263
+        },
+        {
+          "file": "Buttons_04.png",
+          "sha256": "38910425ec7bfc3cc4cadfcc5950bb94afb2b0df5b47cb965c21d095cc9a37c5",
+          "bytes": 278878
+        },
+        {
+          "file": "Buttons_35.png",
+          "sha256": "8bdfd4376597a044573908bc860b15b63db918fa2c8d1e211f12c0d277698163",
+          "bytes": 46988
+        }
+      ],
+      "recipe": "Center original frame, face and symbol; resample to 128x125."
+    },
+    {
+      "path": "public/art/space-ui/salvage.png",
+      "bytes": 12220,
+      "sha256": "ef713544fe48059407ed89cf764a326f4560f206eb2c3c8282607b788ed738c0",
+      "provenance": "UIFBRCA Space Station + original code artwork",
+      "sources": [
+        {
+          "file": "Buttons_43.png",
+          "sha256": "e2fb672fd8bc3ea74fe29656a2b337c647baafc162cbaa7fe6f01894df3bf6f9",
+          "bytes": 28701
+        }
+      ],
+      "recipe": "96px metal resource token with original three-cell cyan salvage mark; no collision changes."
+    },
+    {
+      "path": "public/art/space-ui/menu-background.webp",
+      "bytes": 211060,
+      "sha256": "2a50b80048c0b1ba7b253eadaf46ef07a3aec2ad11dccd8901019700854b56aa",
+      "provenance": "built-in image_gen",
+      "sources": [
+        {
+          "generationId": "exec-875a7fff-de0f-439c-be7b-6b0687745248",
+          "sha256": "ad7ff27a1159e30700c56dbc4927829bdc9a0150a95b980e733d8ca7964eec9a",
+          "bytes": 2300722
+        }
+      ],
+      "recipe": "Resampled to 1672x941; transparency retained; prompt in docs/ui-image-prompts.json."
+    },
+    {
+      "path": "public/art/space-ui/title-wordmark.png",
+      "bytes": 442619,
+      "sha256": "5a2f293419367294e50b8f3c6dd1084cb5fc5e66c510daa5a57e987792b2df45",
+      "provenance": "built-in image_gen",
+      "sources": [
+        {
+          "generationId": "exec-1c04dffe-126e-4061-966e-a9bf4b5b1c17",
+          "sha256": "61a00c54d553fa8f2565b8d517a0f1fb7d45ca2799564063825b20cc5983c17f",
+          "bytes": 1422798
+        }
+      ],
+      "recipe": "Resampled to 1200x400; transparency retained; prompt in docs/ui-image-prompts.json."
+    },
+    {
+      "path": "public/art/space-ui/ship-hull.png",
+      "bytes": 54313,
+      "sha256": "8ac4610b128e7331d56b6a2bce2821f8db987c5e26c656742d850c78076bcfeb",
+      "provenance": "built-in image_gen",
+      "sources": [
+        {
+          "generationId": "exec-5eab34ad-d0ab-4b6a-aa54-8f65749a42e4",
+          "sha256": "64b46c5e955bb8008674d1b30857ddd88c2d2a7f7225ef31b6c4ad8aa6b2ba73",
+          "bytes": 1107500
+        }
+      ],
+      "recipe": "Resampled to 256x256; transparency retained; prompt in docs/ui-image-prompts.json."
+    },
+    {
+      "path": "public/fonts/space-ui/Orbitron-Variable.ttf",
+      "bytes": 38576,
+      "sha256": "f42db2dd16e642258e35782916eceb1dcdbea06fb958d77ad71dc5963587e8fd",
+      "provenance": "Google Fonts / SIL OFL 1.1",
+      "sources": [
+        {
+          "url": "https://github.com/google/fonts/tree/main/ofl/orbitron"
+        }
+      ],
+      "recipe": "Unmodified font or license; self-hosted, no host font installation."
+    },
+    {
+      "path": "public/fonts/space-ui/Rajdhani-Regular.ttf",
+      "bytes": 377860,
+      "sha256": "6e1fc228a8318251a6e569502ec57bac1e4656c582f92f59ccecc4688e039b98",
+      "provenance": "Google Fonts / SIL OFL 1.1",
+      "sources": [
+        {
+          "url": "https://github.com/google/fonts/tree/main/ofl/rajdhani"
+        }
+      ],
+      "recipe": "Unmodified font or license; self-hosted, no host font installation."
+    },
+    {
+      "path": "public/fonts/space-ui/Rajdhani-SemiBold.ttf",
+      "bytes": 390340,
+      "sha256": "94bbd25a18ca665999feb05a537de9fd2b860dcfb78bbe9ca00270825bf235da",
+      "provenance": "Google Fonts / SIL OFL 1.1",
+      "sources": [
+        {
+          "url": "https://github.com/google/fonts/tree/main/ofl/rajdhani"
+        }
+      ],
+      "recipe": "Unmodified font or license; self-hosted, no host font installation."
+    },
+    {
+      "path": "public/fonts/space-ui/Rajdhani-Bold.ttf",
+      "bytes": 400680,
+      "sha256": "691470dd3286a14e9677940d0bf75796179841ba5215cbda1a2c8910a3226afd",
+      "provenance": "Google Fonts / SIL OFL 1.1",
+      "sources": [
+        {
+          "url": "https://github.com/google/fonts/tree/main/ofl/rajdhani"
+        }
+      ],
+      "recipe": "Unmodified font or license; self-hosted, no host font installation."
+    },
+    {
+      "path": "public/fonts/space-ui/OFL-Orbitron.txt",
+      "bytes": 4426,
+      "sha256": "ab609b0e110d622435ff337cdf233288556e011bbf9bd0550be98846c0630819",
+      "provenance": "Google Fonts / SIL OFL 1.1",
+      "sources": [
+        {
+          "url": "https://github.com/google/fonts/tree/main/ofl/orbitron"
+        }
+      ],
+      "recipe": "Unmodified font or license; self-hosted, no host font installation."
+    },
+    {
+      "path": "public/fonts/space-ui/OFL-Rajdhani.txt",
+      "bytes": 4373,
+      "sha256": "f62ef357d3a1c3d27edd35a6e1ba350e8a8d13499797964eeadefbf0b3b15d1f",
+      "provenance": "Google Fonts / SIL OFL 1.1",
+      "sources": [
+        {
+          "url": "https://github.com/google/fonts/tree/main/ofl/rajdhani"
+        }
+      ],
+      "recipe": "Unmodified font or license; self-hosted, no host font installation."
+    }
+  ]
+}

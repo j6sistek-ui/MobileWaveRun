@@ -1,0 +1,29 @@
+/* Original font files and their SIL OFL 1.1 licenses ship in fonts/space-ui. */
+@font-face {
+  font-family: "Orbitron";
+  src: url("./fonts/space-ui/Orbitron-Variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Rajdhani";
+  src: url("./fonts/space-ui/Rajdhani-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Rajdhani";
+  src: url("./fonts/space-ui/Rajdhani-SemiBold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Rajdhani";
+  src: url("./fonts/space-ui/Rajdhani-Bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}

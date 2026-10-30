@@ -1,13 +1,13 @@
-Acornaut — Proprietary License
+MobileWaveRun / The Spill — Proprietary License
 
 Copyright (c) 2026 James Sistek (j6sistek-ui). All rights reserved.
 
-This repository and everything in it — the source code, artwork,
+Except for the third-party components identified below, this repository — the source code, artwork,
 characters, names, music and sound, level and game design, and every
 other asset — is the proprietary work of the copyright holder.
 
-No license is granted. This repository is published for reference and
-for collaboration on the Acornaut project itself; its visibility is not
+No license is granted to the proprietary material. This repository is published for reference and
+for collaboration on MobileWaveRun / The Spill itself; its visibility is not
 an offer to license. Except for the limited rights that cannot be
 reserved (such as viewing the repository where GitHub's Terms of
 Service require it, and playing the game at its official pages), you
@@ -18,6 +18,20 @@ holder.
 
 The Acornaut name, its logo, characters, and artwork may not be used to
 promote or brand any other product or service.
+
+Third-party components retain their respective authors' copyrights and
+license terms, rather than the proprietary restrictions above:
+- UIFBRCA Space Station UI artwork: copyright 2018 uifabrica.com and
+  Studio PUNCHEV LTD; supplied UF License Version 1.1 in
+  docs/licenses/UIFBRCA-EULA.pdf. The incorporated runtime subset and
+  source attribution are documented in docs/UI_IDENTITY.md and
+  ui-asset-manifest.json; this repository does not offer a reusable UI kit.
+- Fonts: SIL Open Font License 1.1, with the applicable copyright and
+  license notices under public/fonts/OFL-*.txt and
+  public/fonts/space-ui/OFL-*.txt.
+
+The game originated from AcornautSandbox. The third-party exceptions do
+not grant a new license to its proprietary code, artwork or other assets.
 
 THE SOFTWARE AND ASSETS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
 KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES

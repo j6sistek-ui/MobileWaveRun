@@ -1,6 +1,6 @@
 import { VANGUARD_FRAMES } from "./vanguard";
 import { DEBRIS_COUNT, LEGACY_DEBRIS_COUNT, ART_VER } from "./catalog";
-import { prepareDepotBear, type DepotBearFrame } from "./spill-depot-bear";
+import type { DepotBearFrame } from "./spill-depot-bear";
 import { SPILL_UTILITY_IDS } from "./spill-content";
 import {ORBIT_PILOT_IDS,PREMIUM_SUIT_IDS,isPremiumFrames,isHighOrbitRig,type HighOrbitRigId,type PremiumSuitId} from "./high-orbit-config";
 import {isArcflashRig} from "./arcflash";
@@ -40,7 +40,7 @@ export type ArtBank = {
   arcadeAcorn: Sprite | null;
   frozen: Sprite | null;
   shieldnut: Sprite | null;
-  /** THE SPILL's run-only Acorn Coin. The ore property preserves save/API compatibility.
+  /** THE SPILL's run-only Salvage. The ore property preserves save/API compatibility.
    *  One painting; it bobs rather than cycles */
   ore: Sprite | null;
   /** the animated pickup cycles — frozen and shield now MOVE like the
@@ -86,6 +86,8 @@ export type ArtBank = {
    *  in the lab's Ship Bench and read from transforms.json beside the art */
   spillShip: Record<string, Sprite>;
   spillShipFit: SpillShipFit | null;
+  /** Standalone body uses the original 256px registration, never its alpha crop. */
+  spillHull: Sprite | null;
   /** Generated combat hulls remain separate from the pinned upstream kit. */
   spillCombat: Partial<Record<"pursuer" | "flanker", Sprite>>;
   spillCombatStatus: "pending" | "ready" | "fallback";
@@ -137,17 +139,15 @@ function loadImg(src: string) {
 }
 
 const spillSceneLoads = new WeakMap<ArtBank, Promise<void>>();
-/** Only the original Spill scene is shipped; the baseline pilot is Flight. */
+/** The Spill keeps its space environment without the original mascot overlay. */
 export function loadSpillScene(bank: ArtBank, _suit = ""): Promise<void> {
   bank.spillScene ??= {};
   const existing = spillSceneLoads.get(bank);
   if (existing) return existing;
-  const promise = Promise.all([... ["depot", "panorama"].map(async name => {
+  const promise = Promise.all(["depot", "panorama"].map(async name => {
     try { bank.spillScene![name] = await loadImg(artUrl(`spill-scene/${name}.png`)); }
     catch { /* Preserve the original procedural scene fallback. */ }
-  }), loadImg(artUrl("spill-scene/depot-bear.jpg"))
-    .then(sheet => { bank.spillScene!.bear = prepareDepotBear(sheet); })
-    .catch(() => { /* The original arrival remains usable without its marshal. */ })]).then(() => {});
+  })).then(() => {});
   spillSceneLoads.set(bank, promise);
   return promise;
 }
@@ -307,7 +307,7 @@ export function emptyArt(): ArtBank {
     suits: {}, sky: null, arcadeAcorn: null, frozen: null, shieldnut: null, ore: null,
     frozenAnim: [], shieldAnim: [], wormAnim: [], holeAnim: [], holeEnter: [],
     suitTail: {}, suitBody: {}, suitTap: {}, suitLoop: {}, suitTapTail: {}, suitBounce: {}, suitAsc: {}, suitDesc: {}, hyperRun: {},
-    spillShip: {}, spillShipFit: null, spillCombat: {}, spillCombatStatus: "pending",
+    spillShip: {}, spillShipFit: null, spillHull: null, spillCombat: {}, spillCombatStatus: "pending",
   };
 }
 
@@ -663,7 +663,8 @@ export async function loadArt(_eagerSuits: string[] = [], _eagerPals: string[] =
     named(["flight"], "suits").then(value => { bank.suits = value; }),
     named(["clear"], "helms").then(value => { bank.helms = value; }),
     named(["scout-ship"], "hyper-run").then(value => { bank.hyperRun = value; }),
-    sprite("pickups/acorn-coin.svg").then(value => { bank.ore = value; }),
+    sprite("space-ui/salvage.png").then(value => { bank.ore = value; }),
+    sprite("space-ui/ship-hull.png").then(value => { bank.spillHull = value; }),
     Promise.all([named(SPILL_SHIP_IDS, "spill-ship"), named(SPILL_UTILITY_IDS, "spill-ship/utilities", "webp")])
       .then(([ship, utilities]) => { bank.spillShip = { ...ship, ...utilities }; }),
     fetch(artUrl("spill-ship/transforms.json"))

@@ -1,5 +1,21 @@
 # Browser validation — 2026-10-29
 
+## The Spill identity — 2026-10-30
+
+`npm run check` passes TypeScript, clean build, asset integrity and **28 test files** on existing Node24.19.0. `git diff --check` passes; there is no separate lint script. Docker's Linux engine remains unavailable, so existing local tooling was used without installing host packages. The original 125 assets and two combat sprites remain byte-identical. The 22 new identity files total **2,078,969 bytes**; license, exact generation/edit prompts, original hull reference and source hashes are recorded separately.
+
+The production renderer checks eight portrait/landscape HUD frames with the actual shipped fonts and art, safe text bounds, a clear central flight lane, and unchanged gameplay state. Ship checks cover all 15 system-axis tiers, original attachment registration, no dependence on the old pilot, and the retained illumination setting. A 12-frame ship sheet was inspected. Another 36 cases cover all six launch lessons during countdown/GO at 568x320, 667x320 and 844x390 with a safe-area inset. Existing input, save, economy, trial isolation, encounter, hazard and ship-render regressions pass. The pinned shared-content hash was explicitly updated for the reviewed currency text rename; numeric rules were unchanged.
+
+Actual browser review covered 320x480, 390x844, 568x320, 844x390 and 960x720 layouts. Home, settings, controls/guide, briefing, opening Depot, upgraded trial Depot, locked/equipped/unaffordable choices, trial selectors, launch, pause/resume and saved-run confirmation were exercised. Long panels scroll without horizontal overflow, game buttons retain a minimum 44px height, confirmation focuses the safe action, and Help disables its dependent prompt switch. Browser review found and fixed compressed short-portrait rows, minimum-width landscape overflow, the Practice badge covering shields, Pause overlapping the hull plate and the countdown covering a lesson. Short-landscape pause/result actions now stay reachable at the bottom. Console errors/warnings were empty.
+
+The run-debrief screenshot uses an explicitly labeled **memory-only sample-result fixture**, not a naturally completed 12-wave run. Its restart action and portrait/landscape layouts were checked; the fixture was removed from `dist/` and its tab closed. Other screenshots below show the normal production UI and its shipped Flight Trials. The browser viewport override was reset and the normal menu restored.
+
+Physical-phone touch feel, audio, sustained performance and owner visual acceptance remain unverified. This pass changes presentation; it does not revalidate long-run balance or select a 3D engine. Publication requires the owner's PR merge approval.
+
+![The Spill desktop menu](images/identity-home-desktop.jpg)
+
+[Phone menu](images/identity-home-portrait.jpg) · [Trial Depot](images/identity-depot-landscape.jpg) · [Flight HUD](images/identity-flight-portrait.jpg) · [Sample result fixture](images/identity-results-fixture.jpg) · [Production-rendered upgrade sheet](images/identity-ship-tiers.png)
+
 ## Remaining playable package — 2026-10-29
 
 Production source passes TypeScript, clean build, unchanged asset provenance and the full test runner on existing Node24.19.0. The final expanded runner passes **27 test files**. No separate lint script exists; `git diff --check` passes. Docker's Linux engine is unavailable locally; no host packages, runtime dependencies or external art were installed. The 125 upstream assets and two existing generated sprites retain their hashes.

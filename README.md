@@ -1,6 +1,8 @@
 # MobileWaveRun
 
-The Spill (Debris Field) from AcornautSandbox, developed as a standalone browser arcade game. Keep flying through debris, shoot a path with Rapid Laser or Heavy Cannon, and fight short enemy encounters between Depot visits. Side-view movement, utilities, contracts, endless waves and Depot checkpoints remain the foundation for quick experiments before considering front-facing flight or a mobile engine conversion.
+**The Spill** is a standalone browser space-survival arcade game, originally extracted from AcornautSandbox's Debris Field mode. Keep flying through debris, shoot a path with Rapid Laser or Heavy Cannon, and fight short enemy encounters between Depot visits. Side-view movement, utilities, contracts, endless waves and Depot checkpoints remain the foundation for quick experiments before considering front-facing flight or a mobile engine conversion.
+
+The interface now uses a dedicated navy, metallic and cyan identity across menus, the Depot and flight HUD, with a generated title/backdrop, Space Station UI components and self-hosted Orbitron/Rajdhani fonts. A steel/navy ship hull replaces the visible acorn and pilot while retaining the existing attachment layout. **Salvage** is the visible currency name; existing saves and gameplay values remain compatible. The Spill remains a working title. See [interface identity and credits](docs/UI_IDENTITY.md).
 
 ## Play locally
 
@@ -33,7 +35,7 @@ Gameplay gestures stay inside the playfield instead of zooming or scrolling the 
 
 **Landscape:** turn the phone sideways; the field and menus fit the available viewport in either orientation. The phone's rotation lock must be off. Rotating during flight pauses the same run and releases held controls; tap **Resume**, then touch again. Side notches stay outside the playfield and dialogs, and the layout follows browser-bar height changes.
 
-Clear waves and visit the Depot every five waves. Switch weapons for free or spend run coins on weapon tiers, alongside the existing systems, utilities and contracts. Save and quit from the Depot to resume the build later; older checkpoints receive the default Rapid Laser. Active flight is not a mid-wave save. See [combat rules and tuning](docs/COMBAT.md).
+Clear waves and visit the Depot every five waves. Switch weapons for free or spend run Salvage on weapon tiers, alongside the existing systems, utilities and contracts. Save and quit from the Depot to resume the build later; older checkpoints receive the default Rapid Laser. Active flight is not a mid-wave save. See [combat rules and tuning](docs/COMBAT.md).
 
 **Phase 2 builds:** recover one free artifact at the wave 5 Depot, then waves 15, 25 and later ten-wave intervals while any remain unowned. Reclaimer rewards weapon salvage, Slipstream Relay adds a dodge-primed echo, and Siege Core trades firing speed for impact blasts. Fit one core at a time and refit owned cores free at the Depot. Optional build plans connect them to existing modules; nothing is purchased automatically. Artifacts last only for the current run. See [build rules and playtest](docs/BUILDS.md).
 
@@ -53,6 +55,6 @@ The host and asset loader are scoped to Spill. Some shared engine, renderer and 
 
 ## Origin and boundaries
 
-Extracted from [AcornautSandbox](https://github.com/j6sistek-ui/AcornautSandbox) commit `b67bb50f3f3fa24b6a335133a1c176638a83f775` (2026-10-28). See `docs/UPSTREAM_SPILL.md` for the original design reference and `asset-manifest.json` for unchanged copied asset hashes. Combat and joystick flight are authorized extensions; old tap/gravity movement traces are superseded by joystick regressions. New enemy sprites have separate generated provenance in [COMBAT_ASSETS](docs/COMBAT_ASSETS.md). Source and art retain the proprietary license in `LICENSE`; public visibility does not grant reuse rights.
+Extracted from [AcornautSandbox](https://github.com/j6sistek-ui/AcornautSandbox) commit `b67bb50f3f3fa24b6a335133a1c176638a83f775` (2026-10-28). See `docs/UPSTREAM_SPILL.md` for the original design reference and `asset-manifest.json` for unchanged copied asset hashes. Combat and joystick flight are authorized extensions; old tap/gravity movement traces are superseded by joystick regressions. New enemy sprites have separate generated provenance in [COMBAT_ASSETS](docs/COMBAT_ASSETS.md). The interface subset has its own `ui-asset-manifest.json`, [credits and provenance](docs/UI_IDENTITY.md). Proprietary game material retains `LICENSE`; third-party UIFBRCA artwork and OFL fonts retain their supplied terms. Public visibility does not grant additional reuse rights.
 
 The SpaceSurvival scope review selected weapons/enemies, distinct builds, broader hazards, fifth-wave climaxes, optional risks and persistent loadout choices. These now form a playable side-view evaluation package, with practice entries into the same wave mode. There is no navigable station, camera conversion or Phoenix/Unreal asset import. Physical phone performance, touch ergonomics, long-run balance and native packaging still require device testing.
