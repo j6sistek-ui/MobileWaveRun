@@ -45,6 +45,9 @@ try {
   assert.equal(engine.save.spillBest, 0, 'fresh game ignores original Acornaut progress');
   assert(!engine.world.tut && !engine.world.race && !engine.world.lvl);
   assert(action('new-run'));
+  assert.equal(app.querySelector('[data-action="controls"], [data-action="trials"]'), null,
+    'the main menu has one combined settings entry and no trial entry');
+  assert.match(action('settings').textContent, /SETTINGS & CONTROLS/);
   const before = JSON.stringify(engine.world);
   for (const mode of ['fly', 'deep', 'lost', 'arcade', 'tunnel', 'hyper']) engine.fly(mode);
   assert.equal(engine.flyLevel('1-1'), false);
@@ -55,21 +58,39 @@ try {
   isolated();
 
   action('settings').click();
+  assert.equal(engine.world.screen, 'profile');
+  assert.match(app.querySelector('h2').textContent, /^Settings$/i);
+  assert(!engine.world.spill, 'reading the combined settings and controls does not start a run');
+  assert.equal(action('control-guide').closest('details').open, false);
+  action('control-guide').click(); await nextTurn();
+  assert(action('control-guide').closest('details').open, 'full flight instructions can be expanded');
+  assert.match(app.querySelector('.ac-spillflighthelp').textContent, /SECOND FINGER/);
   const musicWasOff = !!engine.save.musicOff;
   setting('music').focus();
   setting('music').click();
   assert.equal(engine.save.musicOff, !musicWasOff);
   assert.equal(Save.loadSave().musicOff, !musicWasOff, 'settings persist in the isolated save');
   assert.equal(win.document.activeElement, setting('music'), 'rerendering a setting retains keyboard focus');
+  assert(action('control-guide').closest('details').open, 'setting changes preserve the expanded controls guide');
   setting('music').click();
   setting('help').click();
   assert(setting('prompts').disabled, 'global help setting controls the instructional-prompt switch');
   setting('help').click();
   assert(!setting('prompts').disabled);
-  action('home').click();
-  action('controls').click();
-  assert.equal(engine.world.screen, 'help');
-  assert(!engine.world.spill, 'reading controls does not start a run');
+  const controlsScroll = 412;
+  app.querySelector('.ac-result').scrollTop = controlsScroll;
+  action('depot-guide').click();
+  assert(app.querySelector('.ac-depotguidecard'), 'the detailed Depot guide remains reachable');
+  assert.equal(app.querySelector('.ac-result').scrollTop, controlsScroll, 'opening Depot help preserves the underlying guide position');
+  assert.equal(action('control-guide').tabIndex, -1, 'the background disclosure cannot take focus through the modal');
+  assert.match(control('enter-depot').textContent, /BACK TO SETTINGS/);
+  control('enter-depot').click();
+  assert.equal(app.querySelector('.ac-depotguidecard'), null);
+  assert.equal(engine.world.screen, 'profile', 'closing the Depot guide returns to the combined screen');
+  assert.equal(app.querySelector('.ac-result').scrollTop, controlsScroll, 'closing Depot help restores the same reading position');
+  assert(action('control-guide').closest('details').open);
+  assert.equal(action('control-guide').hasAttribute('tabindex'), false, 'the rebuilt disclosure regains native keyboard focus behavior');
+  assert.equal(win.document.activeElement, action('depot-guide'));
   action('home').click();
 
   action('new-run').click();

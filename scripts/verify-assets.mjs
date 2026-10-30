@@ -111,7 +111,7 @@ for (const entry of ui.files) {
 assert.equal(uiBytes, ui.totalBytes);
 assert.equal(uiGenerated, uiPrompts.assets.length, 'Every UI generation prompt must map to one shipped asset');
 const uiRequired = [
-  ...['panel-frame.webp', 'panel-surface.webp', 'button-idle.webp', 'button-active.webp',
+  ...['panel-frame.webp', 'panel-surface.webp', 'panel-title.webp', 'button-idle.webp', 'button-active.webp',
     'menu-background.webp', 'title-wordmark.png', 'salvage.png', 'ship-hull.png',
     ...['play', 'trials', 'settings', 'target'].flatMap(id => [`icon-${id}.webp`, `icon-${id}-active.webp`])]
     .map(file => `public/art/space-ui/${file}`),

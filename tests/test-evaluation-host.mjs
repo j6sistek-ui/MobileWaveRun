@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import { setImmediate as nextTurn } from 'node:timers/promises';
 import { createDom } from './helpers/dom.mjs';
 
-// Production host flows. Controlled result/Depot transitions are fixtures,
-// not evidence of natural survival or physical phone feel.
+// Production host flows. Flight Trials have no player-facing entry; the
+// existing DOM harness engine starts isolated fixtures without a new runtime
+// route or debug hook. Controlled transitions do not prove natural survival.
 const dom = createDom();
 const { win, tick } = dom;
 const app = win.document.createElement('main'); app.id = 'app'; win.document.body.append(app);
@@ -22,13 +23,15 @@ const node = (attribute, value) => {
 };
 const action = id => node('action', id);
 const control = id => node('spill-control', id);
-const select = (id, value) => {
-  const element = action(id); element.value = value;
-  element.dispatchEvent(new win.Event('change', { bubbles: true }));
+const startTrialFixture = (id, build) => {
+  assert.equal(engine.spillStartTrial(id, build), true, `isolated trial fixture: ${id}/${build}`);
+  tick(60);
 };
 try {
   await engine.artReady;
-  for (let i = 0; !app.querySelector('[data-action="trials"]') && i < 100; i++) await nextTurn();
+  for (let i = 0; !app.querySelector('[data-action="new-run"]') && i < 100; i++) await nextTurn();
+  assert.equal(app.querySelector('[data-action="trials"], .ac-trial-menu'), null,
+    'the production menu has no Flight Trials entry or selector');
   action('ship').click();
   const career = app.querySelector('.ac-career-options');
   assert(career);
@@ -43,13 +46,7 @@ try {
   assert.equal(engine.world.screen, 'title');
   const realSave = JSON.stringify(Save.loadSave());
   const checkpoint = JSON.stringify(engine.save.spillSuspended);
-  action('trials').click();
-  assert.match(app.textContent, /saved run, records and unlocks stay untouched/);
-  assert.equal(action('trial-encounter').options.length, Career.SPILL_TRIALS.length);
-  assert.equal(action('trial-build').options.length, Career.SPILL_TRIAL_BUILDS.length);
-  select('trial-encounter', 'flare'); select('trial-build', 'heavy');
-  assert(app.textContent.includes(Career.SPILL_TRIALS.find(t => t.id === 'flare').detail));
-  action('start-trial').click(); tick(60);
+  startTrialFixture('flare', 'heavy');
   let state = engine.world.spill;
   assert.equal(engine.spillTrial().id, 'flare'); assert.equal(engine.spillTrial().build, 'heavy');
   assert.equal(state.phase, 'depot'); assert.equal(state.wave, 21);
@@ -66,8 +63,7 @@ try {
   assert.equal(JSON.stringify(engine.save.spillSuspended), checkpoint);
   control('end-trial').click();
   assert.equal(engine.spillTrial(), null); assert.equal(JSON.stringify(Save.loadSave()), realSave);
-  action('trials').click(); select('trial-encounter', 'mines'); select('trial-build', 'stock');
-  action('start-trial').click(); tick(60);
+  startTrialFixture('mines', 'stock');
   state = engine.world.spill;
   const trialSeed = state.seed;
   control('launch').click(); tick(181);
@@ -76,6 +72,7 @@ try {
   assert.equal(app.querySelector('.ac-practice-badge').textContent, 'PRACTICE');
   assert.equal(app.querySelector('.ac-fire, .ac-thrust, .ac-spillcontrols'), null);
   action('pause').click(); assert.match(app.textContent, /PRACTICE PAUSED/);
+  assert.equal(app.querySelector('[data-action="choose-trial"]'), null, 'pause does not expose a hidden selector');
   action('retry-trial').click(); tick(60);
   state = engine.world.spill;
   assert.equal(state.seed, trialSeed); assert.equal(state.wave, 6); assert.equal(state.phase, 'depot');
@@ -85,9 +82,10 @@ try {
   assert.match(app.textContent, /TRIAL CLEARED/);
   assert(!app.textContent.includes('NEW BEST'));
   assert.equal(JSON.stringify(Save.loadSave()), realSave);
-  action('choose-trial').click(); assert(app.querySelector('.ac-trial-menu'));
-  select('trial-encounter', 'volatile'); select('trial-build', 'heavy');
-  action('start-trial').click(); tick(60);
+  assert.equal(app.querySelector('[data-action="choose-trial"]'), null, 'results do not expose a hidden selector');
+  action('home').click();
+  assert.equal(engine.spillTrial(), null); assert.equal(JSON.stringify(Save.loadSave()), realSave);
+  startTrialFixture('volatile', 'heavy');
   state = engine.world.spill;
   assert.equal(state.wave, 5); assert.equal(state.target, 10);
   assert.equal(app.querySelectorAll('[data-spill-forecast-wave]').length, 5);
@@ -97,8 +95,7 @@ try {
   assert.equal(state.loadout.module, 'focus', 'all sidegrades are available before a route trial');
   control('end-trial').click();
   assert.equal(JSON.stringify(Save.loadSave()), realSave);
-  action('trials').click();
-  action('home').click();
+  assert.equal(app.querySelector('[data-action="trials"], .ac-trial-menu'), null);
   assert.equal(engine.spillTrial(), null); assert.equal(JSON.stringify(Save.loadSave()), realSave);
   action('resume-run').click(); tick(60);
   state = engine.world.spill;
@@ -129,7 +126,7 @@ try {
   control('save').click(); action('resume-run').click(); tick(60);
   assert.equal(engine.world.spill.expedition.selected, 'volatile');
   assert.equal(control('risk-volatile').getAttribute('aria-pressed'), 'true');
-  console.log('evaluation host: earned choices, practice selector/builds/retry/result/save isolation, sole flight pause and opt-in route persistence passed');
+  console.log('evaluation host: hidden trial entry, isolated trial builds/retry/result/save protection, earned choices, sole flight pause and opt-in route persistence passed');
 } finally {
   engine.stop(); await win.happyDOM.close();
 }

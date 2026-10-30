@@ -4,7 +4,7 @@
   "purpose": "Runtime artwork incorporated in The Spill; not a standalone asset pack.",
   "sourcePack": "UIFBRCA Space Station / UF License Version 1.1 (2018)",
   "prompts": "docs/ui-image-prompts.json",
-  "totalBytes": 2078969,
+  "totalBytes": 2084507,
   "files": [
     {
       "path": "public/art/space-ui/panel-frame.webp",
@@ -33,6 +33,20 @@
         }
       ],
       "recipe": "Resampled to 960x625; unchanged artwork."
+    },
+    {
+      "path": "public/art/space-ui/panel-title.webp",
+      "bytes": 5538,
+      "sha256": "f6fcd32b4a78c7c40e5be7c30cdadea79f6c4c3745baffde255a96605a4ffc74",
+      "provenance": "UIFBRCA Space Station",
+      "sources": [
+        {
+          "file": "Panels__04.png",
+          "sha256": "dda2597470a21a23534990fa100fd4213746cecd522e9c7b1f2bb3fbc0f8b4ba",
+          "bytes": 20534
+        }
+      ],
+      "recipe": "Resampled to 480x126; unchanged artwork."
     },
     {
       "path": "public/art/space-ui/button-idle.webp",

@@ -45,4 +45,4 @@ New sprites and their exact generation prompts are documented in [COMBAT_ASSETS.
 
 ## Next playtest
 
-Use Flight Trials to compare both weapons/builds on the same seeded encounters. Judge target readability, simultaneous steering/shooting, directional dodge distance, the value of keeping cover, environmental tactics and whether cannon/laser/lens choices feel distinct. Physical phone ergonomics, audio listening, sustained performance and late endless-wave balance still need real play. Front-facing movement remains a separate decision.
+Compare weapons/builds in normal runs while Flight Trials are hidden from player navigation. The seeded trial encounters remain in the implementation for tests and a later return. Judge target readability, simultaneous steering/shooting, directional dodge distance, the value of keeping cover, environmental tactics and whether cannon/laser/lens choices feel distinct. Physical phone ergonomics, audio listening, sustained performance and late endless-wave balance still need real play. Front-facing movement remains a separate decision.

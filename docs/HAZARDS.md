@@ -53,7 +53,7 @@ A wreck has a 42-pixel collision body and an 11-pixel bright target with 3 healt
 
 ## Tuning and ownership
 
-`illustrated-src/game/spill-hazards.ts` owns metadata, seeded plans, actor admission, collision, rewards and force envelopes. `spill.ts` integrates flight, debris prediction and lifecycle; `spill-combat.ts` resolves weapon/Pulse interactions. The renderer reads that state in `spill-hazard-view.ts`. The Depot and Help use the shared metadata in `spill-workshop.ts`.
+`illustrated-src/game/spill-hazards.ts` owns metadata, seeded plans, actor admission, collision, rewards and force envelopes. `spill.ts` integrates flight, debris prediction and lifecycle; `spill-combat.ts` resolves weapon/Pulse interactions. The renderer reads that state in `spill-hazard-view.ts`. The Depot and combined Settings & Controls field guide use the shared metadata in `spill-workshop.ts`.
 
 | Setting | Initial value |
 | --- | --- |
@@ -75,4 +75,4 @@ The force and trajectory effects are procedural Canvas artwork tied directly to 
 
 Depot saves clear live hazards, warning timers, armed mines and transient field effects. A checkpoint from before Phase 3 receives an empty hazard state; malformed hazard payloads are rejected. Pause freezes the simulation. Rotation pauses the same wave, scales existing hazard positions and frozen aims, clears held controls, and requires fresh input after Resume.
 
-See [VALIDATION.md](VALIDATION.md) for executed checks and their limits. Automated stock-ship escape checks and browser flows are not a claim that every late combination is balanced on a physical phone. **Flight Trials** makes all six families, a late combination and the climax immediately available without changing real progression. Start with the cover/weak-point decisions and gravity tactics; then assess warning readability and whether the forecast helps select a build. The [evaluation guide](EVALUATION.md) separates these 2D mechanics from possible future 3D adaptations.
+See [VALIDATION.md](VALIDATION.md) for executed checks and their limits. Automated stock-ship escape checks and browser flows are not a claim that every late combination is balanced on a physical phone. **Flight Trials are currently hidden** from player navigation; their six-family, late-combination and climax presets remain for tests and a later return. Use normal wave progression for current playtests, assessing cover/weak-point decisions, gravity tactics, warning readability and whether the forecast helps select a build. The [evaluation guide](EVALUATION.md) separates these 2D mechanics from possible future 3D adaptations.

@@ -14,6 +14,10 @@ The owner authorized a complete independent interface identity on 2026-10-30 usi
 
 The generated neutral hull skin replaces the visible acorn/pilot while using the original sprite coordinate space and retaining upgrade attachments and tier indicators. Keep its exact source-reference provenance in `docs/ui-image-prompts.json`; visual changes must not change ship collision geometry or balance.
 
+The interface is mobile-first. Use the supplied panel/button examples as assembly references: honeycomb insert, metal outer frame and a separate centered cyan title plate over the top gap. Keep the ship panel's nameplate present. Use nine-slicing for resizable metal borders instead of stretching the whole image; inspect portrait and short landscape at actual phone sizes. Source example receipts are in `docs/UI_IDENTITY.md`; the large private example images and editable kit stay outside the repository.
+
+The owner's latest menu direction combines Settings and Controls and hides Flight Trials for now. Preserve the trial implementation and isolated regression coverage for later, but do not expose a production shortcut or restore its menu entry without owner direction. Keep the combined screen's control guide, field guide and existing settings reachable on phones.
+
 Edit TypeScript under `illustrated-src/game/`. `docs/UPSTREAM_SPILL.md` preserves the extraction baseline; subsequent authorized gameplay changes are documented separately. Preserve unchanged upstream artwork and provenance. Shared rendering/simulation support may remain; only Spill may be launched. Keep saves isolated from Acornaut.
 
 Default verification uses the repository Dockerfile: `docker build -t mobile-wave-run .` then `docker run --rm mobile-wave-run`. Never install host system packages. If Docker is unavailable, record the limitation and use existing Node with workspace-local `npm ci`; run build, typecheck and tests. No lint script: use typecheck and `git diff --check`.

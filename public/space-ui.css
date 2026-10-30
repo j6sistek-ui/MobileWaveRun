@@ -60,6 +60,7 @@ body.mwr-ui .ac-gold { color: var(--mwr-amber); }
 body.mwr-ui :is(.ac-primary, .ac-ghost, .mwr-button) {
   display: inline-flex;
   position: relative;
+  isolation: isolate;
   align-items: center;
   justify-content: center;
   gap: 10px;
@@ -68,7 +69,8 @@ body.mwr-ui :is(.ac-primary, .ac-ghost, .mwr-button) {
   padding: 12px 24px;
   border: 0;
   border-radius: 2px;
-  background: url("./art/space-ui/button-idle.webp") center / 100% 100% no-repeat;
+  --mwr-button-art: url("./art/space-ui/button-idle.webp");
+  background: none;
   color: #dcecf5;
   box-shadow: none;
   font: 700 15px/1.2 Rajdhani, sans-serif;
@@ -76,13 +78,27 @@ body.mwr-ui :is(.ac-primary, .ac-ghost, .mwr-button) {
   text-shadow: 0 1px 3px #000;
   transition: filter 120ms ease, transform 120ms ease;
 }
+body.mwr-ui :is(.ac-primary, .ac-ghost, .mwr-button)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: solid transparent;
+  border-width: 17px 36px;
+  border-image-source: var(--mwr-button-art);
+  border-image-slice: 66 140 fill;
+  border-image-width: 17px 36px;
+  border-image-repeat: stretch;
+  pointer-events: none;
+}
+body.mwr-ui :is(.ac-primary, .ac-ghost, .mwr-button) > * { position: relative; z-index: 1; }
 body.mwr-ui :is(.ac-primary, .mwr-button-primary) {
-  background-image: url("./art/space-ui/button-active.webp");
+  --mwr-button-art: url("./art/space-ui/button-active.webp");
   color: #f2fcff;
   text-shadow: 0 1px 3px #052b3a;
 }
 body.mwr-ui :is(.ac-primary, .ac-ghost, .mwr-button):hover:not(:disabled) {
-  background-image: url("./art/space-ui/button-active.webp");
+  --mwr-button-art: url("./art/space-ui/button-active.webp");
   color: #fff;
   filter: brightness(1.14);
 }
@@ -188,16 +204,7 @@ body.mwr-ui .mwr-ship-bay {
   min-height: 300px;
   padding: 32px 20px;
   text-align: center;
-  background: url("./art/space-ui/panel-frame.webp") center / 100% 100% no-repeat, radial-gradient(ellipse, #18517644, #07131b6b 68%, transparent 72%);
-}
-body.mwr-ui .mwr-ship-bay::after {
-  content: "";
-  position: absolute;
-  inset: 25% 12%;
-  border-radius: 50%;
-  border: 1px solid #70e7ff20;
-  transform: rotate(-12deg);
-  pointer-events: none;
+  background: #071321;
 }
 body.mwr-ui .mwr-ship-bay .ac-workshop-preview { position: relative; z-index: 1; }
 body.mwr-ui .mwr-home-records { grid-area: 3 / 1 / 4 / 3; display: flex; align-items: center; gap: 26px; width: 100%; padding-top: 18px; border-top: 1px solid #7ddcff38; }
@@ -427,6 +434,15 @@ body.mwr-ui .ac-spillsetting[aria-checked="true"] strong { background: linear-gr
 body.mwr-ui .ac-spillsetting:hover:not(:disabled) { border-color: #70b7d2; }
 body.mwr-ui .mwr-ui-credit { color: #829aaa; font-size: 12px; }
 body.mwr-ui .mwr-ui-credit a { display: inline-flex; align-items: center; min-height: 44px; padding-inline: 4px; color: #b3d8e8; text-underline-offset: 3px; }
+body.mwr-ui .mwr-control-guide { width: 100%; min-width: 0; border: 1px solid #42667d; border-radius: 2px; background: #071626b3; text-align: left; }
+body.mwr-ui .mwr-control-guide > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 13px 14px; list-style: none; color: #d8f5ff; font: 700 15px/1.3 Rajdhani, sans-serif; letter-spacing: .06em; cursor: pointer; }
+body.mwr-ui .mwr-control-guide > summary::-webkit-details-marker { display: none; }
+body.mwr-ui .mwr-control-guide > summary::after { content: "+"; flex: none; color: var(--mwr-cyan); font-size: 24px; line-height: 1; }
+body.mwr-ui .mwr-control-guide[open] > summary::after { content: "−"; }
+body.mwr-ui .mwr-guide-content { padding: 14px 12px; border-top: 1px solid var(--mwr-line-soft); }
+body.mwr-ui .mwr-guide-content > .ac-spillflighthelp { margin: 0; }
+body.mwr-ui .mwr-guide-actions { margin-top: 14px; }
+body.mwr-ui .mwr-guide-actions .mwr-button { width: 100%; }
 body.mwr-ui .mwr-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 100%; }
 body.mwr-ui .mwr-stat-grid .mwr-stat { padding: 18px 10px; border: 1px solid #36596d; background: #0b2031; text-align: center; }
 body.mwr-ui .mwr-result-score b { color: #a1edff; font: 600 clamp(50px, 8vw, 78px)/1 Orbitron, sans-serif; text-shadow: 0 0 30px #52c9ff33; }
@@ -558,3 +574,116 @@ body.mwr-ui .ac-floating-stick-knob { border-color: #9ce4f766; background: #a4e9
 body.mwr-ui.mwr-motion-off *, body.mwr-ui.mwr-motion-off *::before, body.mwr-ui.mwr-motion-off *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 body.mwr-ui.mwr-motion-off .ac-workshop-hint-arrows .ac-workshop-system::after { opacity: 1; transform: rotate(var(--hint-turn)); }
 body.mwr-ui.mwr-motion-off .ac-workshop-hint-ring::after { opacity: .8; transform: none; }
+
+/* Supplied kit assembly: surface, fixed-size metal corners, then the attached
+   nameplate. Ornament slices overlay the shell; they never become 95px padding. */
+body.mwr-ui .mwr-kit-panel {
+  position: relative;
+  isolation: isolate;
+  background: #071321 url("./art/space-ui/panel-surface.webp") center / cover no-repeat;
+}
+body.mwr-ui .mwr-kit-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: solid transparent;
+  border-width: 24px 95px 20px;
+  border-image-source: url("./art/space-ui/panel-frame.webp");
+  border-image-slice: 84 340 72 340;
+  border-image-width: 24px 95px 20px;
+  border-image-repeat: stretch;
+  pointer-events: none;
+}
+body.mwr-ui .mwr-kit-panel > .mwr-panel-title {
+  position: absolute;
+  z-index: 3;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: max(120px, calc(100% - 172px));
+  max-width: calc(100% - 40px);
+  min-height: 36px;
+  margin: 0;
+  padding: 7px 15px;
+  border: 0;
+  color: #f1fcff;
+  font: 700 13px/1.2 Orbitron, Rajdhani, sans-serif;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  text-shadow: 0 1px 2px #00324c, 0 0 4px #00324c;
+  pointer-events: none;
+}
+body.mwr-ui .mwr-panel-title::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 12px solid transparent;
+  border-image: url("./art/space-ui/panel-title.webp") 42 fill / 12px / 0 stretch;
+  pointer-events: none;
+}
+body.mwr-ui .mwr-ship-bay { padding: 28px 16px 16px; }
+body.mwr-ui .mwr-ship-bay > .mwr-panel-title { font-size: 11px; }
+body.mwr-ui .mwr-ship-bay > .ac-sub { position: relative; z-index: 1; color: #bed3e7; }
+body.mwr-ui .mwr-screen-backdrop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  padding: max(22px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom));
+  background: linear-gradient(#030b1480, #030b14b3), url("./art/space-ui/menu-background.webp") center / cover;
+}
+body.mwr-ui .mwr-screen-shell {
+  width: min(780px, 100%);
+  height: 100%;
+  min-height: 0;
+  max-height: 940px;
+}
+body.mwr-ui .mwr-screen-shell > .mwr-screen {
+  position: absolute;
+  inset: 40px 10px 20px;
+  width: auto;
+  height: auto;
+  padding: 6px 12px;
+  gap: 18px;
+  background: none;
+  justify-content: flex-start;
+  scroll-padding-top: 6px;
+}
+body.mwr-ui .mwr-screen-shell .mwr-screen-header { padding-bottom: 12px; }
+body.mwr-ui .mwr-screen-shell .mwr-screen-header .ac-kicker { margin-bottom: 0; }
+body.mwr-ui .mwr-screen-shell .mwr-screen-subtitle { margin-top: 8px; }
+body.mwr-ui .mwr-screen-shell .mwr-settings-panel { padding: 0; border: 0; background: none; box-shadow: none; }
+body.mwr-ui .mwr-screen-shell .ac-spillsetting { background: #071626b3; }
+body.mwr-ui .mwr-screen-shell .mwr-actions button { flex-basis: 160px; }
+/* The Depot's compact wallet/header stays in its established scroll layout.
+   Its solid header closes the top opening instead of adding a second title row. */
+body.mwr-ui .ac-depotwrap.ac-workshop .ac-depotcard {
+  border: 7px solid transparent;
+  border-image: url("./art/space-ui/panel-frame.webp") 84 340 72 340 / 24px 95px 20px / 0 stretch;
+  background: #071321 url("./art/space-ui/panel-surface.webp") center / cover no-repeat;
+}
+body.mwr-ui .ac-workshop-head {
+  border-top: 3px solid #5c8596;
+  background: #0b1c2b url("./art/space-ui/panel-surface.webp") center top / cover;
+}
+@media (max-width: 540px) {
+  body.mwr-ui .mwr-screen-shell > .mwr-screen { padding-inline: 10px; gap: 16px; }
+  body.mwr-ui .mwr-screen-shell .mwr-actions button { flex-basis: 100%; }
+  body.mwr-ui .mwr-screen-backdrop { padding-inline: 10px; }
+  body.mwr-ui .mwr-kit-panel > .mwr-panel-title { font-size: 11px; }
+}
+@media (orientation: landscape) and (max-height: 540px) {
+  body.mwr-ui .mwr-screen-backdrop { padding-block: max(12px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-bottom)); }
+  body.mwr-ui .mwr-screen-shell > .mwr-screen { inset-block: 38px 16px; padding-block: 4px; gap: 14px; }
+  body.mwr-ui .mwr-ship-bay { padding-top: 26px; padding-bottom: 13px; }
+  body.mwr-ui .mwr-ship-bay > .mwr-panel-title { font-size: 10px; min-height: 32px; }
+}
