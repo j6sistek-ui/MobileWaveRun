@@ -4,6 +4,8 @@
 
 ### Depot alignment correction
 
+**Follow-up edge-fit correction:** the owner identified remaining gaps in the previous screenshot. The backing asset includes its own blue rim and transparent shadow; `cover` cropped that rim differently at each aspect ratio. The final CSS nine-slices the surface as well as the metal and removes the separate opaque header, ship-stage and footer backgrounds. This supersedes the previous inset-and-chamfer backing approach. A bright-magenta exterior exposed the entire perimeter at 390x844 and 844x390: all four inner corner joins remained filled with no exterior showing through. Normal Depot, menu, Settings and result screenshots were refreshed; the 568x320 later-Depot fixture was also checked. Build, typecheck, unchanged asset receipts and whitespace checks pass. Browser warnings/errors were empty; diagnostic/capture/fixture files and tabs were removed and viewport reset. This is browser evidence, not owner acceptance or a physical-device test.
+
 The owner found visible defects in the PR screenshots: the opaque backing extended outside the metal bevel, Depot sections used inconsistent insets, and the sticky footer covered the ship. These were candidate-image findings, not reports from a merged build or a physical-phone playtest. They supersede the earlier visual-review claims below for the original Depot layout.
 
 The corrected Depot has an outer frame and nameplate with separate header, scroll area and footer rows. Health, Shields and Repair occupy the header. On short landscape screens the four system controls sit below the complete ship canvas. Panel surfaces are inset independently of the decorative frame. At 568px landscape width, weapon/artifact cards stack and utility headings wrap.

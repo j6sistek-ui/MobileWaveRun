@@ -583,15 +583,15 @@ body.mwr-ui .mwr-kit-panel {
   isolation: isolate;
   background: none;
 }
-/* The source frame has transparent margins beyond its bevel. Keep the opaque
-   insert inside that bevel instead of painting a blue rectangle underneath it. */
+/* Fit the insert's own transparent margin and blue rim beneath the metal.
+   Nine-slice both layers: cover-cropping moves the rim on wide/short panels. */
 body.mwr-ui .mwr-kit-panel::after {
   content: "";
   position: absolute;
-  inset: 14px 12px 8px;
+  inset: 14px 9px 3px;
   z-index: -1;
-  background: #071321 url("./art/space-ui/panel-surface.webp") center / cover no-repeat;
-  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+  border: 10px solid transparent;
+  border-image: url("./art/space-ui/panel-surface.webp") 40 fill / 10px / 0 stretch;
   pointer-events: none;
 }
 body.mwr-ui .mwr-kit-panel::before {
@@ -732,7 +732,7 @@ body.mwr-ui .mwr-depot-topbar {
   padding: 4px 10px 8px;
   border-top: 0;
   border-bottom: 1px solid var(--mwr-line-soft);
-  background: #071522;
+  background: none;
   box-shadow: none;
 }
 body.mwr-ui .mwr-depot-heading .ac-kicker { margin: 0; font-size: 10px; letter-spacing: .12em; }
@@ -754,8 +754,10 @@ body.mwr-ui .mwr-depot-shell > .ac-workshop-footer {
   padding: 6px 10px 0;
   margin: 0;
   border-top: 1px solid var(--mwr-line-soft);
-  background: #071522;
+  background: none;
 }
+body.mwr-ui .mwr-depot-shell .mwr-depot-bay { border-color: transparent; background: none; }
+body.mwr-ui .mwr-depot-shell .mwr-depot-ship-stage { background: none; }
 body.mwr-ui .mwr-depot-shell > .ac-workshop-footer::before { display: none; }
 body.mwr-ui .mwr-depot-shell .mwr-depot-layout { padding: 10px; }
 body.mwr-ui .ac-workshop-selection .mwr-depot-upgrade-note {
