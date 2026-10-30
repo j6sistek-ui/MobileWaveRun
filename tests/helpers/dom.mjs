@@ -3,7 +3,11 @@ import { Window } from 'happy-dom';
 
 export function createDom({ holdImages = false } = {}) {
   const win = new Window({ url: 'http://local/' });
-  let now = 0, frameId = 0, width = 390, paints = 0;
+  let now = 0, frameId = 0, width = 390, height = 760, paints = 0;
+  Object.defineProperties(win, {
+    innerWidth: { get: () => width, configurable: true },
+    innerHeight: { get: () => height, configurable: true },
+  });
   const frames = new Map();
   for (const key of ['window', 'document', 'localStorage', 'navigator', 'HTMLElement', 'HTMLCanvasElement',
     'Event', 'PointerEvent', 'KeyboardEvent', 'ResizeObserver', 'Audio']) {
@@ -31,7 +35,7 @@ export function createDom({ holdImages = false } = {}) {
   }, { get: (object, key) => key in object ? object[key] : () => {} });
   win.HTMLCanvasElement.prototype.getContext = function () { return context; };
   win.HTMLElement.prototype.getBoundingClientRect = function () {
-    return { x: 0, y: 0, left: 0, top: 0, width, height: 760, right: width, bottom: 760 };
+    return { x: 0, y: 0, left: 0, top: 0, width, height, right: width, bottom: height };
   };
   win.HTMLCanvasElement.prototype.setPointerCapture = function () {};
   win.HTMLCanvasElement.prototype.releasePointerCapture = function () {};
@@ -57,6 +61,7 @@ export function createDom({ holdImages = false } = {}) {
       for (const finish of pendingImages.splice(0)) queueMicrotask(finish);
     },
     setWidth(value) { width = value; },
+    setSize(nextWidth, nextHeight) { width = nextWidth; height = nextHeight; },
     paints: () => paints,
   };
 }

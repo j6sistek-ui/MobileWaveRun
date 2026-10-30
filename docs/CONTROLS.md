@@ -21,6 +21,10 @@ Thrusters improve movement response and dodging. Emergency Brake improves neutra
 
 ## Browser gestures
 
+Portrait and landscape are both supported automatically. Turn the phone sideways with system rotation lock off. A screen-size change pauses active flight, preserves the same run/build, and releases controls; choose Resume and begin a fresh gesture. The field and dialogs stay inside the side safe areas, and dynamic viewport height tracks mobile browser bars. The game does not force fullscreen or attempt to override the phone's orientation setting.
+
+Stage resize observation and viewport/orientation events are combined into one resize per animation frame. Temporary zero-size measurements are ignored; duplicate same-size events preserve held input and do not clear the canvas bitmap. The [VisualViewport API](https://developer.mozilla.org/en-US/docs/Web/API/VisualViewport) supplies additional mobile resize notifications (documentation checked 2026-10-30).
+
 The gameplay canvas declares `touch-action: none` before contact, with cancelable touch-event guards for mobile browsers. Interactive menu controls use `touch-action: manipulation` to suppress double-tap zoom while preserving scrolling. Menu scrolling and browser zoom outside the playfield remain available; global viewport zoom restrictions are removed.
 
 This follows the [MDN touch-action guidance](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/touch-action), checked 2026-10-29: browser gesture intent must be declared before a touch starts. Physical Safari/Chrome phone testing is still required; DOM cancellation tests cannot prove actual device behavior.

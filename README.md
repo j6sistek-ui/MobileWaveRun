@@ -31,6 +31,8 @@ Start a new run, choose a weapon and a free starter system in the first Depot, a
 
 Gameplay gestures stay inside the playfield instead of zooming or scrolling the browser; menu scrolling remains available. Forward aim assistance helps line up nearby targets, but you choose when to fire. Wave 1 introduces shooting debris; enemy encounters begin at Wave 2. Enemy shots are warned before firing and debris can provide cover. See [controls and tuning](docs/CONTROLS.md).
 
+**Landscape:** turn the phone sideways; the field and menus fit the available viewport in either orientation. The phone's rotation lock must be off. Rotating during flight pauses the same run and releases held controls; tap **Resume**, then touch again. Side notches stay outside the playfield and dialogs, and the layout follows browser-bar height changes.
+
 Clear waves and visit the Depot every five waves. Switch weapons for free or spend run coins on weapon tiers, alongside the existing systems, utilities and contracts. Save and quit from the Depot to resume the build later; older checkpoints receive the default Rapid Laser. Active flight is not a mid-wave save. See [combat rules and tuning](docs/COMBAT.md).
 
 Saves use only `mobilewaverun:`-prefixed browser storage. Existing Acornaut saves are neither imported nor modified. Private browsing or unavailable storage falls back to the current session; clearing this site's browser data clears its saves. Use a consistent browser and URL/port to retain progress.

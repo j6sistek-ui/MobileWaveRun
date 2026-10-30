@@ -1,5 +1,15 @@
 # Browser validation — 2026-10-29
 
+## Landscape revision — 2026-10-30
+
+Typecheck, clean build, asset verification and all 15 test files pass on existing Node24.19.0. Docker's Linux engine remains unavailable; no host packages were installed. The new landscape regression covers portrait/landscape round trips, DPR, run progress and actor geometry, invalid sizes, stale input, height-only changes and coalesced duplicate events. Whitespace checks pass; there is no separate lint script.
+
+The real browser at 844×390 showed the compact home menu, starter Depot, free Health purchase, launch and firing. Rotating the viewport to 390×844 paused Wave 1; resuming and rotating back paused the same wave again. The console was clean. Viewport overrides were reset and the preview left paused. These are browser viewport tests, not physical-phone rotation or notch hardware measurements. Phone rotation lock must be off.
+
+![Landscape browser gameplay](images/landscape-browser.jpg)
+
+The owner accepted the previous controls check. Physical device landscape feel and browser-bar behavior remain for the next phone playtest.
+
 ## Joystick controls revision
 
 `npm run check` passes typecheck, clean build, unchanged asset verification and all 14 test files on existing Node24.19.0. Docker Desktop's Linux engine pipe remains unavailable; no packages were installed. There is no separate lint script; `git diff --check` is the whitespace check.

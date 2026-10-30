@@ -1446,6 +1446,9 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
     const parent = canvas.parentElement;
     if (!parent) return;
     const rect = parent.getBoundingClientRect();
+    // Mobile rotation can briefly report an empty stage. Never scale a live
+    // run through zero (or clear its controls) before the new viewport arrives.
+    if (!Number.isFinite(rect.width) || !Number.isFinite(rect.height) || rect.width <= 0 || rect.height <= 0) return;
     const dpr = Math.min(window.devicePixelRatio || 1, world.race || world.spill ? 2 : renderCap);
     // widescreen everywhere: the play area takes the whole window. The old
     // 1600px cap left a dark bar down the right of a wide monitor (owner,
@@ -1481,8 +1484,9 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
     }
     const spillResize = sizeChanged && world.spill !== null && world.screen === "play" && !world.ready;
     if (spillResize) { resetInputTracking(); raceAccumulator = 0; pausePlay(world); }
-    canvas.width = Math.floor(W * dpr);
-    canvas.height = Math.floor(H * dpr);
+    const pixelWidth = Math.floor(W * dpr), pixelHeight = Math.floor(H * dpr);
+    if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+    if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
     canvas.style.width = `${W}px`;
     canvas.style.height = `${H}px`;
     canvas.style.left = `${Math.max(0, Math.floor((rect.width - W) / 2))}px`;

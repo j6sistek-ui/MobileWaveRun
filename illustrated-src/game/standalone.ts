@@ -144,11 +144,14 @@ export async function bootStandalone(root: HTMLElement) {
 
   function drawHome() {
     const box = sheet("DEBRIS FIELD", "Survive the waves. Collect Acorn Coins. Build your ship at the Depot.");
-    box.append(preview(nextBuild()));
+    box.classList.add("ac-home");
+    const body = el("div", "ac-home-body"), actions = el("nav", "ac-home-actions");
+    actions.setAttribute("aria-label", "Game menu");
+    body.append(preview(nextBuild()), actions); box.append(body);
     const saved = restoreSpill(engine.save.spillSuspended, engine.world.W, engine.world.H);
-    if (saved) box.append(action(`RESUME RUN · WAVE ${saved.wave} DEPOT`, "resume-run", resumeSaved, true));
-    box.append(action("NEW RUN", "new-run", startNew, !saved));
-    box.append(action("SHIP PLANNING", "ship", () => engine.open("hangar")),
+    if (saved) actions.append(action(`RESUME RUN · WAVE ${saved.wave} DEPOT`, "resume-run", resumeSaved, true));
+    actions.append(action("NEW RUN", "new-run", startNew, !saved));
+    actions.append(action("SHIP PLANNING", "ship", () => engine.open("hangar")),
       action("CONTROLS", "controls", () => engine.open("help")),
       action("SETTINGS", "settings", () => engine.open("profile")));
     const mastery = spillMastery(engine.save.spillBest);
@@ -347,7 +350,20 @@ export async function bootStandalone(root: HTMLElement) {
   // without stepping the simulation or rebuilding the menu; unchanged state
   // returns before touching the DOM.
   engine.subscribeFrame(updateControls);
-  window.addEventListener("resize", () => engine.resize());
+  // Rotation, browser chrome and safe-area changes do not always arrive as
+  // the same window event. Resize from the actual stage after layout settles.
+  // Coalesce notifications so one change does not rebuild the canvas repeatedly.
+  let resizeFrame = 0;
+  const queueResize = () => {
+    if (resizeFrame) return;
+    resizeFrame = requestAnimationFrame(() => { resizeFrame = 0; engine.resize(); });
+  };
+  window.addEventListener("resize", queueResize);
+  window.addEventListener("orientationchange", queueResize);
+  window.visualViewport?.addEventListener("resize", queueResize);
+  window.screen?.orientation?.addEventListener("change", queueResize);
+  const stageObserver = new ResizeObserver(queueResize);
+  stageObserver.observe(stage);
   engine.start();
   try {
     await engine.artReady;
