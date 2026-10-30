@@ -434,8 +434,8 @@ export function drawDepotWorkshop(engine: Engine, view: DepotView, rerender: () 
     wrap.append(drawDepotGuide(engine, () => { view.guide = false; rerender(); }, "BACK TO DEPOT"));
     return wrap;
   }
-  const sheet = el("section", "ac-lvlcard ac-depotcard ac-workshop-card mwr-panel");
-  sheet.setAttribute("role", "dialog"); sheet.setAttribute("aria-label", "Salvage depot");
+  const shell = el("div", "mwr-depot-shell mwr-kit-panel"), sheet = el("section", "ac-lvlcard ac-depotcard ac-workshop-card mwr-panel");
+  shell.setAttribute("role", "dialog"); shell.setAttribute("aria-label", "Salvage depot");
   const arming = (sp.depot?.arm ?? 0) > 0;
   // A redraw must not restart the nudge, so its delay is measured from when
   // this Depot opened: negative once the wait is over, which resumes the
@@ -461,22 +461,23 @@ export function drawDepotWorkshop(engine: Engine, view: DepotView, rerender: () 
       if (engine.spillBuy(what) !== "ok") { view.receipt = "Upgrade unavailable"; rerender(); }
     }; return b;
   };
-  const head = el("header", "ac-workshop-head"), heading = el("div"), tools = el("div", "ac-workshop-headtools"), wallet = el("div", "ac-workshop-wallet");
+  const head = el("header", "ac-workshop-head mwr-depot-topbar"), heading = el("div", "mwr-depot-heading"), tools = el("div", "ac-workshop-headtools"), wallet = el("div", "ac-workshop-wallet");
   const trial = engine.spillTrial();
-  heading.append(el("p", "ac-kicker", trial ? "PRACTICE · NO PROGRESS SAVED" : `THE SPILL · ${sp.welcome ? "PRE-FLIGHT" : `WAVE ${sp.wave} CLEARED`}`), el("h2", "", trial ? "Trial loadout" : sp.firstPass ? "First pass complete" : "Salvage depot"));
+  const title = el("h2", "mwr-panel-title", trial ? "Trial loadout" : sp.firstPass ? "First pass complete" : "Salvage depot");
+  heading.append(el("p", "ac-kicker", trial ? "PRACTICE · NO PROGRESS SAVED" : `THE SPILL · ${sp.welcome ? "PRE-FLIGHT" : `WAVE ${sp.wave} CLEARED`}`));
   wallet.setAttribute("aria-label", `${sp.ore} Salvage`); wallet.append(coin(), el("b", "", String(sp.ore)), el("span", "mwr-wallet-label", "SALVAGE"));
   const guide = el("button", "ac-helpdot", "?"); guide.setAttribute("aria-label", "How the Depot works"); guide.dataset.spillControl = "guide"; guide.onclick = () => { view.guide = true; rerender(); };
-  tools.append(wallet, guide); head.append(heading, tools); sheet.append(head);
-  if (sp.firstPass && !trial) sheet.append(el("p", "ac-workshop-milestone", "Wave 20 complete. Victory recorded. Keep your ship and fly on."));
-  const layout = el("div", "mwr-depot-layout"), bay = el("div", "mwr-depot-bay"), outfitting = el("div", "mwr-depot-outfitting");
-  layout.append(bay, outfitting); sheet.append(layout);
-  const status = el("div", "ac-workshop-status"), health = el("div", "ac-workshop-health"), healthText = el("span"), healthBar = el("progress");
+  const status = el("div", "ac-workshop-status mwr-depot-vitals"), health = el("div", "ac-workshop-health"), healthText = el("span", "mwr-depot-healthtext"), healthBar = el("progress");
+  status.setAttribute("role", "group"); status.setAttribute("aria-label", "Ship status");
   healthText.append(systemIcon("plating"), el("b", "", "Health"), el("span", "", `${sp.hull} / ${sp.maxHull}`));
   healthBar.max = sp.maxHull; healthBar.value = sp.hull; healthBar.setAttribute("aria-label", `${sp.hull} of ${sp.maxHull} health`); health.append(healthText, healthBar);
   const shields = el("div", "ac-workshop-shields"); shields.append(systemIcon("shield"), el("span", "", `Shields ${sp.shield} / 2`));
-  status.append(health, shields); if (!sp.welcome) status.append(priceButton("repair", "Repair")); bay.append(status);
-  if (sp.welcome) bay.append(el("p", "ac-workshop-free", sp.freeUpgrade ? "Choose one free upgrade" : "✓ Upgrade fitted · ready to launch"));
-  const stage = el("div", "ac-workshop-stage"); stage.append(shipPreview(engine, spillBuildFromState(sp), 192, view.flashAt));
+  status.append(health, shields); if (!sp.welcome) status.append(priceButton("repair", "Repair"));
+  tools.append(wallet, guide); head.append(heading, status, tools);
+  if (sp.firstPass && !trial) sheet.append(el("p", "ac-workshop-milestone", "Wave 20 complete. Victory recorded. Keep your ship and fly on."));
+  const layout = el("div", "mwr-depot-layout"), bay = el("div", "mwr-depot-bay"), outfitting = el("div", "mwr-depot-outfitting");
+  layout.append(bay, outfitting); sheet.append(layout);
+  const stage = el("div", "ac-workshop-stage mwr-depot-ship-stage"); stage.append(shipPreview(engine, spillBuildFromState(sp), 192, view.flashAt));
   // the arrows point at the four options until the pilot taps one of them
   if (hinting && !view.picked) stage.classList.add("ac-workshop-hint-arrows");
   const links = document.createElementNS("http://www.w3.org/2000/svg", "svg"); links.classList.add("ac-workshop-links"); links.setAttribute("viewBox", "0 0 344 192"); links.setAttribute("aria-hidden", "true");
@@ -498,6 +499,7 @@ export function drawDepotWorkshop(engine: Engine, view: DepotView, rerender: () 
   words.append(el("h3", "", `${SPILL_SHOP[part].name}${part === "plating" ? " upgrade" : ""}`), el("p", "", part === "shield"
     ? tier >= max ? "Two shields ready" : `Blocks one hit · ${tier} → ${tier + 1} shields`
     : tier >= max ? "Fully upgraded" : part === "plating" ? `Max health ${sp.maxHull} → ${sp.maxHull + 1}` : SPILL_SHOP[part].levels[tier]));
+  if (sp.welcome) words.append(el("p", "ac-workshop-free mwr-depot-upgrade-note", sp.freeUpgrade ? "Choose one free upgrade" : "✓ Upgrade fitted · ready to launch"));
   const take = priceButton(part);
   // the ring marks the one button that fits the free upgrade
   if (hinting) take.classList.add("ac-workshop-hint-ring");
@@ -641,5 +643,5 @@ export function drawDepotWorkshop(engine: Engine, view: DepotView, rerender: () 
   const go = el("button", "ac-primary ac-workshop-launch", sp.welcome && sp.freeUpgrade ? "CHOOSE FREE UPGRADE" : `LAUNCH WAVE ${sp.welcome ? 1 : sp.wave + 1}`);
   go.disabled = arming || !!(sp.welcome && sp.freeUpgrade); go.dataset.spillControl = "launch"; go.onclick = () => engine.spillLeaveDepot();
   uiState(go, arming ? "arming" : sp.welcome && sp.freeUpgrade ? "locked" : "available");
-  actions.append(go); footer.append(actions); sheet.append(footer); wrap.append(sheet); return wrap;
+  actions.append(go); footer.append(actions); shell.append(title, head, sheet, footer); wrap.append(shell); return wrap;
 }

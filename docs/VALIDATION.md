@@ -2,6 +2,24 @@
 
 ## The Spill identity — 2026-10-30
 
+### Depot alignment correction
+
+The owner found visible defects in the PR screenshots: the opaque backing extended outside the metal bevel, Depot sections used inconsistent insets, and the sticky footer covered the ship. These were candidate-image findings, not reports from a merged build or a physical-phone playtest. They supersede the earlier visual-review claims below for the original Depot layout.
+
+The corrected Depot has an outer frame and nameplate with separate header, scroll area and footer rows. Health, Shields and Repair occupy the header. On short landscape screens the four system controls sit below the complete ship canvas. Panel surfaces are inset independently of the decorative frame. At 568px landscape width, weapon/artifact cards stack and utility headings wrap.
+
+Actual browser screenshots and bounds checks confirm the full ship canvas, separate header/body/footer, and no header overlap at 390x844 and 844x390 for the normal opening Depot, plus 320x480 and 568x320 for an upgraded, damaged-ship fixture with a 2,500-salvage wallet. At 568x320 its scroll/client widths both measure 506px; all four system controls are at least 52px high. At 844x390 the normal Depot measures 782/782px and retains 44px controls. Inspection caught and corrected Repair/wallet overlap and utility-heading overflow; scroll-width equality alone was insufficient to detect the former.
+
+The later-Depot image is a labeled memory-only fixture, not natural progress. Repair changed Health 3/5 to 5/5 and the wallet from 2,500 to 2,470. The middle area scrolled independently; the header and footer stayed visible. Normal Depot Help and Back to Depot worked. Home at 390x844 and 960x720, Settings and the sample result at 390x844 were inspected and their screenshots refreshed. Browser warnings/errors were empty. Both fixture files and tabs were removed, and the viewport override reset.
+
+The full 28-file `npm run check` passed after the Depot structure change. Subsequent CSS-only fit corrections passed a fresh build and browser review. No lint script exists; `git diff --check` passes. Physical-device feel and owner visual acceptance remain open; PR6 is not merged or published.
+
+![Corrected opening Depot at 844x390](images/identity-depot-landscape.jpg)
+
+[Portrait Depot](images/identity-depot-portrait.jpg) · [568x320 later-Depot fixture](images/identity-depot-repair-fixture.jpg)
+
+### Identity implementation and earlier checks
+
 `npm run check` passes TypeScript, clean build, asset integrity and **28 test files** on existing Node24.19.0. `git diff --check` passes; there is no separate lint script. Docker's Linux engine remains unavailable, so existing local tooling was used without installing host packages. The original 125 assets and two combat sprites remain byte-identical. The 23 new identity files total **2,084,507 bytes**; license, exact generation/edit prompts, original hull reference and source hashes are recorded separately.
 
 The production renderer checks eight portrait/landscape HUD frames with the actual shipped fonts and art, safe text bounds, a clear central flight lane, and unchanged gameplay state. Ship checks cover all 15 system-axis tiers, original attachment registration, no dependence on the old pilot, and the retained illumination setting. A 12-frame ship sheet was inspected. Another 36 cases cover all six launch lessons during countdown/GO at 568x320, 667x320 and 844x390 with a safe-area inset. Existing input, save, economy, trial isolation, encounter, hazard and ship-render regressions pass. The pinned shared-content hash was explicitly updated for the reviewed currency text rename; numeric rules were unchanged.

@@ -281,8 +281,8 @@ body.mwr-ui .ac-workshop-buy[data-ui-state="selected"]:disabled { opacity: 1; co
 body.mwr-ui .ac-weapon-stats { color: #b5e8f7; font-size: 12px; }
 body.mwr-ui :is(.ac-workshop-free, .ac-workshop-need, .ac-workshop-milestone, .ac-workshop-contract, .ac-workshop-requirement) { color: var(--mwr-amber); }
 
-/* Depot stays one scroll container so refits retain their place. Header and
-   launch bar are sticky, with their full in-flow height reserved at both ends. */
+/* Shared Depot controls; the framed shell below reserves separate header and
+   footer rows around the middle scroll container. */
 body.mwr-ui .ac-depotwrap.ac-workshop {
   padding: max(14px, env(safe-area-inset-top)) 18px max(14px, env(safe-area-inset-bottom));
   background: linear-gradient(#030a12b3, #030a12e8), url("./art/space-ui/menu-background.webp") center / cover;
@@ -318,6 +318,7 @@ body.mwr-ui :is(.ac-workshop, .ac-spillsetup) .ac-helpdot {
   width: 44px;
   height: 44px;
   min-width: 44px;
+  padding: 0;
   border: 1px solid #628ba1;
   border-radius: 3px;
   background: linear-gradient(#253e50, #0b1d2c);
@@ -580,7 +581,18 @@ body.mwr-ui.mwr-motion-off .ac-workshop-hint-ring::after { opacity: .8; transfor
 body.mwr-ui .mwr-kit-panel {
   position: relative;
   isolation: isolate;
+  background: none;
+}
+/* The source frame has transparent margins beyond its bevel. Keep the opaque
+   insert inside that bevel instead of painting a blue rectangle underneath it. */
+body.mwr-ui .mwr-kit-panel::after {
+  content: "";
+  position: absolute;
+  inset: 14px 12px 8px;
+  z-index: -1;
   background: #071321 url("./art/space-ui/panel-surface.webp") center / cover no-repeat;
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+  pointer-events: none;
 }
 body.mwr-ui .mwr-kit-panel::before {
   content: "";
@@ -664,12 +676,13 @@ body.mwr-ui .mwr-screen-shell .mwr-screen-subtitle { margin-top: 8px; }
 body.mwr-ui .mwr-screen-shell .mwr-settings-panel { padding: 0; border: 0; background: none; box-shadow: none; }
 body.mwr-ui .mwr-screen-shell .ac-spillsetting { background: #071626b3; }
 body.mwr-ui .mwr-screen-shell .mwr-actions button { flex-basis: 160px; }
-/* The Depot's compact wallet/header stays in its established scroll layout.
-   Its solid header closes the top opening instead of adding a second title row. */
+/* Standalone guide cards retain their own frame; the Depot shell below removes
+   this border from its middle scrolling card to avoid double framing. */
 body.mwr-ui .ac-depotwrap.ac-workshop .ac-depotcard {
   border: 7px solid transparent;
   border-image: url("./art/space-ui/panel-frame.webp") 84 340 72 340 / 24px 95px 20px / 0 stretch;
   background: #071321 url("./art/space-ui/panel-surface.webp") center / cover no-repeat;
+  background-clip: padding-box;
 }
 body.mwr-ui .ac-workshop-head {
   border-top: 3px solid #5c8596;
@@ -686,4 +699,107 @@ body.mwr-ui .ac-workshop-head {
   body.mwr-ui .mwr-screen-shell > .mwr-screen { inset-block: 38px 16px; padding-block: 4px; gap: 14px; }
   body.mwr-ui .mwr-ship-bay { padding-top: 26px; padding-bottom: 13px; }
   body.mwr-ui .mwr-ship-bay > .mwr-panel-title { font-size: 10px; min-height: 32px; }
+}
+
+/* Depot chrome owns real grid rows. Only the middle card scrolls, so the
+   footer never floats over the ship or its upgrade controls. */
+body.mwr-ui .mwr-depot-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(1120px, 100%);
+  height: 100%;
+  min-height: 0;
+  max-height: 940px;
+  padding: 40px 14px 16px;
+}
+body.mwr-ui .ac-depotwrap.ac-workshop .mwr-depot-shell > .ac-depotcard {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  scroll-padding: 12px;
+}
+body.mwr-ui .mwr-depot-topbar {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(72px, 1fr) auto auto;
+  gap: 12px;
+  padding: 4px 10px 8px;
+  border-top: 0;
+  border-bottom: 1px solid var(--mwr-line-soft);
+  background: #071522;
+  box-shadow: none;
+}
+body.mwr-ui .mwr-depot-heading .ac-kicker { margin: 0; font-size: 10px; letter-spacing: .12em; }
+body.mwr-ui .mwr-depot-vitals {
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  gap: 12px;
+  min-width: max-content;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+}
+body.mwr-ui .mwr-depot-vitals .ac-workshop-health { flex: none; gap: 4px; }
+body.mwr-ui .mwr-depot-vitals progress { width: 104px; height: 5px; }
+body.mwr-ui .mwr-depot-vitals .ac-workshop-buy { padding: 6px 10px; font-size: 12px; }
+body.mwr-ui .mwr-depot-shell > .ac-workshop-footer {
+  position: relative;
+  padding: 6px 10px 0;
+  margin: 0;
+  border-top: 1px solid var(--mwr-line-soft);
+  background: #071522;
+}
+body.mwr-ui .mwr-depot-shell > .ac-workshop-footer::before { display: none; }
+body.mwr-ui .mwr-depot-shell .mwr-depot-layout { padding: 10px; }
+body.mwr-ui .ac-workshop-selection .mwr-depot-upgrade-note {
+  margin: 5px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--mwr-amber);
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  body.mwr-ui .mwr-depot-topbar { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; }
+  body.mwr-ui .mwr-depot-vitals { grid-row: 2; grid-column: 1 / -1; justify-content: space-between; gap: 6px; font-size: 12px; }
+  body.mwr-ui .mwr-depot-vitals progress { width: 88px; }
+  body.mwr-ui .mwr-depot-vitals .ac-workshop-buy { padding-inline: 6px; font-size: 11px; }
+  body.mwr-ui .mwr-depot-heading { align-self: center; }
+  body.mwr-ui .mwr-depot-topbar .ac-workshop-headtools { grid-column: 2; grid-row: 1; }
+}
+@media (orientation: landscape) and (max-height: 540px) {
+  body.mwr-ui .mwr-depot-shell { padding-top: 36px; padding-bottom: 12px; }
+  body.mwr-ui .mwr-depot-shell .ac-workshop-wallet { min-height: 34px; }
+  body.mwr-ui .mwr-depot-topbar { grid-template-columns: minmax(64px, 1fr) auto auto; padding: 0 8px 4px; gap: 8px; }
+  body.mwr-ui .mwr-depot-vitals { grid-column: auto; grid-row: auto; gap: 8px; font-size: 12px; }
+  body.mwr-ui .mwr-depot-topbar .ac-workshop-headtools { grid-column: auto; grid-row: auto; gap: 6px; }
+  body.mwr-ui .mwr-depot-heading .ac-kicker { font-size: 9px; letter-spacing: .06em; }
+  body.mwr-ui .mwr-depot-vitals progress { width: 88px; }
+  body.mwr-ui .mwr-depot-shell .mwr-depot-layout { padding: 6px 8px; gap: 12px; grid-template-columns: minmax(280px, 1fr) minmax(0, 1fr); }
+  body.mwr-ui .mwr-depot-shell .ac-workshop-receipt { min-height: 18px; padding-bottom: 2px; font-size: 11px; }
+  body.mwr-ui .mwr-depot-ship-stage { min-height: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 0 4px 4px; }
+  body.mwr-ui .mwr-depot-ship-stage .ac-workshop-preview { grid-column: 1 / -1; width: 100%; max-width: none; min-height: 0; height: clamp(96px, calc(100dvh - 238px), 170px); object-fit: contain; }
+  body.mwr-ui .mwr-depot-ship-stage .ac-workshop-links { display: none; }
+  body.mwr-ui .mwr-depot-ship-stage .ac-workshop-system { position: relative; inset: auto; width: auto; min-height: 44px; padding: 5px 2px; font-size: 11px; gap: 2px; }
+  body.mwr-ui .mwr-depot-ship-stage .ac-workshop-systemname { gap: 3px; }
+  body.mwr-ui .mwr-depot-ship-stage .ac-workshop-icon { width: 13px; height: 13px; }
+  body.mwr-ui .mwr-depot-ship-stage .ac-workshop-systemprice { font-size: 11px; }
+  body.mwr-ui .mwr-depot-ship-stage .ac-workshop-system:focus-visible { outline-offset: 1px; }
+  body.mwr-ui .mwr-depot-ship-stage.ac-workshop-hint-arrows .ac-workshop-system::after { display: none; }
+}
+@media (orientation: landscape) and (max-height: 350px) {
+  body.mwr-ui .mwr-depot-ship-stage .ac-workshop-preview { height: 72px; }
+}
+@media (orientation: landscape) and (max-width: 700px) {
+  body.mwr-ui .mwr-depot-topbar .ac-workshop-wallet { padding: 4px 6px; font-size: 14px; gap: 4px; }
+  body.mwr-ui .mwr-depot-topbar .mwr-wallet-label { display: none; }
+  body.mwr-ui .mwr-depot-outfitting :is(.ac-workshop-weapongrid, .ac-artifact-grid) { grid-template-columns: 1fr; }
+  body.mwr-ui .ac-workshop-utilityname { flex-wrap: wrap; gap: 4px; }
 }
