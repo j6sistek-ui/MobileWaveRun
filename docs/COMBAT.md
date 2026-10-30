@@ -6,7 +6,7 @@ Owner-authorized priority-one adaptation of the full SpaceSurvival scope, 2026-1
 
 Choose Rapid Laser or Heavy Cannon in the opening Depot. Both are available immediately and switching at a Depot costs nothing. Choose the existing free starter system separately, then launch. Drag the first finger up/down to steer, tap a second finger to fire, and quickly flick the steering finger left/right to dodge. Hold the second finger for repeated fire. Keyboard W/S or Up/Down steers; A/D or Left/Right dodges; F or Space fires. The joystick replaces tap/gravity flight and the fixed pads. Pausing, losing focus or resizing clears held input and pending shots; press again after resuming. See [CONTROLS.md](CONTROLS.md).
 
-Shots travel forward. A narrow forward cone gently aims at an enemy already near the ship's flight line; it does not turn the ship or fire automatically. Match the enemy's height to engage. Debris blocks shots from either side, so clearing a path also removes cover. Dodging remains valid: waves end by time and field drain, not by an enemy kill quota.
+Shots travel forward. A narrow forward cone gently aims at an enemy or active destructible hazard already near the ship's flight line; it does not turn the ship or fire automatically. Match the target's height to engage. Debris blocks shots from either side, so clearing a path also removes cover. Dodging remains valid: waves end by time and field drain, not by an enemy kill quota.
 
 ## Weapons and economy
 
@@ -16,6 +16,10 @@ Shots travel forward. A narrow forward cone gently aims at an enemy already near
 | Heavy Cannon | 4 / 8 / 12 | 0.65 seconds | Slower, wider rounds; fewer hits to break heavy debris |
 
 Each tier reduces its base interval by 7% per additional tier. The shared `spillWeaponStats` function supplies firing and the Depot's displayed values. Upgrades cost 65 coins for tier II and 130 for tier III, separately for each weapon; the selected weapon and both tiers persist through Depot checkpoints. Ammunition is unlimited. There are no permanent power unlocks or extra currencies in this iteration.
+
+Phase 2 adds optional artifact interactions to both weapons: Reclaimer's capped debris salvage, Slipstream Relay's dodge-primed echo, and Siege Core's splash with a 30% longer firing interval. Base values above remain unchanged when no artifact is fitted. See [BUILDS.md](BUILDS.md) for recovery, equipment synergies, tradeoffs and persistence.
+
+Phase 3 adds destructible comet cores (3 health) and mines (2 health). Pulse also clears these within reach, and Siege can damage them within its existing secondary-target budget. Mine disarm grants one collectible coin; neither hazard creates enemy-kill or rock-shatter credit. Gravity wells and ion bands cannot be destroyed. New enemy arrivals and attacks wait while environmental hazards are active; hazards likewise wait for existing hostile shots/warnings to clear. See [HAZARDS.md](HAZARDS.md).
 
 Debris health is 1 for shards, 2 for spinners, 4 for tumblers and 10 for hulks. Destroying it uses the existing shatter, contract and equipped Pulse salvage rules. Destroyed Pursuers drop three collectible coins; Flankers drop four. Coins enter the existing run economy only when collected. Enemy defeats also award score and appear in the run's kill count; escaping enemies do not award a kill.
 
@@ -29,7 +33,7 @@ Enemy admission is bounded to two concurrent ships and three arrivals below Wave
 
 ## Implementation and saves
 
-`spill-combat.ts` owns combat rules and a separate seeded RNG; `spill.ts` integrates them into the existing fixed 60 Hz authority. Projectile collision sweeps choose the earliest impact across moving targets, with debris winning cover ties. No second simulation loop or runtime library is introduced.
+`spill-combat.ts` owns combat rules and a separate seeded RNG; `spill.ts` integrates them into the existing fixed 60 Hz authority. Projectile collision sweeps choose the earliest impact across moving targets, with debris winning cover ties. When hazard contacts/fuse expiry occur in the same tick, a frame-local timeline merges them with already-flying rounds: earlier counterfire can save the ship, while a later round cannot undo an impact. No second simulation loop or runtime library is introduced.
 
 Combat is nested in version-1 Depot checkpoints. Older checkpoints without it restore with tier-I Rapid Laser and tier-I Heavy Cannon. New checkpoints validate weapon IDs, tiers, counters and cleared transient state. Held inputs, live shots and enemies are never restored from storage. Existing isolated save keys and banking remain unchanged.
 

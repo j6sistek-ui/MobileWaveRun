@@ -23,6 +23,8 @@ body .ac-depotwrap.ac-workshop .ac-depotcard{width:min(680px,100%);max-height:10
 .ac-utility-art{width:48px;height:48px;object-fit:contain;display:block;flex:none;filter:drop-shadow(0 3px 2px #0006)}
 .ac-workshop-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 14px 10px;background:radial-gradient(ellipse at 0 0,#6a35a866,transparent 55%),linear-gradient(120deg,#2b1652cc,#0d0820a6)}
 .ac-workshop-head .ac-kicker,.ac-depotguidecard .ac-kicker{line-height:1.4;margin:0 0 4px;white-space:nowrap}
+.ac-workshop-head>div:first-child{flex:1;min-width:0}
+.ac-workshop-head .ac-kicker{white-space:normal;overflow-wrap:anywhere}
 .ac-workshop-headtools{display:flex;align-items:center;gap:10px;flex:none}
 /* the balance wears the Loadout's acorn pill */
 .ac-workshop-wallet{display:flex;align-items:center;gap:4px;min-height:30px;padding:0 9px 0 5px;border-radius:999px;color:#ffdf9a;background:rgba(120,90,20,.28);border:1px solid rgba(255,206,92,.4);font:800 13px/1 Figtree,sans-serif;font-variant-numeric:tabular-nums}
@@ -79,6 +81,33 @@ body .ac-depotwrap.ac-workshop .ac-depotcard{width:min(680px,100%);max-height:10
 .ac-workshop-weapon .ac-workshop-buy{width:100%;min-height:44px;font-size:12px}
 .ac-workshop-weaponupgrade{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;font:500 12px/1.4 Figtree,sans-serif;color:#f9f4ff}
 .ac-workshop-weaponupgrade .ac-workshop-buy{min-height:44px;flex:none}
+/* Run-only artifacts shape the build; the expanded recipes are advice, not purchases. */
+.ac-workshop-builds{padding:12px 12px 0;min-width:0}
+.ac-build-summary{padding:10px 12px;border:1px solid #8656ba;border-left:3px solid var(--artifact-color,#bda4df);border-radius:12px;background:#0d0820}
+.ac-build-summary h3{font-size:14px;color:var(--artifact-color,#f9f4ff)}
+.ac-build-summary p{margin-top:4px;font:500 12px/1.4 Figtree,sans-serif;color:#eee5ff}
+.ac-build-summary .ac-build-effect{font-weight:400;color:#c9bbe3}
+.ac-artifact-recovery,.ac-artifact-owned{margin-top:12px;min-width:0}
+.ac-artifact-recovery>h3{color:#ffe2a8}
+.ac-artifact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+.ac-artifact-card{display:flex;flex-direction:column;gap:6px;min-width:0;padding:10px;border:1px solid #8656ba;border-top:2px solid var(--artifact-color);border-radius:14px;background:linear-gradient(145deg,#170c2e,#080618)}
+.ac-artifact-card.fitted{border-color:var(--ac-choice-line);background:var(--ac-choice-fill);box-shadow:var(--ac-choice-ring)}
+.ac-artifact-style{font:600 10px/1.2 Figtree,sans-serif;color:var(--artifact-color);text-transform:uppercase;letter-spacing:.05em}
+.ac-artifact-card h4{font:600 14px/1.25 Figtree,sans-serif;color:#f9f4ff}
+.ac-artifact-card p{font:400 12px/1.4 Figtree,sans-serif;color:#e1d9f1}
+.ac-artifact-card small{flex:1;font:400 11px/1.4 Figtree,sans-serif;color:#c9bbe3}
+.ac-artifact-card .ac-workshop-buy{min-height:44px;min-width:0;width:100%;font-size:12px;padding-inline:8px;margin-top:2px}
+.ac-build-recipes{margin-top:10px;border:1px solid #8656ba;border-radius:14px;background:#10091f}
+.ac-build-recipes>.ac-workshop-note{padding:0 12px 8px}
+.ac-build-recipe-grid{display:grid;grid-template-columns:1fr;gap:8px;padding:0 8px 8px}
+.ac-build-recipe{min-width:0;padding:10px;border:1px solid #8656ba66;border-radius:10px;background:#0b0718}
+.ac-build-recipe h4{font:600 13px/1.3 Figtree,sans-serif;color:var(--artifact-color)}
+.ac-build-recipe p{font:400 12px/1.4 Figtree,sans-serif;color:#c9bbe3;margin-top:4px}
+.ac-build-recipe ul{list-style:none;padding:0;margin:8px 0 0;display:flex;flex-direction:column;gap:6px}
+.ac-build-recipe li{display:flex;flex-direction:column;gap:2px;font:500 12px/1.3 Figtree,sans-serif;color:#eee5ff}
+.ac-build-recipe li small{font:400 10px/1.3 Figtree,sans-serif;color:#c9bbe3}.ac-build-recipe li.fitted small{color:#8af3e6}
+@media(min-width:600px){.ac-build-recipe-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:360px){.ac-artifact-grid{grid-template-columns:1fr}.ac-workshop-builds{padding-inline:9px}}
 .ac-workshop-utility{display:flex;flex-direction:column;min-width:0;padding:9px 8px 8px;border:1px solid #8656ba;border-radius:16px;background:linear-gradient(145deg,rgba(23,12,46,.93),rgba(8,6,24,.88));box-shadow:inset 0 0 0 1px #c386ff15,0 0 7px #aa69ee22;gap:6px}
 .ac-workshop-utility.fitted{border-color:var(--ac-choice-line);background:var(--ac-choice-fill);box-shadow:var(--ac-choice-ring)}
 .ac-workshop-utilityname{display:flex;align-items:center;gap:6px;min-height:42px}.ac-workshop-utilityname .ac-utility-art{width:43px;height:43px}
@@ -160,6 +189,16 @@ body .ac-shipmenu .ac-sheet-scroll{padding-bottom:calc(24px + env(safe-area-inse
   .ac-menu.ac-shipmenu>.ac-sheet-scroll{grid-row:4;min-height:0}
 }
 .ac-spillflighthelp{margin:12px 0 16px}
+.ac-hazard-forecast{margin:12px 14px;padding:12px;border:1px solid #7951a766;border-radius:12px;background:#130f25;color:#f3ecff}
+.ac-hazard-forecast summary{cursor:pointer;min-height:32px;font-weight:700;line-height:1.6}
+.ac-hazard-forecast ol{list-style:none;margin:8px 0;padding:0;display:grid;gap:8px}
+.ac-hazard-forecast li{display:grid;grid-template-columns:70px minmax(0,1fr);gap:3px 8px;font-size:12px}
+.ac-hazard-forecast li small{grid-column:2;color:#c9bbe3}
+.ac-hazard-guide{margin:12px 0;padding-top:10px;border-top:1px solid #7951a766;line-height:1.4}
+.ac-hazard-guide h3{margin:0 0 8px;font-size:15px}
+.ac-hazard-guide>div{margin:8px 0}
+.ac-hazard-guide b{font-size:12px;color:#f9f4ff}
+.ac-hazard-guide p{margin:3px 0;font-size:12px;color:#c9bbe3;overflow-wrap:anywhere}
 .ac-spillhelp-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
 .ac-spillhelp-controls>div{display:flex;flex-direction:column;gap:5px;padding:12px 6px;border:1px solid #8656ba;border-radius:16px;background:linear-gradient(145deg,rgba(23,12,46,.93),rgba(8,6,24,.88));box-shadow:inset 0 0 0 1px #c386ff15,0 0 7px #aa69ee22;text-align:center}
 .ac-spillhelp-controls b{font-size:13px;color:#f9f4ff}

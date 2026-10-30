@@ -42,6 +42,7 @@ import {
 } from "./spill";
 import { spillEngineColor } from "./spill-content";
 import { drawSpillCombat, drawSpillCombatHud } from "./spill-combat-view";
+import { drawSpillHazards, drawSpillHazardHint } from "./spill-hazard-view";
 import { SPILL_MODULE_MARKS, spillDockBear, spillDockView, spillPreviewState, type SpillBuild } from "./spill-presentation";
 import {
   RACE_ACORNS,
@@ -2263,6 +2264,7 @@ function drawSpillWorld(ctx: CanvasRenderingContext2D, w: World, save: SaveData,
     }
   }
 
+  drawSpillHazards(ctx, s, !!save.motionOff || raceReducedMotion());
   drawSpillCombat(ctx, s, art);
   for (const p of w.particles) drawParticle(ctx, p);
 
@@ -2524,6 +2526,7 @@ function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | n
   if (!hidePrompts && s.hintT > 0 && s.phase !== "ready" && s.phase !== "depot" && s.phase !== "docking" && s.phase !== "over") {
     drawSpillHint(ctx, w, s.hint, Math.min(1, s.hintT * 2), H - (w.insetTop || 0) - 96);
   }
+  if (!hidePrompts && s.hintT <= 0) drawSpillHazardHint(ctx, s, H - (w.insetTop || 0) - 64);
   if (s.phase === "ready" && s.target) {
     const compact = W < 520;
     // a phone gets the same briefing in shorter lines, never a clipped one

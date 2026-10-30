@@ -43,6 +43,7 @@ const Draw = await import('../dist/js/draw.js');
 const Save = await import('../dist/js/save.js');
 const Sim = await import('../dist/js/sim.js');
 const Combat = await import('../dist/js/spill-combat.js');
+const Builds = await import('../dist/js/spill-builds.js');
 const bank = await Art.loadArt(['flight']);
 await Art.loadSpillScene(bank);
 assert(bank.ready);
@@ -198,6 +199,34 @@ assert(text.some(line => line.value.includes('FLICK')));
 assert(text.some(line => line.value.includes('SECOND FINGER TAP')));
 assert(!text.some(line => /TAP TO LAUNCH|TAP.*FLY|SWIPE.*DIVE/.test(line.value)));
 
+// Artifact feedback stays peripheral in portrait and landscape and is paint-only.
+let buildFrames = 0;
+for (const [width, height] of [[390, 760], [844, 390]]) for (const id of Builds.SPILL_ARTIFACT_IDS) {
+  const { save, world, state } = fixture(width, height, id === 'siege' ? 'cannon' : 'laser');
+  state.combat.build.artifact = id;
+  state.combat.build.salvageDrops = id === 'reclaimer' ? 3 : 0;
+  state.combat.build.echo = id === 'slipstream' ? 1.5 : 0;
+  if (id === 'siege') state.combat.build.blasts = [{ x: width * .45, y: height * .55, r: 56, life: .18 }];
+  if (id === 'slipstream') state.combat.shots[0].echo = true;
+  const before = JSON.stringify(state), frame = createCanvas(width, height), ctx = frame.getContext('2d');
+  Draw.drawWorld(ctx, world, save, bank); Draw.drawHud(ctx, world, bank, save);
+  assert.equal(JSON.stringify(state), before, 'artifact feedback never mutates gameplay');
+  const overlay = createCanvas(width, height), overlayCtx = overlay.getContext('2d'), labels = [];
+  const original = overlayCtx.fillText.bind(overlayCtx);
+  overlayCtx.fillText = (value, ...args) => { labels.push(value); original(value, ...args); };
+  View.drawSpillCombatHud(overlayCtx, state);
+  assert(labels.includes(id === 'reclaimer' ? 'SALVAGE 3/8' : id === 'slipstream' ? 'ECHO READY' : 'SIEGE CORE'));
+  const bounds = alphaBounds(overlay);
+  assert(bounds.left >= width - 106 && bounds.right <= width - 11 && bounds.bottom < 89, 'artifact HUD uses the existing weapon slot');
+  const withEffects = digest(frame);
+  state.combat.build.echo = 0; state.combat.build.blasts = []; delete state.combat.shots[0].echo;
+  const plain = createCanvas(width, height);
+  Draw.drawWorld(plain.getContext('2d'), world, save, bank); Draw.drawHud(plain.getContext('2d'), world, bank, save);
+  if (id !== 'reclaimer') assert.notEqual(withEffects, digest(plain), 'priming/echo/blast feedback must produce visible pixels');
+  writeFileSync(join(output, `build-${id}-${width}.png`), frame.toBuffer('image/png'));
+  buildFrames++;
+}
+
 // Network failure settles readiness and paints visible, differentiated enemies.
 globalThis.Image = class { set src(value) { queueMicrotask(() => this.onerror?.()); } };
 const fallback = Art.emptyArt();
@@ -210,5 +239,5 @@ View.drawSpillCombat(fallbackCtx, state, fallback);
 for (const enemy of state.combat.enemies.filter(enemy => !enemy.dead))
   assert(fallbackCtx.getImageData(enemy.x, enemy.y, 1, 1).data[3] > 0, 'missing sprite remains a visible enemy');
 assert.equal(JSON.stringify(state), fallbackBefore, 'fallback painting cannot mutate gameplay');
-console.log(JSON.stringify({ combatFrames: frames, blackoutFrames: 1, dodgeFrames: 2, currentControlHints: true, productionEnemySprites: Art.SPILL_ENEMY_IDS.length,
+console.log(JSON.stringify({ combatFrames: frames, buildFrames, blackoutFrames: 1, dodgeFrames: 2, currentControlHints: true, productionEnemySprites: Art.SPILL_ENEMY_IDS.length,
   deterministic: true, hudBounds: '320/390/1280', networkFallback: 'visible', output }));
