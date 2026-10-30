@@ -6,8 +6,11 @@ import { spillBuildFromState, type SpillBuild } from "./spill-presentation";
 import { restoreSpill, type SpillState } from "./spill";
 import { SPILL_WEAPONS } from "./spill-combat";
 import { SPILL_ARTIFACTS } from "./spill-builds";
+import { SPILL_RISKS } from "./spill-expeditions";
+import { SPILL_TRIALS, SPILL_TRIAL_BUILDS, SPILL_CHASSIS, SPILL_WEAPON_MODULES,
+  type SpillTrialId, type SpillTrialBuildId } from "./spill-career";
 import { createDepotView, drawDepotWorkshop, drawSpillLaunchSetup, drawSpillStarters,
-  drawSpillEnginePicker, drawSpillFlightHelp, drawSpillGuideSheet } from "./spill-workshop";
+  drawSpillEnginePicker, drawSpillFlightHelp, drawSpillGuideSheet, drawSpillCareer } from "./spill-workshop";
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = "", text = "") => {
   const node = document.createElement(tag);
@@ -49,6 +52,9 @@ export async function bootStandalone(root: HTMLElement) {
   let booting = true;
   let helpOpen = false;
   let confirmNew = false;
+  let trialsOpen = false;
+  let trialId: SpillTrialId = "gravity";
+  let trialBuild: SpillTrialBuildId = "stock";
   let message = "";
   let lastScreen = "";
 
@@ -61,8 +67,16 @@ export async function bootStandalone(root: HTMLElement) {
   }
 
   function home() {
-    helpOpen = confirmNew = false;
+    helpOpen = confirmNew = trialsOpen = false;
+    if (engine.spillTrial()) engine.spillEndTrial();
     engine.open("title");
+  }
+
+  function openTrials() {
+    if (engine.spillTrial()) engine.spillEndTrial();
+    trialsOpen = true;
+    engine.open("title");
+    render();
   }
 
   function startNew() {
@@ -153,7 +167,8 @@ export async function bootStandalone(root: HTMLElement) {
     const saved = restoreSpill(engine.save.spillSuspended, engine.world.W, engine.world.H);
     if (saved) actions.append(action(`RESUME RUN · WAVE ${saved.wave} DEPOT`, "resume-run", resumeSaved, true));
     actions.append(action("NEW RUN", "new-run", startNew, !saved));
-    actions.append(action("SHIP PLANNING", "ship", () => engine.open("hangar")),
+    actions.append(action("FLIGHT TRIALS", "trials", openTrials),
+      action("SHIP PLANNING", "ship", () => engine.open("hangar")),
       action("CONTROLS", "controls", () => engine.open("help")),
       action("SETTINGS", "settings", () => engine.open("profile")));
     const mastery = spillMastery(engine.save.spillBest);
@@ -168,7 +183,7 @@ export async function bootStandalone(root: HTMLElement) {
 
   function drawShip() {
     const box = sheet("Ship planning", "These choices apply to your next run. Buy upgrades at the Depot.");
-    box.append(preview(nextBuild()), drawSpillStarters(engine), drawSpillEnginePicker(engine));
+    box.append(preview(nextBuild()), drawSpillCareer(engine), drawSpillStarters(engine), drawSpillEnginePicker(engine));
     const saved = restoreSpill(engine.save.spillSuspended, engine.world.W, engine.world.H);
     if (saved) {
       box.append(el("h3", "", `Saved ship · wave ${saved.wave} Depot`), preview(spillBuildFromState(saved)),
@@ -176,6 +191,38 @@ export async function bootStandalone(root: HTMLElement) {
         el("p", "ac-sub", `Health ${saved.hull}/${saved.maxHull} · ${saved.ore} Acorn Coins. Your saved build is unchanged.`));
     }
     box.append(action("MAIN MENU", "home", home));
+    return box;
+  }
+
+  function drawTrials() {
+    const box = sheet("Flight trials", "Try an encounter now. Repeat the same field with different builds.");
+    box.classList.add("ac-trial-menu");
+    box.append(el("p", "ac-trial-note", "PRACTICE · Your saved run, records and unlocks stay untouched."));
+    const form = el("div", "ac-trial-fields");
+    const encounter = SPILL_TRIALS.find(item => item.id === trialId)!;
+    const build = SPILL_TRIAL_BUILDS.find(item => item.id === trialBuild)!;
+    const choice = (name: string, id: string, selected: string,
+      options: readonly { id: string; name: string }[], change: (value: string) => void) => {
+      const label = el("label", "ac-trial-field"), select = el("select");
+      select.dataset.action = id;
+      label.append(el("b", "", name));
+      for (const item of options) {
+        const option = el("option", "", item.name); option.value = item.id;
+        option.selected = item.id === selected; select.append(option);
+      }
+      select.onchange = () => change(select.value);
+      label.append(select); form.append(label);
+    };
+    choice("Encounter", "trial-encounter", trialId, SPILL_TRIALS, value => { trialId = value as SpillTrialId; render(); });
+    form.append(el("p", "ac-sub", `${encounter.detail} ${encounter.endWave ? `Waves ${encounter.wave}–${encounter.endWave}.` : `Wave ${encounter.wave}.`}`));
+    choice("Build", "trial-build", trialBuild, SPILL_TRIAL_BUILDS, value => { trialBuild = value as SpillTrialBuildId; render(); });
+    form.append(el("p", "ac-sub", build.detail));
+    box.append(form, el("p", "ac-sub", "Begin at the Depot, launch, then retry from Pause or the result. The seed stays the same so each build faces the same plan."),
+      action("START TRIAL", "start-trial", () => {
+        trialsOpen = false;
+        if (!engine.spillStartTrial(trialId, trialBuild)) { trialsOpen = true; message = "This trial could not start. Try again."; render(); }
+      }, true), action("MAIN MENU", "home", home));
+    if (message) box.append(el("p", "ac-sub", message));
     return box;
   }
 
@@ -221,22 +268,44 @@ export async function bootStandalone(root: HTMLElement) {
 
   function drawPause() {
     const state = engine.world.spill!;
-    const box = sheet("PAUSED", `WAVE ${state.wave} · ${state.ore} ACORN COINS`);
+    const trial = engine.spillTrial();
+    const box = sheet(trial ? "PRACTICE PAUSED" : "PAUSED", `WAVE ${state.wave} · ${state.ore} ACORN COINS`);
     box.classList.add("ac-pause");
     box.append(loadoutSummary(state), flightSettings());
+    if (state.expedition.active !== "standard") box.append(el("p", "ac-sub",
+      `${SPILL_RISKS[state.expedition.active].name} · clear through wave ${state.expedition.endWave} for ${SPILL_RISKS[state.expedition.active].reward} bonus coins`));
     const actions = el("div", "ac-pauseact");
-    actions.append(action("RESUME", "resume", () => engine.resume(), true),
-      action("ABORT TO TITLE", "home", home));
+    actions.append(action("RESUME", "resume", () => engine.resume(), true));
+    if (trial) actions.append(action("RETRY TRIAL", "retry-trial", () => engine.spillRetryTrial()),
+      action("CHOOSE TRIAL", "choose-trial", openTrials));
+    actions.append(action(trial ? "END TRIAL" : "ABORT TO TITLE", "home", home));
     box.append(actions);
     return box;
   }
 
   function loadoutSummary(state: SpillState) {
     const id = state.combat.build.artifact, artifact = id ? SPILL_ARTIFACTS[id] : null;
+    const chassis = SPILL_CHASSIS.find(item => item.id === state.loadout.chassis)!;
+    const module = SPILL_WEAPON_MODULES.find(item => item.id === state.loadout.module)!;
     const summary = el("p", "ac-sub ac-loadout-summary",
-      `${SPILL_WEAPONS[state.combat.weapon].name} ${state.combat.levels[state.combat.weapon]}/3 · ${artifact ? `${artifact.style} / ${artifact.name}` : "No artifact fitted"}`);
+      `${chassis.name} · ${module.name} · ${SPILL_WEAPONS[state.combat.weapon].name} ${state.combat.levels[state.combat.weapon]}/3 · ${artifact ? `${artifact.style} / ${artifact.name}` : "No artifact fitted"}`);
     summary.setAttribute("aria-label", "Current loadout");
     return summary;
+  }
+
+  function drawTrialResult(state: SpillState, cleared: boolean) {
+    const trial = engine.spillTrial()!, encounter = SPILL_TRIALS.find(item => item.id === trial.id)!;
+    const box = sheet(cleared ? "TRIAL CLEARED" : "TRIAL ENDED", encounter.endWave ? SPILL_RISKS[state.expedition.active].name : encounter.name);
+    box.append(el("p", "ac-trial-note", "PRACTICE · No records, unlocks or saved-run changes."),
+      el("p", "ac-sub", `Health hits ${state.hits} · Enemies defeated ${state.combat.kills} · Debris shattered ${state.shattered}`),
+      loadoutSummary(state), el("p", "ac-sub", "Could you read the warning, choose a response and stay in control? Try another build against the same field."),
+      action("RETRY TRIAL", "retry-trial", () => engine.spillRetryTrial(), true),
+      action("CHOOSE TRIAL", "choose-trial", openTrials), action("MAIN MENU", "home", home));
+    if (encounter.endWave) {
+      const reward = cleared && state.expedition.rewarded ? SPILL_RISKS[state.expedition.active].reward : 0;
+      box.querySelector('.ac-loadout-summary')!.before(el("p", "ac-sub", `Trial wallet: ${state.ore} coins · Route completion bonus: ${reward}`));
+    }
+    return box;
   }
 
   function drawResults(state: SpillState) {
@@ -294,11 +363,12 @@ export async function bootStandalone(root: HTMLElement) {
     const oldGuide = !!overlay.querySelector(".ac-depotguidecard");
     const scroll = overlay.querySelector(".ac-depotcard, .ac-setup-body, .ac-result")?.scrollTop ?? 0;
     const active = document.activeElement as HTMLElement | null;
-    const focusKey = ["spillControl", "shipStarter", "shipColor", "action", "setting"]
+    const focusKey = ["spillControl", "shipStarter", "shipColor", "careerChoice", "action", "setting"]
       .find(key => active?.dataset[key]);
     const focusValue = focusKey ? active!.dataset[focusKey] : "";
-    const sameScreen = lastScreen === `${screen}:${state?.phase ?? ""}`;
-    lastScreen = `${screen}:${state?.phase ?? ""}`;
+    const screenKey = `${screen}:${state?.phase ?? ""}:${trialsOpen}`;
+    const sameScreen = lastScreen === screenKey;
+    lastScreen = screenKey;
     if (screen !== "help" && !(screen === "play" && state?.phase === "ready")) helpOpen = false;
     if (screen !== "title") confirmNew = false;
     overlay.replaceChildren();
@@ -307,17 +377,20 @@ export async function bootStandalone(root: HTMLElement) {
       const pause = action("II", "pause", () => engine.pause());
       pause.className = "ac-iconbtn"; pause.setAttribute("aria-label", "Pause");
       bar.append(pause); overlay.append(bar);
-      if (state.phase === "depot") overlay.append(drawDepotWorkshop(engine, depotView, render));
+      const trial = engine.spillTrial();
+      if (trial) bar.prepend(el("span", "ac-practice-badge", "PRACTICE"));
+      if (trial && state.phase === "over") overlay.append(drawTrialResult(state, trial.complete));
+      else if (state.phase === "depot") overlay.append(drawDepotWorkshop(engine, depotView, render));
       else if (state.phase === "ready") overlay.append(drawSpillLaunchSetup(engine, openHelp));
     } else if (screen === "pause" && state) overlay.append(drawPause());
-    else if (screen === "dead" && state) overlay.append(drawResults(state));
+    else if (screen === "dead" && state) overlay.append(engine.spillTrial() ? drawTrialResult(state, engine.spillTrial()!.complete) : drawResults(state));
     else if (screen === "hangar") overlay.append(drawShip());
     else if (screen === "profile") overlay.append(drawSettings());
     else if (screen === "help") {
       const box = sheet("Controls");
       box.append(drawSpillFlightHelp(), action("HOW THE DEPOT WORKS", "depot-guide", openHelp), action("MAIN MENU", "home", home));
       overlay.append(box);
-    } else overlay.append(drawHome());
+    } else overlay.append(trialsOpen ? drawTrials() : drawHome());
 
     if (helpOpen) overlay.append(drawSpillGuideSheet(engine, closeHelp, screen === "help" ? "BACK TO CONTROLS" : "BACK TO LAUNCH"));
     if (confirmNew) overlay.append(confirmSheet());
@@ -351,6 +424,7 @@ export async function bootStandalone(root: HTMLElement) {
     if (e.key !== "Escape") return;
     if (helpOpen) closeHelp();
     else if (confirmNew) { confirmNew = false; render(); }
+    else if (trialsOpen) { trialsOpen = false; render(); }
     else if (depotView.guide && engine.world.spill?.phase === "depot") { depotView.guide = false; render(); }
     else return;
     e.preventDefault(); e.stopImmediatePropagation();

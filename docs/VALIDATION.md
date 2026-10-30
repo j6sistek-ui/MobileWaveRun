@@ -1,5 +1,25 @@
 # Browser validation — 2026-10-29
 
+## Remaining playable package — 2026-10-29
+
+Production source passes TypeScript, clean build, unchanged asset provenance and the full test runner on existing Node24.19.0. The final expanded runner passes **27 test files**. No separate lint script exists; `git diff --check` passes. Docker's Linux engine is unavailable locally; no host packages, runtime dependencies or external art were installed. The 125 upstream assets and two existing generated sprites retain their hashes.
+
+New checks include 14 environmental expansion cases, seven career/loadout cases, ten expedition/climax cases and eight real swept-shot/Siege cases around Warden shield transitions. Host tests exercise actual trial entry, loadout selection, fire, pause, death, completion, retry, end, resume, and both full five-wave route bonuses. The real save and stored JSON remain unchanged through practice, with no score submission or career banking. Legacy checkpoints migrate; malformed IDs/live hazards/unsettled risk blocks and practice checkpoints are rejected.
+
+The scheduling tests cover the previous 192 waves plus **64 full flare/wreck waves** and **24 climax waves**, across seeds and narrow/wide viewports. Those observers use invulnerability to keep the scheduling test running and do not prove natural survival. Separate **192 stock-ship flare/wreck paths** and **16 stock Warden counterplay scenarios** use real steering/projectiles with no immunity, shields, firing or upgrades and take zero hits. They establish the tested escape routes, not universal late-wave balance.
+
+Review fixed wreck-body contact after an earlier same-frame break, late fractures losing their warning/lifetime, gravity pulling enemies back to their home position each tick, six-family selection bias, Warden forks closing their promised gap near edges, and shield transitions using the end-of-tick rather than impact-time state. Reward, chain-fuse, weak-point, cover-loss, rotation and cleanup regressions cover those changes. The old event-only lane fixture now isolates the pre-climax event behavior at equivalent debris tuning; new full-wave tests cover the intentionally changed fifth-wave second act.
+
+Render checks include **36 hazard warning/active frames**, **six additional full-scene cover-loss/fragment frames**, **24 isolated cover/fragment frames**, **15 Warden frames**, and existing ship/combat/build frames. They verify authority geometry, frozen paths, warning visibility, paint-only behavior, reduced motion and portrait/landscape bounds. Flare/wreck full scenes use actual production admission and activation geometry. Representative images below are explicitly **synthetic production-render scenes**, not browser screenshots or natural progression to those waves.
+
+![Synthetic production-render Warden fork](images/evaluation-warden.png)
+
+[Solar-cover render](images/evaluation-flare.png) · [Wreck weak-point render](images/evaluation-wreck.png)
+
+Actual browser checks used the shipped **Flight Trials** menu, not a hidden test page. Portrait 390×844 and landscape 844×390 Depots had matching scroll/client widths of 359/359 and 669/669. Trial selection, heavy-build solar launch, Bulwark/Focus choices, a Patrol launch, rotation to **PRACTICE PAUSED · WAVE 6**, Retry back to its Depot, and End back to unchanged best-wave/salvage displays were verified. Console warnings/errors were empty. Browser screenshot capture failed in this session, so full browser visual acceptance is **unverified**; separate render images and DOM measurements do not replace it.
+
+Physical phone feel, two-finger ergonomics, audio, sustained frame rate, natural long-run difficulty/economy and the decision to move into 3D remain for owner evaluation. The owner expressly said nothing new had been validated yet. See [EVALUATION.md](EVALUATION.md) for the short trial sequence and the limits of the 2D-to-3D mapping. This work is delivered through a PR; no merge or live deployment is authorized here.
+
 ## Phase 3 hazards — 2026-10-30
 
 Final `npm run check` passes typecheck, clean build, asset provenance and **20 test files** on existing Node24.19.0. Docker's Linux engine remains unavailable; no packages or runtime dependencies were installed. `git diff --check` passes; there is no separate lint script. The original 125 asset hashes and two existing generated sprites are unchanged.

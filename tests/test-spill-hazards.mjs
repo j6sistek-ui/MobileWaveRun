@@ -213,6 +213,9 @@ test('advanced moving gravity cores keep the announced refuge safe for their ent
   ]) {
     const s = flight(41, W, Ht, seed);
     s.spec.dur = 100; s.pilot.x = W * fraction; s.pilot.y = y;
+    // Six-family plans change the family hash; retain the original hazard
+    // RNG/geometry seed while selecting a gravity plan for this regression.
+    s.seed = Array.from({ length: 200 }, (_, n) => n).find(n => H.spillHazardPlan(41, n).families[0] === 'gravity');
     const h = admit(s);
     assert.equal(h.kind, 'gravity'); assert.equal(h.variant, 1);
     s.hazards.next = 1000;

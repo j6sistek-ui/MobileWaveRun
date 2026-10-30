@@ -7,6 +7,7 @@ import { STAR_UNLOCKS,
 } from "./campaign";
 import { restoreSpill, type SpillCheckpoint, type SpillState } from "./spill";
 import { SPILL_UTILITY_IDS, spillEngineColor, type SpillEngineColor, type SpillUtility } from "./spill-content";
+import { createSpillCareer, restoreSpillCareer, type SpillCareer } from "./spill-career";
 
 // `expeditions` counts wave-20 clears, not endings; retain the saved key.
 export type SpillRecords = { bestScore: number; ore: number; contracts: number; waves: number; expeditions: number; runs: number };
@@ -65,6 +66,7 @@ export type SaveData = {
    *  spent inside the run and gone with it, so the mode's economy cannot
    *  reach the wallet or the shop */
   spillBest: number;
+  spillCareer?: SpillCareer;
   spillRecords?: SpillRecords;
   spillSuspended?: SpillCheckpoint | null;
   spillStarter?: SpillUtility | null;
@@ -252,7 +254,7 @@ export function defaultSave(): SaveData {
     lostBest: 0,
     arcadeBest: 0,
     tunnelBest: 0,
-    spillBest: 0,
+    spillBest: 0, spillCareer: createSpillCareer(),
     spillRecords: freshSpillRecords(), spillSuspended: null, spillStarter: null, spillSignal: false,
     purchased: [],
     noAds: false,
@@ -350,6 +352,7 @@ function writeReceiptVault(paid: Set<string>) {
 /** Bank only new progress. This ledger is part of a suspended expedition,
  *  so loading or docking repeatedly never duplicates mastery or rewards. */
 export function bankSpill(save: SaveData, s: SpillState, end = false) {
+  if (s.practice || transientSaves.has(save)) return;
   const records = save.spillRecords ?? (save.spillRecords = freshSpillRecords());
   save.spillBest = Math.max(save.spillBest || 0, s.cleared);
   records.bestScore = Math.max(records.bestScore, Math.floor(s.score));
@@ -599,6 +602,7 @@ export function loadSave(): SaveData {
   // saves written before the Spill was a mode
   if (typeof s.spillBest !== "number" || !isFinite(s.spillBest)) s.spillBest = 0;
   s.spillBest = Math.max(0, Math.floor(s.spillBest));
+  s.spillCareer = restoreSpillCareer(s.spillCareer, s.spillBest);
   const records = freshSpillRecords();
   for (const key of Object.keys(records) as (keyof SpillRecords)[]) {
     const n = s.spillRecords?.[key];
@@ -738,10 +742,17 @@ export function grantTutorialKit(s: SaveData) {
   if (s.equippedSuit === TUTORIAL_SUIT && !tutorialSuitEarned(s)) s.equippedSuit = "flight";  // priced, so revealed is not owned
 }
 
+// Trial authority may run ordinary simulation paths, including legacy score
+// settlement. A memory-only clone protects storage even if a path writes.
+const transientSaves = new WeakSet<SaveData>();
+export function cloneSaveForTrial(save: SaveData): SaveData {
+  const clone: SaveData = JSON.parse(JSON.stringify(save));
+  transientSaves.add(clone); return clone;
+}
 export function writeSave(s: SaveData) {
   // through the bridge: localStorage on the web, the shell's durable
   // store in an app - the ONE place the save is written
-  if (sealed) return;
+  if (sealed || transientSaves.has(s)) return;
   platform.storage.set(SAVE_KEY, JSON.stringify(s));
 }
 

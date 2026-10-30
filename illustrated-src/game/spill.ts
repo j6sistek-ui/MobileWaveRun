@@ -26,6 +26,11 @@ import { VANGUARD_DEPOT_SECONDS } from "./spill-depot-gag";
 
 import { ENVS, LEGACY_DEBRIS_COUNT, PHYS } from "./catalog";
 import { spillPrimeEcho } from "./spill-builds";
+import { createSpillLoadout, restoreSpillLoadout, spillChassisStats, type SpillLoadout } from "./spill-career";
+import { beginSpillExpedition, createSpillExpedition, restoreSpillExpedition, settleSpillExpedition,
+  type SpillExpedition } from "./spill-expeditions";
+import { admitSpillClimax, createSpillClimax, resizeSpillClimax, restoreSpillClimax, spillClimaxReserved,
+  spillClimaxWave, type SpillClimax } from "./spill-climax";
 import { admitSpillHazards, beginSpillHazardWave, clearSpillHazards, createSpillHazards,
   resizeSpillHazards, restoreSpillHazards, spillGravityBend, spillGravityBendDelta, spillGravityDrift,
   spillHazardPathClear, spillHazardPlan, spillHazardPressure, stepSpillHazards, SPILL_HAZARDS,
@@ -210,10 +215,11 @@ function intervalFor(n: number) {
 }
 
 function hazardCompatibleMods(n: number, seed: number, mods: SpillMod[]) {
+  if (spillClimaxWave(n)) return [];
   const plan = spillHazardPlan(n, seed);
   if (plan.families.some(kind => SPILL_HAZARDS[kind].unlock === n)) return [];
   return mods.filter(mod => !(plan.families.includes("gravity") && ["heavy", "cross", "drift"].includes(mod))
-    && !(plan.families.includes("ion") && mod === "blackout"));
+    && !((plan.families.includes("ion") || plan.families.includes("flare")) && mod === "blackout"));
 }
 
 /** what wave n asks of the pilot. Authored through 20; rolled from the seed
@@ -341,6 +347,11 @@ export type SpillDepot = {
 export type SpillState = {
   combat: SpillCombat;
   hazards: SpillHazardState;
+  loadout: SpillLoadout;
+  expedition: SpillExpedition;
+  climax: SpillClimax;
+  /** Evaluation runs cannot create checkpoints or advance career records. */
+  practice?: boolean;
   /** Cosmetic mission family; absent in legacy/endless checkpoints. */
   zoneEnv?: number;
   seed: number;
@@ -485,6 +496,7 @@ export function createSpill(W: number, H: number, seed: number, target = 0, hint
   return {
     combat: createSpillCombat(seed),
     hazards: createSpillHazards(seed),
+    loadout: createSpillLoadout(), expedition: createSpillExpedition(), climax: createSpillClimax(),
     seed: seed >>> 0,
     rng: seed >>> 0,
     W,
@@ -577,6 +589,7 @@ export function resizeSpill(s: SpillState, W: number, H: number) {
   const sy = H / s.H;
   resizeSpillCombat(s, sx, sy);
   resizeSpillHazards(s, sx, sy);
+  resizeSpillClimax(s, sy);
   s.steerY = 0; s.lunge = 0; s.lungeDir = 1;
   s.pilot.vx = 0; s.pilot.vy = 0;
   for (const r of s.rocks) { r.x *= sx; r.y *= sy; r.vx *= sx; r.vy *= sy; r.arc *= sy;
@@ -813,6 +826,7 @@ export function spillEventGap(s: SpillState) { return Math.max(130, s.H * (s.eve
 
 function stepEvent(s: SpillState, dt: number) {
   if (s.event === "none") return;
+  if (spillClimaxReserved(s) && s.eventWarn <= 0) return;
   if (s.eventWarn > 0) {
     s.eventWarn = Math.max(0, s.eventWarn - dt);
     if (s.eventWarn === 0) {
@@ -835,7 +849,7 @@ function stepEvent(s: SpillState, dt: number) {
       cue(s, "surge");
     }
   }
-  if (s.waveT >= s.eventNext && s.waveT < s.spec.dur - 3) {
+  if (!spillClimaxReserved(s) && s.waveT >= s.eventNext && s.waveT < s.spec.dur - 3) {
     s.eventNext += s.event === "rig" ? 9 : 10;
     s.eventPass++;
     const desired = s.pilot.y + (s.event === "rig" ? (s.eventPass % 2 ? -60 : 60) : (rand(s) - 0.5) * 160);
@@ -958,6 +972,7 @@ export function spillPulse(s: SpillState) {
 function beginWave(s: SpillState) {
   beginSpillCombatWave(s);
   beginSpillHazardWave(s);
+  s.climax = createSpillClimax();
   s.phase = "wave";
   s.phaseT = 0;
   // A held stick during the countdown keeps its direction through GO.
@@ -1036,6 +1051,7 @@ function endWave(s: SpillState) {
   s.ore += SPILL.clearOre;
   s.stipend += SPILL.clearOre;
   settleContract(s);
+  settleSpillExpedition(s);
   if (s.wave === 20) s.expeditionDone = true;
   cue(s, "clear");
   if (s.wave % SPILL_DEPOT_EVERY === 0) cue(s, "milestone");
@@ -1144,6 +1160,7 @@ function settleContract(s: SpillState) {
 }
 
 function closeDepot(s: SpillState) {
+  beginSpillExpedition(s);
   // the contract line belongs to the Depot it was settled at; it does not
   // greet the next one (audit, 30 Sep 2026)
   s.contractMessage = "";
@@ -1182,7 +1199,7 @@ export function spillBuy(s: SpillState, what: SpillBuyable): "ok" | "poor" | "ma
   switch (what) {
     case "plating":
       s.up.plating += 1;
-      s.maxHull = SPILL.hull + s.up.plating;
+      s.maxHull = SPILL.hull + s.up.plating + spillChassisStats(s.loadout.chassis).hull;
       s.hull += 1;                       // the new pip arrives filled
       break;
     case "thrusters":
@@ -1344,7 +1361,7 @@ function handHorizontal(s: SpillState, dt: number) {
 function handVertical(s: SpillState, dt: number) {
   const axis = s.steerY;
   const top = 22, bottom = s.H - 22;
-  const command = axis * SPILL.steerSpeed + spillGravityDrift(s).y;
+  const command = axis * SPILL.steerSpeed * spillChassisStats(s.loadout.chassis).steer + spillGravityDrift(s).y;
   const room = command < 0 ? s.pilot.y - top : bottom - s.pilot.y;
   const edge = command ? Math.max(0, Math.min(1, room / SPILL.edgeEase)) : 1;
   const wanted = command * edge;
@@ -1536,7 +1553,7 @@ function stepSpillBody(s: SpillState, dt: number) {
     s.waveT += dt;
     // the surge is a wave's mid-act: six seconds of doubled spawns, called
     // before it lands so a pilot can find a lane first
-    if (spillMod(s, "surge") && !s.surgeFired && s.waveT >= 8 && spillHazardPressure(s) === 0) {
+    if (!spillClimaxReserved(s) && spillMod(s, "surge") && !s.surgeFired && s.waveT >= 8 && spillHazardPressure(s) === 0) {
       s.surgeFired = true;
       s.surgeT = 6;
       say(s, "SURGE", 1.8);
@@ -1594,12 +1611,13 @@ function stepSpillBody(s: SpillState, dt: number) {
   // ---- the spawn director
   if (s.phase === "wave") {
     stepEvent(s, dt);
-    admitSpillEnemies(s, dt);
+    admitSpillClimax(s);
+    if (!spillClimaxReserved(s)) admitSpillEnemies(s, dt);
     s.nextRock -= dt;
     const combatPressure = spillCombatPressure(s);
     const hazardPressure = spillHazardPressure(s);
     const cap = Math.max(2, s.spec.cap + (spillMod(s, "swarm") ? 2 : 0) + (surging(s) ? 2 : 0) - combatPressure * 2 - hazardPressure * 3);
-    if (s.nextRock <= 0 && s.rocks.filter((r) => !r.dead).length < cap) {
+    if (!spillClimaxReserved(s) && s.nextRock <= 0 && s.rocks.filter((r) => !r.dead).length < cap) {
       const base = s.spec.interval;
       // a wave that is teaching something opens easier than its number
       const teaching = s.hintT > 0 && s.wave > 1 ? 1.35 : 1;
@@ -1716,7 +1734,7 @@ export type SpillCheckpoint = { version: 1; state: SpillState };
 /** Only a docked, ordinary expedition may be suspended. The checkpoint
  *  carries its RNG and bank ledger, so resuming cannot reroll or repay it. */
 export function spillCheckpoint(s: SpillState): SpillCheckpoint | null {
-  if (s.phase !== "depot" || !s.depot || s.target) return null;
+  if (s.phase !== "depot" || !s.depot || s.target || s.practice) return null;
   const state: SpillState = JSON.parse(JSON.stringify(s));
   clearSpillCombat(state);
   clearSpillHazards(state);
@@ -1732,7 +1750,7 @@ export function spillCheckpoint(s: SpillState): SpillCheckpoint | null {
 export function restoreSpill(raw: unknown, W: number, H: number): SpillState | null {
   if (!raw || typeof raw !== "object" || (raw as SpillCheckpoint).version !== 1) return null;
   const value = (raw as SpillCheckpoint).state;
-  if (!value || typeof value !== "object" || value.phase !== "depot" || !value.depot || value.target !== 0) return null;
+  if (!value || typeof value !== "object" || value.phase !== "depot" || !value.depot || value.target !== 0 || value.practice) return null;
   const s = createSpill(W, H, 0);
   // Copy only the known schema. Every numeric field must be finite. A
   // malformed save is ignored, never allowed to crash the launch screen.
@@ -1756,6 +1774,11 @@ export function restoreSpill(raw: unknown, W: number, H: number): SpillState | n
   const hazards = restoreSpillHazards(value.hazards, s.seed);
   if (!hazards) return null;
   s.hazards = hazards;
+  const loadout = restoreSpillLoadout(value.loadout);
+  const expedition = restoreSpillExpedition(value.expedition, s.wave);
+  const climax = restoreSpillClimax(value.climax);
+  if (!loadout || !expedition || !climax) return null;
+  s.loadout = loadout; s.expedition = expedition; s.climax = climax;
   s.welcome = value.welcome === true && s.wave === 0;
   s.freeUpgrade = s.welcome && value.freeUpgrade === true;
   if (!Number.isInteger(s.wave) || (!s.welcome && s.wave < 5) || s.wave % 5 || s.cleared !== s.wave || s.W <= 0 || s.H <= 0 || s.ore < 0) return null;
@@ -1771,7 +1794,7 @@ export function restoreSpill(raw: unknown, W: number, H: number): SpillState | n
   for (const key of ["hull", "shield", "canopyLevel", "oreMined", "ore", "hits", "shards", "contractsDone", "depotVisits"] as const) {
     if (!Number.isInteger(s[key]) || s[key] < 0) return null;
   }
-  if (s.maxHull !== SPILL.hull + s.up.plating || s.hull < 1 || s.hull > s.maxHull || s.shield < 0 || s.shield > 2 || s.canopyLevel < s.shield || s.canopyLevel > 2) return null;
+  if (s.maxHull !== SPILL.hull + s.up.plating + spillChassisStats(s.loadout.chassis).hull || s.hull < 1 || s.hull > s.maxHull || s.shield < 0 || s.shield > 2 || s.canopyLevel < s.shield || s.canopyLevel > 2) return null;
   if (s.welcome && (s.cleared !== 0 || s.depotVisits !== 0 || s.oreMined !== 0
       || s.up.plating + s.up.thrusters + s.up.pulse + s.shield !== (s.freeUpgrade ? 0 : 1))) return null;
   const utilityList = (v: unknown): v is SpillUtility[] => Array.isArray(v) && v.length <= 4 && new Set(v).size === v.length && v.every(id => SPILL_UTILITY_IDS.includes(id));

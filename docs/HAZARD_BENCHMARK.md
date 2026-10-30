@@ -17,7 +17,7 @@ Those ideas fit the existing wave/Depot loop if each can be read with the accept
 | [Returnal enemy design](https://blog.playstation.com/2021/04/14/creating-returnals-otherworldly-enemies-vfx-driven-tentacle-tech-and-deep-sea-inspirations/), Housemarque, published 2021-04-14, page also lists 2023-03-30 | Emissive effects announce attacks. Slow bullets, fast attacks and expanding waves demand different responses. Developers prototype roles separately and in selected combinations. | Teach trajectory reading, shot selection, timing and countersteering separately, then combine compatible roles. Do not copy its projectile density, traversal or extra controls. |
 | [Sky Force Reloaded official store description](https://store.steampowered.com/app/667600/Sky_Force_Reloaded/), Infinite Dreams, description undated; PC release 2017-11-29 | Rescues put the player in danger, and higher difficulty modes extend stage mastery. | Optional risky salvage is a useful later extension. Do not make a mandatory rescue system or permanent-upgrade grind part of hazard survival. |
 
-All sources accessed 2026-10-30. No art, code or branded content is copied from these games.
+All sources accessed 2026-10-30 UTC. No art, code or branded content is copied from these games. The subsequent owner-authorized package implements enemy/environment interactions and optional gravity-rim salvage, plus solar cover and wreck weak points. The table preserves the initial comparison's sequence; it is not a list of features still deferred. No additional competitor playtest is claimed.
 
 ## Selected mechanics
 
@@ -27,6 +27,8 @@ All sources accessed 2026-10-30. No art, code or branded content is copied from 
 | Proximity mine | Decide whether to shoot, avoid, or leave the fuse radius | More demanding placement alongside a compatible moving threat |
 | Ion front | Relocate before a timed band fires | Repeated pulses, each separately warned |
 | Gravity well | Countersteer and reassess bending debris | Drifting wells and a compatible comet |
+| Solar flare | Preserve cover or choose an open escape route | Destructible shelter with fresh warning on loss |
+| Fracturing wreck | Choose whether and where to fire | Open a passage, then read committed fragment paths |
 
 An arcade gravity well is deliberately weaker than ordinary steering. It is a gameplay interpretation of the owner's black-hole idea, not a physical simulation. Warnings, a distinct core, bounded influence and visible debris trajectories are essential; unpredictable unannounced trajectory changes would undermine the control work already accepted.
 
@@ -40,4 +42,4 @@ The progression is **learn, practice, combine, vary**. Hazards spend the same fi
 4. Do later combinations feel like two understandable tasks, or visual noise?
 5. Is the forecast useful when choosing a Depot build without making any build mandatory?
 
-Start with those questions before adding more families, rescues, elites or a front-facing camera. Published design principles cannot settle physical phone feel or long-run balance.
+The owner subsequently authorized the remaining package before personal validation. The two additional families, environmental tactics, Warden, risk routes and earned sidegrades are now accessible through Flight Trials. Use the questions above to evaluate them; no personal acceptance is inferred from this authorization. [EVALUATION.md](EVALUATION.md) maps each behavior to possible 3D changes. Published design principles cannot settle physical phone feel, depth readability or long-run balance.

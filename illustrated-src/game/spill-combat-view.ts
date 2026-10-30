@@ -71,7 +71,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, s: SpillState, art: ArtBank, e
       ctx.beginPath(); ctx.moveTo(cx + dx * 5, cy); ctx.lineTo(cx, cy); ctx.lineTo(cx, cy + dy * 5); ctx.stroke();
     }
   }
-  if (enemy.telegraph > 0) {
+  if (enemy.telegraph > 0 && !enemy.elite) {
     const progress = clamp(1 - enemy.telegraph / Math.max(.01, enemy.telegraphTotal), 0, 1);
     const dx = enemy.aimX - x, dy = enemy.aimY - y, distance = Math.max(1, Math.hypot(dx, dy));
     const muzzleX = x + dx / distance * width * .48, muzzleY = y + dy / distance * width * .48;
@@ -134,7 +134,7 @@ export function drawSpillCombat(ctx: CanvasRenderingContext2D, s: SpillState, ar
   }
   ctx.globalAlpha = 1;
   for (const enemy of s.combat.enemies) {
-    if (enemy.dead || enemy.telegraph <= 0) continue;
+    if (enemy.dead || enemy.telegraph <= 0 || enemy.elite) continue;
     const progress = clamp(1 - enemy.telegraph / Math.max(.01, enemy.telegraphTotal), 0, 1);
     ctx.strokeStyle = `rgba(255,155,105,${.28 + progress * .34})`; ctx.lineWidth = 1.25;
     ctx.setLineDash([5, 6]);
