@@ -1,16 +1,19 @@
 import { SPILL, spillRockAt, type SpillState } from "./spill";
-import { SPILL_HAZARD_TUNING, type SpillHazard, type SpillHazardKind } from "./spill-hazards";
+import { SPILL_HAZARD_TUNING, spillBentRockThreat, type SpillHazard, type SpillHazardKind } from "./spill-hazards";
 
 const TAU = Math.PI * 2;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 const COLORS: Record<SpillHazardKind, string> = {
   comet: "#ffd399", mine: "#ffad87", ion: "#e8acff", gravity: "#bbaaff",
+  flare: "#ffe799", wreck: "#9cdddf",
 };
 const HINTS: Record<SpillHazardKind, string> = {
   comet: "COMET · leave the marked path",
   mine: "MINES · shoot to disarm; leave the ring",
   ion: "ION STORM · leave the charged band",
   gravity: "GRAVITY · counter-steer; debris bends",
+  flare: "FLARE · shadow or outside the band",
+  wreck: "WRECK · shoot center; read fragments",
 };
 const flight = (s: SpillState) => s.phase === "wave" || s.phase === "drain";
 
@@ -147,8 +150,7 @@ function gravity(ctx: CanvasRenderingContext2D, s: SpillState, h: SpillHazard, r
     let count = 0;
     ctx.strokeStyle = "rgba(195,181,255,.62)"; ctx.lineWidth = 1.5;
     for (const rock of s.rocks) {
-      if (rock.dead || rock.warn > 0 || !rock.gravityBend || rock.gravityWell !== h.id
-        || Math.hypot(rock.x - h.x, rock.y - h.y) > h.range + rock.r) continue;
+      if (!spillBentRockThreat(s, rock) || rock.gravityWell !== h.id) continue;
       const ahead = Math.min(.6, 96 / Math.max(1, Math.hypot(rock.vx, rock.vy)));
       ctx.beginPath(); ctx.moveTo(rock.x, rock.y);
       for (let i = 1; i <= 4; i++) { const p = spillRockAt(s, rock, ahead * i / 4); ctx.lineTo(p.x, p.y); }
@@ -156,6 +158,64 @@ function gravity(ctx: CanvasRenderingContext2D, s: SpillState, h: SpillHazard, r
       if (++count >= 4) break;
     }
   }
+}
+
+function flare(ctx: CanvasRenderingContext2D, s: SpillState, h: SpillHazard) {
+  const warning = h.phase === "warning", color = COLORS.flare;
+  ctx.fillStyle = warning ? "rgba(255,218,112,.055)" : "rgba(255,199,87,.22)";
+  ctx.fillRect(0, h.y - h.range, s.W, h.range * 2);
+  ctx.strokeStyle = warning ? "rgba(255,221,138,.3)" : "rgba(255,235,171,.65)"; ctx.lineWidth = 1;
+  ctx.setLineDash(warning ? [10, 10] : []);
+  for (let y = h.y - h.range + 8; y < h.y + h.range; y += 14) {
+    const shadow = !h.coverBroken && Math.abs(y - h.y) < h.r;
+    line(ctx, shadow ? h.x + h.r : 0, y, s.W, y);
+  }
+  ctx.setLineDash([]);
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+  line(ctx, 0, h.y - h.range, s.W, h.y - h.range); line(ctx, 0, h.y + h.range, s.W, h.y + h.range);
+  if (!h.coverBroken) {
+    // The exact shadow boundary used by collision, including full ship fit.
+    ctx.fillStyle = "rgba(5,23,31,.92)"; ctx.fillRect(0, h.y - h.r, Math.max(0, h.x - h.r), h.r * 2);
+    ctx.strokeStyle = "#a7e8c1"; ctx.lineWidth = 1; ctx.setLineDash([5, 7]);
+    line(ctx, 0, h.y - h.r, h.x - h.r, h.y - h.r); line(ctx, 0, h.y + h.r, h.x - h.r, h.y + h.r); ctx.setLineDash([]);
+    ctx.fillStyle = "#343b48"; ctx.strokeStyle = "#d5b884"; ctx.lineWidth = 2;
+    circle(ctx, h.x, h.y, h.r); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = "#6c747c"; ctx.lineWidth = 2;
+    line(ctx, h.x - 21, h.y - 9, h.x + 5, h.y - 21); line(ctx, h.x + 5, h.y - 21, h.x + 20, h.y + 12);
+    label(ctx, s, "SHADOW", Math.min(h.x * .45, s.W * .3), h.y - h.r - 12, "#a7e8c1");
+  }
+  label(ctx, s, warning ? `${h.coverBroken ? "COVER LOST" : "SOLAR FLARE"} · ${h.warn.toFixed(1)}s` : "SOLAR FLARE · ACTIVE",
+    s.W - 98, h.y - h.range - 14, color);
+}
+
+function wreck(ctx: CanvasRenderingContext2D, s: SpillState, h: SpillHazard) {
+  const color = COLORS.wreck;
+  if (h.phase === "spent") {
+    for (const f of h.fragments ?? []) {
+      if (f.dead) continue;
+      if (f.warn > 0) {
+        ctx.strokeStyle = color; ctx.lineWidth = 1.25; ctx.setLineDash([5, 6]);
+        const t = Math.min(f.life, Math.max(0, -f.x / f.vx));
+        line(ctx, f.x, f.y, f.x + f.vx * t, f.y + f.vy * t); ctx.setLineDash([]);
+      }
+      ctx.fillStyle = f.warn > 0 ? "rgba(102,161,170,.16)" : "#496d78"; ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+      circle(ctx, f.x, f.y, f.r); ctx.fill(); ctx.stroke();
+    }
+    const warning = h.fragments?.find(f => !f.dead && f.warn > 0);
+    if (warning) label(ctx, s, `FRAGMENTS · ${warning.warn.toFixed(1)}s`, h.x, h.y - 46, color);
+    return;
+  }
+  ctx.fillStyle = h.phase === "warning" ? "rgba(41,77,89,.4)" : "#263d4a";
+  ctx.strokeStyle = color; ctx.lineWidth = 2;
+  // Hull rim matches its forgiving circular collision body. The bright core
+  // is the only ordinary-shot target, so cosmetic panels never absorb shots.
+  circle(ctx, h.x, h.y, h.r); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = "#698d98"; ctx.lineWidth = 3;
+  line(ctx, h.x - 27, h.y - 24, h.x + 29, h.y - 24); line(ctx, h.x - 27, h.y + 24, h.x + 29, h.y + 24);
+  ctx.strokeStyle = "#d7ffff"; ctx.lineWidth = 2; ctx.fillStyle = "#6ac7d5";
+  circle(ctx, h.x, h.y, 11); ctx.fill(); ctx.stroke();
+  line(ctx, h.x - 6, h.y, h.x + 6, h.y); line(ctx, h.x, h.y - 6, h.x, h.y + 6);
+  label(ctx, s, h.phase === "warning" ? `WRECK · ${h.warn.toFixed(1)}s` : "WEAK POINT", h.x, h.y - h.r - 12, color);
 }
 
 /** Paint after the Blackout veil, before ships/projectiles. Authority geometry
@@ -169,7 +229,9 @@ export function drawSpillHazards(ctx: CanvasRenderingContext2D, s: SpillState, r
     if (h.kind === "comet") comet(ctx, s, h, reducedMotion);
     else if (h.kind === "mine") mine(ctx, s, h);
     else if (h.kind === "ion") ion(ctx, s, h);
-    else gravity(ctx, s, h, reducedMotion);
+    else if (h.kind === "gravity") gravity(ctx, s, h, reducedMotion);
+    else if (h.kind === "flare") flare(ctx, s, h);
+    else wreck(ctx, s, h);
     ctx.restore();
   }
   ctx.restore();
@@ -197,7 +259,11 @@ export function drawSpillHazardHint(ctx: CanvasRenderingContext2D, s: SpillState
   const blocked = overlapsCircle(s.pilot.x, s.pilot.y, SPILL.shipR + 14)
     || s.hazards.actors.some(actor => {
       if (actor.dead) return false;
-      if (actor.kind === "ion") return actor.y + actor.r + pad >= top && actor.y - actor.r - pad <= top + 23;
+      if (actor.kind === "ion" || actor.kind === "flare") {
+        const radius = actor.kind === "flare" ? actor.range : actor.r;
+        return actor.y + radius + pad >= top && actor.y - radius - pad <= top + 23;
+      }
+      if (actor.fragments?.some(f => !f.dead && overlapsCircle(f.x, f.y, f.r + pad))) return true;
       const radius = actor.kind === "mine" && (actor.fuse >= 0 || actor.phase === "spent") ? actor.range : actor.r;
       return overlapsCircle(actor.x, actor.y, radius + pad);
     });

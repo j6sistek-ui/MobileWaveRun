@@ -45,6 +45,18 @@ function fixture(W, Ht, kind) {
     banner: '', bannerT: 0, event: 'none', eventWarn: 0, liveMods: [], rocks: [], nuts: [] });
   world.ready = false; world.shake = 0; world.time = 6;
   s.pilot.x = W * .22; s.pilot.y = Ht * .7;
+  if (kind === 'flare' || kind === 'wreck') {
+    // These families have a large cover/body, not the small generic core.
+    // Use production admission so this full-scene proof cannot silently
+    // diverge from warning, body, band, weak-point or refuge geometry.
+    s.wave = H.SPILL_HAZARDS[kind].unlock; s.seed = 71;
+    s.spec = S.spillWaveSpec(s.wave,s.seed); s.pilot.y = Ht * .49;
+    s.hazards = H.createSpillHazards(s.seed); s.hazards.next = 0;
+    H.admitSpillHazards(s,1/60);
+    const h = s.hazards.actors[0]; assert(h); assert.equal(h.kind,kind);
+    s.pilot.y = h.safeY;
+    return {world,s,h};
+  }
   const h = { id: 1, kind, x: W * .72, y: Ht * .49, vx: kind === 'comet' ? -300 : -60, vy: 0,
     r: kind === 'ion' ? Math.max(22, Math.min(36, Ht * .08)) : kind === 'comet' ? 16 : 14,
     age: .6, activeTime: 0, life: 8, warn: .6, hp: 3, maxHp: 3, dead: false,
@@ -65,13 +77,25 @@ function full(world) {
   return canvas;
 }
 
-let frames = 0;
+let frames = 0, expansionBreakFrames = 0;
 for (const [W, Ht] of [[320, 760], [390, 844], [844, 390]]) for (const kind of H.SPILL_HAZARD_IDS) {
   const { world, s, h } = fixture(W, Ht, kind);
   for (const phase of ['warning', 'active']) {
-    h.phase = phase; h.warn = phase === 'warning' ? .6 : 0;
-    h.activeTime = phase === 'active' ? 1 : 0;
-    h.fuse = phase === 'active' && kind === 'ion' ? .3 : phase === 'active' && kind === 'mine' ? .5 : -1;
+    if (kind === 'flare' || kind === 'wreck') {
+      if (phase === 'active') {
+        H.stepSpillHazards(s,h.warn,{...s.pilot},{damagePilot(){assert.fail('fixture is in its reserved refuge');}});
+        if (kind === 'wreck') while(h.x>W*.72) H.stepSpillHazards(s,1/60,{...s.pilot},{damagePilot(){assert.fail('fixture remains ahead of the ship');}});
+        else H.stepSpillHazards(s,.1,{...s.pilot},{damagePilot(){assert.fail('outside-band refuge remains safe');}});
+      }
+      assert.equal(h.phase,phase); assert.equal(h.r,42);
+      assert.equal(h.hp,kind==='flare'?5:3);
+      if(kind==='flare') assert.equal(h.range,Math.max(60,Math.min(100,Ht*.2)));
+      else assert.equal(H.spillHazardTargetRadius(h),11);
+    } else {
+      h.phase = phase; h.warn = phase === 'warning' ? .6 : 0;
+      h.activeTime = phase === 'active' ? 1 : 0;
+      h.fuse = phase === 'active' && kind === 'ion' ? .3 : phase === 'active' && kind === 'mine' ? .5 : -1;
+    }
     const before = JSON.stringify(s), canvas = overlay(s);
     assert.equal(digest(canvas), digest(overlay(s)), 'same hazard state paints deterministically');
     assert.equal(JSON.stringify(s), before, 'painting cannot change warnings, timers or trajectories');
@@ -90,9 +114,18 @@ for (const [W, Ht] of [[320, 760], [390, 844], [844, 390]]) for (const kind of H
   const paintText = ctx.fillText.bind(ctx);
   ctx.fillText = (text, x, y, ...rest) => { labels.push({ text, x, y }); paintText(text, x, y, ...rest); };
   View.drawSpillHazardHint(ctx, s, Ht - 64);
-  assert.equal(labels.length, 1, 'only one compact contextual hint');
-  assert(labels[0].y > Ht - 100 && labels[0].y < Ht - 60, 'hint stays peripheral and clear of top HUD');
-  assert(!/TAP.*FLY|BUTTON|SPACE BAR/.test(labels[0].text), 'hint does not restore old controls');
+  if (kind==='flare' || kind==='wreck') assert(labels.length<=1,'a large hazard may suppress a hint instead of hiding its geometry');
+  else assert.equal(labels.length, 1, 'only one compact contextual hint');
+  if(labels.length) {
+    assert(labels[0].y > Ht - 100 && labels[0].y < Ht - 60, 'hint stays peripheral and clear of top HUD');
+    assert(!/TAP.*FLY|BUTTON|SPACE BAR/.test(labels[0].text), 'hint does not restore old controls');
+  }
+  if(kind==='flare' || kind==='wreck') {
+    assert(H.damageSpillHazard(s,h,h.hp));
+    assert.equal(h.phase,kind==='flare'?'warning':'spent');
+    writeFileSync(join(output,`${kind}-broken-${W}.png`),full(world).toBuffer('image/png'));
+    expansionBreakFrames++;
+  }
   h.dead = true;
   assert(overlay(s).getContext('2d').getImageData(0, 0, W, Ht).data.every(n => n === 0), 'dead hazards are absent');
 }
@@ -177,5 +210,5 @@ writeFileSync(join(output, 'comet-blackout-390.png'), dark.toBuffer('image/png')
 blackout.s.phase = 'depot';
 assert(overlay(blackout.s).getContext('2d').getImageData(0, 0, 390, 844).data.every(n => n === 0), 'Depot has no live hazard overlay');
 
-console.log(JSON.stringify({ hazardFrames: frames, blackoutFrames: 1, deterministic: true,
+console.log(JSON.stringify({ hazardFrames: frames, expansionBreakFrames, blackoutFrames: 1, deterministic: true,
   warningAimFrozen: true, authorityGeometry: true, reducedMotion: true, peripheralHints: true, output }));

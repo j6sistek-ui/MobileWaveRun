@@ -109,9 +109,12 @@ for(const kind of ['salvage','clean','shards'])for(const wins of [false,true]){
 // Isolate the existing debris event admission guarantee. This geometric helper only
 // chooses lanes around rocks; it does not react to the new aimed enemy shots. Mixed
 // combat admission and warning/reaction guarantees are covered in test-spill-combat.
+// Keep the wave-20 debris tuning but use a non-climax wave number: fifth-wave
+// second acts now intentionally replace later sweeps with a Warden encounter.
 let eventSweeps=0;
 for(const W of [320,390,1280])for(const event of ['cargo','vein','lanes','rig']){
  const s=flight(20,W);s.event=event;s.nextRock=0;s.nextNut=0;s.nextSpecial=1000;s.eventNext=0;
+ s.wave=9;s.hazards.next=1000;
  s.combat.nextEnemy=1000;
  step(s,35,x=>{x.pilot.y=S.spillEscapeY(x);x.pilot.vy=0;x.floorT=0;
    const cap=x.spec.cap+(x.liveMods.includes('swarm')?2:0)+(x.surgeT>0?2:0);assert(x.rocks.length<=cap,'event respects actor budget');});

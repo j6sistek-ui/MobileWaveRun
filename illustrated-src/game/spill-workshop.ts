@@ -11,6 +11,9 @@ import { SPILL_SHOP, spillPrice, spillContractProgress, type SpillBuyable } from
 import { SPILL_WEAPONS, spillWeaponPrice, spillWeaponStats, type SpillWeaponId } from "./spill-combat";
 import { SPILL_ARTIFACTS, SPILL_BUILD_RECIPES, spillArtifactOffers, type SpillArtifactId } from "./spill-builds";
 import { SPILL_HAZARDS, SPILL_HAZARD_IDS, spillHazardPlan } from "./spill-hazards";
+import { SPILL_CHASSIS, SPILL_WEAPON_MODULES, SPILL_TRIALS } from "./spill-career";
+import { SPILL_RISKS, type SpillRiskId } from "./spill-expeditions";
+import { spillClimaxWave } from "./spill-climax";
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = "", text = "") => {
   const n = document.createElement(tag); n.className = cls; n.textContent = text; return n;
@@ -79,6 +82,35 @@ export function drawSpillStarters(engine: Engine, onPick = () => {}) {
   }
   wrap.append(choices); return wrap;
 }
+
+/** Earned choices change a tradeoff, not the wave requirements. */
+export function drawSpillCareer(engine: Engine) {
+  const section = el("section", "ac-career-options"), trial = engine.spillTrial();
+  const inRun = engine.world.screen === "play", loadout = inRun ? engine.world.spill!.loadout : engine.save.spillCareer;
+  section.setAttribute("aria-label", "Starting ship and weapon module");
+  section.append(el("h3", "", "Ship & weapon tuning"),
+    el("p", "ac-workshop-note", trial ? "Try every sidegrade here. Trial choices do not change your next real run." : "Earn options by clearing waves. Each has a tradeoff. Choices apply at the start of a run."));
+  for (const [kind, title, choices, pick] of [
+    ["chassis", "Chassis", SPILL_CHASSIS, (id: string) => engine.spillSelectChassis(id as typeof SPILL_CHASSIS[number]["id"])],
+    ["module", "Weapon module", SPILL_WEAPON_MODULES, (id: string) => engine.spillSelectWeaponModule(id as typeof SPILL_WEAPON_MODULES[number]["id"])],
+  ] as const) {
+    const group = el("div", "ac-career-group"); group.setAttribute("role", "group"); group.setAttribute("aria-label", title);
+    group.append(el("h4", "", title));
+    const grid = el("div", "ac-career-grid");
+    for (const choice of choices) {
+      const selected = (loadout?.[kind] ?? "standard") === choice.id;
+      const earned = !!trial || engine.save.spillBest >= choice.unlock;
+      const button = el("button", `ac-career-choice${selected ? " on" : ""}`);
+      button.type = "button"; button.dataset.careerChoice = `${kind}-${choice.id}`;
+      button.disabled = !earned; button.setAttribute("aria-pressed", String(selected));
+      button.append(el("b", "", choice.name), el("span", "", choice.detail),
+        el("strong", "", !earned ? `Clear wave ${choice.unlock}` : selected ? "✓ Selected" : "Select · free"));
+      button.onclick = () => pick(choice.id); grid.append(button);
+    }
+    group.append(grid); section.append(group);
+  }
+  return section;
+}
 export function drawSpillEnginePicker(engine: Engine) {
   const chosen = spillEngineColor(engine.save), wrap = el("section", "ac-engine-picker"), head = el("div", "ac-workshop-sectionhead");
   head.append(el("h3", "", `Engine color: ${chosen.name}`), el("span", "", "Appearance only")); wrap.append(head);
@@ -121,14 +153,14 @@ export function drawSpillLaunchSetup(engine: Engine, onGuide: () => void) {
   back.onclick = () => engine.open("title"); go.dataset.spillControl = "land";
   go.onclick = () => {
     // the briefing has been shown: the save says so, and nothing repeats it
-    if (!save.spillDepotGuideSeen) { save.spillDepotGuideSeen = true; writeSave(save); }
+    if (!engine.spillTrial() && !save.spillDepotGuideSeen) { save.spillDepotGuideSeen = true; writeSave(save); }
     engine.spillLunge();
   };
   actions.append(back, go); wrap.append(actions); return wrap;
 }
 
-export type DepotView = { key: string; part: System; extras: boolean; specialties: boolean; builds: boolean; forecast: boolean; guide: boolean; swap: SpillUtility | null; receipt: string; flashAt: number; openedAt: number; picked: boolean };
-export const createDepotView = (): DepotView => ({ key: "", part: "plating", extras: false, specialties: false, builds: false, forecast: false, guide: false, swap: null, receipt: "", flashAt: -10000, openedAt: performance.now(), picked: false });
+export type DepotView = { key: string; part: System; extras: boolean; specialties: boolean; builds: boolean; forecast: boolean; risk: boolean; guide: boolean; swap: SpillUtility | null; receipt: string; flashAt: number; openedAt: number; picked: boolean };
+export const createDepotView = (): DepotView => ({ key: "", part: "plating", extras: false, specialties: false, builds: false, forecast: false, risk: false, guide: false, swap: null, receipt: "", flashAt: -10000, openedAt: performance.now(), picked: false });
 /** THE FREE-PICK NUDGE (owner, 26 Sep 2026: "after a few seconds a pulsing ring
  *  around the free button and arrows to each of the upgraded options to help
  *  prompt a selection pick and clear selection route"). It waits this long
@@ -138,7 +170,7 @@ function drawDepotGuide(engine: Engine, onClose: () => void, closeLabel: string)
   const sheet = el("section", "ac-lvlcard ac-depotcard ac-depotguidecard");
   sheet.setAttribute("role", "dialog"); sheet.setAttribute("aria-modal", "true"); sheet.setAttribute("aria-label", "How the Depot works"); sheet.tabIndex = -1;
   const inRun = engine.world.screen === "play", goal = inRun ? engine.world.lvl?.def.spillFinish : null;
-  const objective = goal ? goal.kind === "ore" ? `Collect ${goal.n} Acorn Coins.` : `Visit ${goal.n} depots.`
+  const objective = engine.spillTrial() ? "Clear this encounter. Trial progress is not saved." : goal ? goal.kind === "ore" ? `Collect ${goal.n} Acorn Coins.` : `Visit ${goal.n} depots.`
     : inRun && engine.world.spill?.target ? `Survive ${engine.world.spill.target} waves.` : "Clear waves. Beat your best.";
   sheet.append(el("p", "ac-kicker", "DEBRIS FIELD · DEPOT GUIDE"), el("h2", "", "How the Depot works"), el("p", "ac-workshop-note", objective));
   const collect = el("div", "ac-guide-collect"), words = el("div");
@@ -162,7 +194,7 @@ function drawDepotGuide(engine: Engine, onClose: () => void, closeLabel: string)
   sheet.append(el("p", "ac-guide-services", "Rare artifacts: choose one after waves 5, 15, 25… Fit one at a time; refit free at a Depot."));
   const carry = el("div", "ac-guide-carry"), lost = el("div", "ac-guide-loss"), kept = el("div", "ac-guide-keep");
   lost.append(el("h3", "", "Out of lives"), el("p", "", "Wave 1. Acorn Coins, upgrades & artifacts reset."));
-  kept.append(el("h3", "", "Unlocks stay"), el("p", "", "Starting utility choices & engine colors.")); carry.append(lost, kept); sheet.append(carry);
+  kept.append(el("h3", "", "Unlocks stay"), el("p", "", "Ship & weapon tuning, starting utilities and engine colors.")); carry.append(lost, kept); sheet.append(carry);
   const enter = el("button", "ac-primary ac-workshop-launch", closeLabel); enter.dataset.spillControl = "enter-depot";
   enter.onclick = onClose;
   sheet.append(enter, el("p", "ac-workshop-note ac-guide-timing", "Depot every 5 waves · No timer")); return sheet;
@@ -223,26 +255,58 @@ function hazardGuide() {
     section.append(row);
   }
   section.append(el("p", "ac-workshop-note", "Warnings give you time to move. Later waves combine lessons; no particular weapon or artifact is required."));
+  const elite = el("div"); elite.dataset.hazard = "warden";
+  elite.append(el("b", "", "Warden · fifth-wave climaxes from wave 10"),
+    el("p", "", "Leave its warned firing line, then fire while its shield opens. Defeating it earns salvage; surviving until it retreats also clears the encounter."));
+  section.append(elite);
   return section;
 }
 
 function hazardForecast(engine: Engine, view: DepotView) {
   const sp = engine.world.spill!, details = el("details", "ac-hazard-forecast");
+  const trial = engine.spillTrial();
+  const trialSpec = trial ? SPILL_TRIALS.find(item => item.id === trial.id)! : null;
+  const end = trialSpec ? Math.min(sp.wave + 5, trialSpec.endWave ?? trialSpec.wave) : sp.wave + 5;
   details.dataset.spillControl = "hazard-forecast"; details.open = view.forecast;
-  details.append(el("summary", "", "Next five waves"));
+  details.append(el("summary", "", trial ? "Trial forecast" : "Next five waves"));
   details.ontoggle = () => { if (details.isConnected) view.forecast = details.open; };
   const list = el("ol");
-  for (let wave = sp.wave + 1; wave <= sp.wave + 5; wave++) {
+  for (let wave = sp.wave + 1; wave <= end; wave++) {
     const plan = spillHazardPlan(wave, sp.seed), event = spillEventFor(wave, sp.seed), row = el("li");
     row.dataset.spillForecastWave = String(wave);
     const names = plan.families.map(id => SPILL_HAZARDS[id].name);
-    const label = event !== "none" ? SPILL_EVENTS[event].name : names.join(" + ") || "Debris & flight practice";
+    const label = (event !== "none" ? SPILL_EVENTS[event].name : names.join(" + ") || "Debris & flight practice")
+      + (spillClimaxWave(wave) ? " + Warden" : "");
     row.append(el("b", "", `Wave ${wave}`), el("span", "", label));
-    if (plan.families.length) row.append(el("small", "", plan.maxActive > 1 ? "Compatible pairs" : plan.advanced ? "Advanced patterns · one at a time" : "One hazard at a time"));
+    const advanced = plan.advanced || (sp.expedition.selected === "volatile"
+      && !plan.families.some(id => SPILL_HAZARDS[id].unlock === wave));
+    if (plan.families.length) row.append(el("small", "", plan.maxActive > 1 ? "Compatible pairs" : advanced ? "Advanced patterns · one at a time" : "One hazard at a time"));
     list.append(row);
   }
   details.append(list, el("p", "ac-workshop-note", "Forecast shows hazard families. Encounters wait for safe space; fifth-wave events have their own lanes."), hazardGuide());
   return details;
+}
+
+function riskSelection(engine: Engine, view: DepotView, arming: boolean, rerender: () => void) {
+  const sp = engine.world.spill!, details = el("details", "ac-expedition-options");
+  details.open = view.risk; details.dataset.spillControl = "route-options";
+  const selected = sp.expedition.selected;
+  details.append(el("summary", "", `Next route · ${SPILL_RISKS[selected].name}`));
+  details.ontoggle = () => { if (details.isConnected) view.risk = details.open; };
+  details.append(el("p", "ac-workshop-note", `Optional risk for waves ${sp.wave + 1}–${sp.wave + 5}. No entry fee. Bonus is paid only if you clear the whole block.`));
+  const choices = el("div", "ac-risk-grid");
+  for (const id of Object.keys(SPILL_RISKS) as SpillRiskId[]) {
+    const choice = SPILL_RISKS[id], button = el("button", `ac-risk-choice${id === selected ? " on" : ""}`);
+    button.dataset.spillControl = `risk-${id}`; button.disabled = arming;
+    button.setAttribute("aria-pressed", String(id === selected));
+    button.append(el("b", "", choice.name), el("span", "", choice.detail),
+      el("strong", "", choice.reward ? `+${choice.reward} Acorn Coins on block clear` : "Standard rewards"));
+    button.onclick = () => {
+      if (!engine.spillSelectRisk(id)) { view.receipt = "Route unavailable"; rerender(); }
+    };
+    choices.append(button);
+  }
+  details.append(choices); return details;
 }
 
 /** Readable build identity and optional planning live at the Depot, away from flight input. */
@@ -381,11 +445,12 @@ export function drawDepotWorkshop(engine: Engine, view: DepotView, rerender: () 
     }; return b;
   };
   const head = el("header", "ac-workshop-head"), heading = el("div"), tools = el("div", "ac-workshop-headtools"), wallet = el("div", "ac-workshop-wallet");
-  heading.append(el("p", "ac-kicker", `DEBRIS FIELD · ${sp.welcome ? "PRE-FLIGHT" : `WAVE ${sp.wave} CLEARED`}`), el("h2", "", sp.firstPass ? "First pass complete" : "Salvage depot"));
+  const trial = engine.spillTrial();
+  heading.append(el("p", "ac-kicker", trial ? "PRACTICE · NO PROGRESS SAVED" : `DEBRIS FIELD · ${sp.welcome ? "PRE-FLIGHT" : `WAVE ${sp.wave} CLEARED`}`), el("h2", "", trial ? "Trial loadout" : sp.firstPass ? "First pass complete" : "Salvage depot"));
   wallet.setAttribute("aria-label", `${sp.ore} Acorn Coins`); wallet.append(coin(), el("b", "", String(sp.ore)));
   const guide = el("button", "ac-helpdot", "?"); guide.setAttribute("aria-label", "How the Depot works"); guide.dataset.spillControl = "guide"; guide.onclick = () => { view.guide = true; rerender(); };
   tools.append(wallet, guide); head.append(heading, tools); sheet.append(head);
-  if (sp.firstPass) sheet.append(el("p", "ac-workshop-milestone", "Wave 20 complete. Victory recorded. Keep your ship and fly on."));
+  if (sp.firstPass && !trial) sheet.append(el("p", "ac-workshop-milestone", "Wave 20 complete. Victory recorded. Keep your ship and fly on."));
   const status = el("div", "ac-workshop-status"), health = el("div", "ac-workshop-health"), healthText = el("span"), healthBar = el("progress");
   healthText.append(systemIcon("plating"), el("b", "", "Health"), el("span", "", `${sp.hull} / ${sp.maxHull}`));
   healthBar.max = sp.maxHull; healthBar.value = sp.hull; healthBar.setAttribute("aria-label", `${sp.hull} of ${sp.maxHull} health`); health.append(healthText, healthBar);
@@ -412,7 +477,7 @@ export function drawDepotWorkshop(engine: Engine, view: DepotView, rerender: () 
   const selection = el("section", "ac-workshop-selection"), words = el("div", "ac-workshop-selectiontext"); selection.dataset.system = part;
   words.append(el("h3", "", `${SPILL_SHOP[part].name}${part === "plating" ? " upgrade" : ""}`), el("p", "", part === "shield"
     ? tier >= max ? "Two shields ready" : `Blocks one hit · ${tier} → ${tier + 1} shields`
-    : tier >= max ? "Fully upgraded" : SPILL_SHOP[part].levels[tier]));
+    : tier >= max ? "Fully upgraded" : part === "plating" ? `Max health ${sp.maxHull} → ${sp.maxHull + 1}` : SPILL_SHOP[part].levels[tier]));
   const take = priceButton(part);
   // the ring marks the one button that fits the free upgrade
   if (hinting) take.classList.add("ac-workshop-hint-ring");
@@ -471,6 +536,10 @@ export function drawDepotWorkshop(engine: Engine, view: DepotView, rerender: () 
     : "Second-finger tap or F / Space fires. Weapon upgrades stay with this run."));
   sheet.append(weapons);
   sheet.append(drawArtifactWorkshop(engine, view, arming, feedback, rerender));
+  if (sp.welcome || trial) sheet.append(drawSpillCareer(engine));
+  if (!sp.welcome && sp.wave >= 5 && (!trial || SPILL_TRIALS.find(item => item.id === trial.id)?.endWave)) {
+    sheet.append(riskSelection(engine, view, arming, rerender));
+  }
   sheet.append(hazardForecast(engine, view));
   // Utilities arrive after wave 5; the original four core hardpoints stay unchanged.
   if (!sp.welcome) {
@@ -533,10 +602,13 @@ export function drawDepotWorkshop(engine: Engine, view: DepotView, rerender: () 
   }
   if (sp.contractMessage) sheet.append(el("p", "ac-workshop-contract", sp.contractMessage));
   const footer = el("footer", "ac-workshop-footer"), actions = el("div", "ac-workshop-actions");
-  const receipt = el("p", "ac-workshop-receipt", view.receipt || (sp.welcome ? "One free upgrade before takeoff"
+  const receipt = el("p", "ac-workshop-receipt", view.receipt || (trial ? "Practice loadout · changes stay in this trial" : sp.welcome ? "One free upgrade before takeoff"
     : spillArtifactOffers(sp).length ? "Rare artifact recovered · choose one before launch" : "Take your time · next depot in 5 waves"));
   receipt.setAttribute("aria-live", "polite"); footer.append(receipt);
-  if (!sp.target) {
+  if (trial) {
+    const exit = el("button", "ac-ghost ac-workshop-exit", "END TRIAL");
+    exit.dataset.spillControl = "end-trial"; exit.onclick = () => engine.spillEndTrial(); actions.append(exit);
+  } else if (!sp.target) {
     const save = el("button", "ac-ghost ac-workshop-exit", "SAVE & EXIT"); save.disabled = arming; save.dataset.spillControl = "save"; save.onclick = () => engine.spillSuspend(); actions.append(save);
   }
   const go = el("button", "ac-primary ac-workshop-launch", sp.welcome && sp.freeUpgrade ? "CHOOSE FREE UPGRADE" : `LAUNCH WAVE ${sp.welcome ? 1 : sp.wave + 1}`);

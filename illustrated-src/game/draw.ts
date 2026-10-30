@@ -43,6 +43,7 @@ import {
 import { spillEngineColor } from "./spill-content";
 import { drawSpillCombat, drawSpillCombatHud } from "./spill-combat-view";
 import { drawSpillHazards, drawSpillHazardHint } from "./spill-hazard-view";
+import { drawSpillClimax } from "./spill-climax-view";
 import { SPILL_MODULE_MARKS, spillDockBear, spillDockView, spillPreviewState, type SpillBuild } from "./spill-presentation";
 import {
   RACE_ACORNS,
@@ -2266,6 +2267,7 @@ function drawSpillWorld(ctx: CanvasRenderingContext2D, w: World, save: SaveData,
 
   drawSpillHazards(ctx, s, !!save.motionOff || raceReducedMotion());
   drawSpillCombat(ctx, s, art);
+  drawSpillClimax(ctx, s);
   for (const p of w.particles) drawParticle(ctx, p);
 
   if (s.phase !== "over" && w.screen !== "dead") {

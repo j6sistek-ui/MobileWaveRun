@@ -21,6 +21,8 @@ Thrusters improve movement response and dodging. Emergency Brake improves neutra
 
 Phase 3 adds no input or camera mode. Use the same steering to leave a comet line or ion band, fire to destroy a comet or disarm a mine, and steer away from gravity cores. A mine gives a visible fuse before its ring explodes; moving out is always an alternative to shooting. The Depot forecast and Help field guide explain each family. See [HAZARDS.md](HAZARDS.md).
 
+The completed evaluation package keeps these same controls. Preserve solar cover or leave the charged band; shoot a wreck's bright weak point, then avoid its warned fragments. Evade the Warden's frozen volley and fire during the open-core window. Chassis alter vertical steering speed/health, and targeting lenses trade aim width against projectile speed. Flight Trials offer immediate practice plus Pause/Retry, with no extra flight pads. See [EVALUATION.md](EVALUATION.md).
+
 ## Browser gestures
 
 Portrait and landscape are both supported automatically. Turn the phone sideways with system rotation lock off. A screen-size change pauses active flight, preserves the same run/build, and releases controls; choose Resume and begin a fresh gesture. The field and dialogs stay inside the side safe areas, and dynamic viewport height tracks mobile browser bars. The game does not force fullscreen or attempt to override the phone's orientation setting.

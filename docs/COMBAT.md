@@ -15,13 +15,15 @@ Shots travel forward. A narrow forward cone gently aims at an enemy or active de
 | Rapid Laser | 1 / 2 / 3 | 0.16 seconds | Fast, narrow shots; frequent corrections against moving targets |
 | Heavy Cannon | 4 / 8 / 12 | 0.65 seconds | Slower, wider rounds; fewer hits to break heavy debris |
 
-Each tier reduces its base interval by 7% per additional tier. The shared `spillWeaponStats` function supplies firing and the Depot's displayed values. Upgrades cost 65 coins for tier II and 130 for tier III, separately for each weapon; the selected weapon and both tiers persist through Depot checkpoints. Ammunition is unlimited. There are no permanent power unlocks or extra currencies in this iteration.
+Each tier reduces its base interval by 7% per additional tier. The shared `spillWeaponStats` function supplies firing and the Depot's displayed values. Upgrades cost 65 coins for tier II and 130 for tier III, separately for each weapon; the selected weapon and both tiers persist through Depot checkpoints. Ammunition is unlimited. Earned targeting lenses trade projectile speed against aim width, while leaving damage/cadence unchanged; chassis trade hull for steering speed. There are no extra currencies or permanent damage upgrades. See [EVALUATION.md](EVALUATION.md).
 
 Phase 2 adds optional artifact interactions to both weapons: Reclaimer's capped debris salvage, Slipstream Relay's dodge-primed echo, and Siege Core's splash with a 30% longer firing interval. Base values above remain unchanged when no artifact is fitted. See [BUILDS.md](BUILDS.md) for recovery, equipment synergies, tradeoffs and persistence.
 
 Phase 3 adds destructible comet cores (3 health) and mines (2 health). Pulse also clears these within reach, and Siege can damage them within its existing secondary-target budget. Mine disarm grants one collectible coin; neither hazard creates enemy-kill or rock-shatter credit. Gravity wells and ion bands cannot be destroyed. New enemy arrivals and attacks wait while environmental hazards are active; hazards likewise wait for existing hostile shots/warnings to clear. See [HAZARDS.md](HAZARDS.md).
 
-Debris health is 1 for shards, 2 for spinners, 4 for tumblers and 10 for hulks. Destroying it uses the existing shatter, contract and equipped Pulse salvage rules. Destroyed Pursuers drop three collectible coins; Flankers drop four. Coins enter the existing run economy only when collected. Enemy defeats also award score and appear in the run's kill count; escaping enemies do not award a kill.
+The completed package adds solar cover (5 health) and wreck weak points (3 health, 11-pixel target inside a 42-pixel body). Destroying cover restarts a full flare warning. Breaking a wreck opens the passage immediately and releases separately warned fragments. Mines, comets, gravity cores and visibly bent debris can defeat ordinary enemies; common damage/kill resolution prevents duplicate rewards. Warden shields accept damage only during their actual exposure interval, including same-tick direct shots and Siege splash.
+
+Debris health is 1 for shards, 2 for spinners, 4 for tumblers and 10 for hulks. Destroying it uses the existing shatter, contract and equipped Pulse salvage rules. Destroyed Pursuers drop three collectible coins; Flankers drop four; Wardens drop eight. Pickups enter the run economy on collection, including the existing automatic cleanup of on-screen coins during docking. Enemy defeats also award score and appear in the run's kill count; escaping enemies do not award a kill.
 
 ## Encounters and fairness
 
@@ -30,6 +32,8 @@ Wave 1 keeps the original debris lesson and allows shooting. From Wave 2, Pursue
 Enemies wait through a 0.9-second aim warning and freeze their target before firing. Their shot speed preserves at least 0.75 seconds of nominal travel to the frozen target after that warning, including narrow viewports. Warning starts are staggered. Damage uses the existing shields, Pulse, recovery immunity and extra-life rules. Impact Pulse clears nearby hostile shots and damages nearby enemies.
 
 Enemy admission is bounded to two concurrent ships and three arrivals below Wave 10, then three ships and five arrivals. Encounters take pressure away from the ambient debris spawner. New arrivals and new shot warnings defer during event warnings and surges. Enemies retreat during field drain; combat entities are cleared before countdowns, Depot visits, death and extra-life recovery. These bounds are fairness controls, not evidence that all late-wave combinations are balanced.
+
+The optional Patrol route raises the arrival allowance by one, capped at five, and shortens its base interval to four seconds; concurrent limits stay unchanged. Every fifth wave from 10 reserves its second act for one shield/open-core Warden, waiting for existing pressure to drain and suppressing further ordinary arrivals. The Warden's health stays at 12, warnings at least 1.35 seconds and projectile travel at least 0.9 seconds. It retreats on wave end, so movement-only survival remains possible. Full rules are in [EVALUATION.md](EVALUATION.md).
 
 ## Implementation and saves
 
@@ -41,4 +45,4 @@ New sprites and their exact generation prompts are documented in [COMBAT_ASSETS.
 
 ## Next playtest
 
-Compare both weapons through the first Depot interval, then compare upgrades on the same encounters. Judge target readability, simultaneous steering/shooting, directional dodge distance, the value of keeping debris as cover, and whether cannon/laser choices feel distinct. Physical phone ergonomics, audio listening, sustained performance and late endless-wave balance still need real play. Front-facing movement and broader feature priorities remain later scope.
+Use Flight Trials to compare both weapons/builds on the same seeded encounters. Judge target readability, simultaneous steering/shooting, directional dodge distance, the value of keeping cover, environmental tactics and whether cannon/laser/lens choices feel distinct. Physical phone ergonomics, audio listening, sustained performance and late endless-wave balance still need real play. Front-facing movement remains a separate decision.

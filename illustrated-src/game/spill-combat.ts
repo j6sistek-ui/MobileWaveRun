@@ -1,6 +1,10 @@
 import type { SpillRock, SpillState } from "./spill";
 import { clearSpillBuildEffects, createSpillBuild, restoreSpillBuild, type SpillBuildState } from "./spill-builds";
-import { damageSpillHazard, spillHazardPressure, spillHazardPulse, type SpillHazard, type SpillHazardContact } from "./spill-hazards";
+import { damageSpillHazard, spillHazardPressure, spillHazardPulse, spillHazardTarget, spillHazardTargetRadius,
+  spillGravityEnemyDrift, spillBentRockThreat, type SpillHazard, type SpillHazardContact } from "./spill-hazards";
+import { spillWeaponModuleStats } from "./spill-career";
+import { stepSpillElite, spillEliteDamage, type SpillElite } from "./spill-climax";
+import { spillRiskActive } from "./spill-expeditions";
 
 /** Combat stays in the same 60 Hz authority as the field. Nothing here owns input or rendering. */
 export type SpillWeaponId = "laser" | "cannon";
@@ -18,6 +22,7 @@ export type SpillEnemy = {
   /** Seconds remaining. The enemy holds position and the target is frozen throughout this warning. */
   telegraph: number; telegraphTotal: number; aimX: number; aimY: number; shotSpeed: number;
   homeY: number; side: number; hitFlash: number; dead: boolean;
+  elite?: SpillElite;
 };
 export type SpillShot = {
   id: number; team: "player" | "enemy"; weapon: SpillWeaponId;
@@ -89,6 +94,7 @@ export function spillWeaponPrice(s: SpillState): number | null {
 export function spillWeaponStats(s: SpillState, id: SpillWeaponId = s.combat.weapon) {
   const weapon = SPILL_WEAPONS[id], level = s.combat.levels[id];
   return { ...weapon, damage: weapon.damage * level,
+    speed: weapon.speed * spillWeaponModuleStats(s.loadout?.module).speed,
     cooldown: weapon.cooldown * (1 - (level - 1) * 0.07) * (s.combat.build.artifact === "siege" ? 1.3 : 1) };
 }
 export function spillUpgradeWeapon(s: SpillState): boolean {
@@ -172,9 +178,10 @@ export function admitSpillEnemies(s: SpillState, dt: number) {
   const c = s.combat;
   c.nextEnemy -= dt;
   const cap = s.wave < 10 ? 2 : 3;
-  if (c.nextEnemy > 0 || c.enemies.filter(e => !e.dead).length >= cap || c.spawned >= (s.wave < 10 ? 3 : 5)) return;
+  const bounty = spillRiskActive(s, "bounty");
+  if (c.nextEnemy > 0 || c.enemies.filter(e => !e.dead).length >= cap || c.spawned >= Math.min(5, (s.wave < 10 ? 3 : 5) + (bounty ? 1 : 0))) return;
   if (s.eventWarn > 0 || s.surgeT > 0) return;
-  c.nextEnemy = spawnEnemy(s) ? 5.5 + random(c) * 2 : 0.5;
+  c.nextEnemy = spawnEnemy(s) ? (bounty ? 4 : 5.5) + random(c) * 2 : 0.5;
 }
 
 /** First entry into a moving circle, in normalized time. A cover tie wins at the caller. */
@@ -195,13 +202,22 @@ function killEnemy(s: SpillState, e: SpillEnemy) {
   if (e.dead) return;
   e.dead = true;
   s.combat.kills++; s.combat.waveKills++;
-  s.score += e.kind === "pursuer" ? 25 : 35;
+  s.score += e.elite ? 75 : e.kind === "pursuer" ? 25 : 35;
   s.bursts.push({ x: e.x, y: e.y, n: 16, power: 1.1, tone: "shatter" });
   // Rewards stay physical pickups and pass through the existing collection/contract ledger.
-  const count = e.kind === "pursuer" ? 3 : 4;
+  const count = e.elite ? 8 : e.kind === "pursuer" ? 3 : 4;
   for (let i = 0; i < count; i++) s.nuts.push({ x: e.x + i * 10, y: e.y,
     vx: -90 * scale(s), vy: 0, got: false, bob: i, kind: "ore" });
   s.cues.push("enemy-down");
+}
+/** All weapons, pulses and environmental kills share the once-only ledger. */
+export function damageSpillEnemy(s: SpillState, e: SpillEnemy, damage: number, time?: number) {
+  if (e.dead || !(damage > 0)) return false;
+  const applied = spillEliteDamage(e, damage, time);
+  if (applied <= 0) return false;
+  e.hp -= applied; e.hitFlash = .12;
+  if (e.hp <= 0) killEnemy(s, e);
+  return true;
 }
 
 /** Only player-weapon destruction enters this path; Pulse/dodge retain their own rewards. */
@@ -222,7 +238,7 @@ function damageRock(s: SpillState, rock: SpillRock, damage: number, effects: Spi
 /** The direct swept hit triggers one bounded splash, never a chain reaction. */
 function impactBlast(s: SpillState, shot: SpillShot, rockHit: SpillRock | null, enemyHit: SpillEnemy | null,
   hazardHit: SpillHazard | null, effects: SpillCombatEffects, rockPoint: (r: SpillRock) => Point,
-  enemyPoint: (e: SpillEnemy) => Point, hazardPoint: (h: SpillHazard) => Point) {
+  enemyPoint: (e: SpillEnemy) => Point, hazardPoint: (h: SpillHazard) => Point, time: number) {
   const radius = shot.blastRadius ?? 0;
   if (shot.team !== "player" || radius <= 0) return;
   const build = s.combat.build;
@@ -241,12 +257,11 @@ function impactBlast(s: SpillState, shot: SpillShot, rockHit: SpillRock | null, 
     if (e === enemyHit || e.dead) continue;
     const p = enemyPoint(e);
     if (Math.hypot(p.x - shot.x, p.y - shot.y) > radius + e.r) continue;
-    budget--; e.hp -= shot.damage * .5; e.hitFlash = .12;
-    if (e.hp <= 0) killEnemy(s, e);
+    budget--; damageSpillEnemy(s, e, shot.damage * .5, time);
   }
   for (const h of s.hazards.actors) {
     if (!budget) break;
-    if (h === hazardHit || h.dead || h.hp <= 0 || h.warn > 0 || h.phase !== "active") continue;
+    if (h === hazardHit || !spillHazardTarget(h)) continue;
     const p = hazardPoint(h);
     if (Math.hypot(p.x - shot.x, p.y - shot.y) > radius + h.r) continue;
     budget--; damageSpillHazard(s, h, shot.damage * .5);
@@ -260,18 +275,17 @@ export function spillCombatPulse(s: SpillState, radius: number): number {
     if (shot.team === "enemy" && Math.hypot(shot.x - s.pilot.x, shot.y - s.pilot.y) < radius) shot.dead = true;
   for (const e of s.combat.enemies) {
     if (e.dead || Math.hypot(e.x - s.pilot.x, e.y - s.pilot.y) >= radius) continue;
-    e.hp -= s.up.pulse >= 3 ? 3 : 2; e.hitFlash = 0.15; hits++;
-    if (e.hp <= 0) killEnemy(s, e);
+    if (damageSpillEnemy(s, e, s.up.pulse >= 3 ? 3 : 2)) hits++;
   }
   return hits;
 }
 
 function aimTarget(s: SpillState) {
   let best: SpillEnemy | SpillHazard | null = null, distance = Infinity;
-  const targets = [...s.combat.enemies, ...s.hazards.actors.filter(h => h.hp > 0 && h.warn <= 0 && h.phase === "active")];
+  const targets = [...s.combat.enemies, ...s.hazards.actors.filter(spillHazardTarget)];
   for (const e of targets) {
     const dx = e.x - s.pilot.x, dy = e.y - s.pilot.y;
-    if (e.dead || dx <= 20 || e.x > s.W || Math.abs(Math.atan2(dy, dx)) > 0.24) continue;
+    if (e.dead || dx <= 20 || e.x > s.W || Math.abs(Math.atan2(dy, dx)) > 0.24 * spillWeaponModuleStats(s.loadout?.module).aim) continue;
     const d = Math.hypot(dx, dy);
     if (d < distance) { best = e; distance = d; }
   }
@@ -292,6 +306,7 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
   for (const e of c.enemies) {
     if (e.dead) continue;
     enemyBefore.set(e, { x: e.x, y: e.y });
+    if (stepSpillElite(s, e, dt, emitted)) continue;
     e.age += dt; e.life -= dt; e.hitFlash = Math.max(0, e.hitFlash - dt);
     if (s.phase === "drain" || e.life <= 0) {
       e.telegraph = 0; e.vx = 180 * scale(s); e.vy = 0; e.x += e.vx * dt;
@@ -311,11 +326,13 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
       continue;
     }
     const homeX = s.W * (e.kind === "pursuer" ? 0.74 : 0.86);
-    e.vx = e.x > homeX + 1 ? -100 * scale(s) : 0;
+    e.vx = e.x > homeX + 1 ? -100 * scale(s) : e.x < homeX - 1 ? Math.min(30 * scale(s), (homeX - e.x) * .6) : 0;
     const desiredY = e.kind === "pursuer" ? s.pilot.y : e.homeY + Math.sin(e.age * 1.2) * 85 * e.side;
     e.vy = clamp(desiredY - e.y, -42, 42);
-    e.x = Math.max(homeX, e.x + e.vx * dt);
+    e.x = e.vx < 0 ? Math.max(homeX, e.x + e.vx * dt) : Math.min(homeX, e.x + e.vx * dt);
     e.y = clamp(e.y + e.vy * dt, 45, s.H - 85);
+    const field = spillGravityEnemyDrift(s, e);
+    e.x += field.x * dt; e.y = clamp(e.y + field.y * dt, 45, s.H - 45);
     e.cooldown = Math.max(0, e.cooldown - dt);
     if (e.cooldown === 0 && e.x <= s.W - e.r && e.x - s.pilot.x > 50 && c.enemyFireGap === 0 && s.eventWarn <= 0 && s.surgeT <= 0 && spillHazardPressure(s) === 0) {
       e.aimX = s.pilot.x; e.aimY = s.pilot.y;
@@ -368,7 +385,39 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
     const from = { x: shot.x, y: shot.y }, to = { x: shot.x + shot.vx * time, y: shot.y + shot.vy * time };
     paths.set(shot, { from, to, time, fraction });
   }
-  const contacts = [...(effects.hazardContacts ?? [])].sort((a, b) => a.time - b.time);
+  const contacts = [...(effects.hazardContacts ?? [])];
+  for (const h of s.hazards.actors) {
+    if (h.dead || h.phase !== "active" || h.warn > 0 || (h.kind !== "gravity" && h.kind !== "comet")) continue;
+    for (const e of c.enemies) {
+      if (e.dead || e.x < 0 || e.x > s.W || h.enemyHits?.includes(e.id)) continue;
+      const before = enemyBefore.get(e) ?? e;
+      const t = sweep(before, e, motion.hazards?.get(h) ?? h, h, e.r + h.r);
+      if (t === null) continue;
+      contacts.push({ time: t, resolve: () => {
+        if (h.dead || e.dead) return;
+        h.enemyHits = [...(h.enemyHits ?? []), e.id];
+        damageSpillEnemy(s, e, h.kind === "gravity" ? 5 : 4);
+        if (h.kind === "comet") h.dead = true;
+      } });
+    }
+  }
+  // Only visibly bent debris becomes an environmental projectile. Ordinary
+  // background traffic keeps its established behavior and cannot farm kills.
+  for (const rock of s.rocks) {
+    if (!spillBentRockThreat(s, rock)) continue;
+    for (const e of c.enemies) {
+      if (e.dead || e.x < 0 || e.x > s.W) continue;
+      const t = sweep(enemyBefore.get(e) ?? e, e, motion.rocks.get(rock) ?? rock, rock, e.r + rock.r);
+      if (t === null) continue;
+      contacts.push({ time: t, resolve: () => {
+        if (rock.dead || e.dead) return;
+        rock.dead = true;
+        s.bursts.push({ x: rock.x, y: rock.y, n: 8, power: .7, tone: "shatter" });
+        damageSpillEnemy(s, e, 3);
+      } });
+    }
+  }
+  contacts.sort((a, b) => a.time - b.time);
   const ordered = contacts.length > 0;
   let cursor = 0;
   const pointAt = (before: Point, after: Point, time: number) => ({
@@ -393,9 +442,9 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
       if (hit !== null && hit < first) { first = hit; rockHit = rock; enemyHit = null; pilotHit = false; }
     }
     for (const h of s.hazards.actors) {
-      if (h.dead || h.hp <= 0 || h.warn > 0 || h.phase !== "active") continue;
+      if (!spillHazardTarget(h)) continue;
       const before = motion.hazards?.get(h) ?? h;
-      const hit = contact(before, h, shot.r + h.r);
+      const hit = contact(before, h, shot.r + spillHazardTargetRadius(h));
       if (hit !== null && hit < first - 1e-9) { first = hit; hazardHit = h; rockHit = null; enemyHit = null; pilotHit = false; }
     }
     if (shot.team === "player") {
@@ -442,8 +491,7 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
         damageRock(s, rockHit, shot.damage, effects);
         if (!rockHit.dead) s.bursts.push({ x: shot.x, y: shot.y, n: 3, power: 0.3, tone: "hit" });
       } else if (enemyHit) {
-        enemyHit.hp -= shot.damage; enemyHit.hitFlash = 0.12;
-        if (enemyHit.hp <= 0) killEnemy(s, enemyHit);
+        damageSpillEnemy(s, enemyHit, shot.damage, first);
       } else if (hazardHit && shot.team === "player") {
         damageSpillHazard(s, hazardHit, shot.damage);
       } else if (pilotHit) {
@@ -457,7 +505,7 @@ export function stepSpillCombat(s: SpillState, dt: number, motion: SpillCombatMo
         });
         impactBlast(s, shot, rockHit, enemyHit, hazardHit, effects,
           r => atImpact(motion.rocks.get(r) ?? r, r), e => atImpact(enemyBefore.get(e) ?? e, e),
-          h => atImpact(motion.hazards?.get(h) ?? h, h));
+          h => atImpact(motion.hazards?.get(h) ?? h, h), first);
       }
     }
     if (shot.life <= 0 || shot.x < -60 || shot.x > s.W + 100 || shot.y < -60 || shot.y > s.H + 60) shot.dead = true;

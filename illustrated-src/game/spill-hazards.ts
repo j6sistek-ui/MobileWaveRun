@@ -1,27 +1,36 @@
 import type { SpillRock, SpillState } from "./spill";
 import { PHYS } from "./catalog";
+import { damageSpillEnemy } from "./spill-combat";
+import { spillRiskActive } from "./spill-expeditions";
 
-export type SpillHazardKind = "comet" | "mine" | "ion" | "gravity";
-export const SPILL_HAZARD_IDS: SpillHazardKind[] = ["comet", "mine", "ion", "gravity"];
+export type SpillHazardKind = "comet" | "mine" | "ion" | "gravity" | "flare" | "wreck";
+export const SPILL_HAZARD_IDS: SpillHazardKind[] = ["comet", "mine", "ion", "gravity", "flare", "wreck"];
 export const SPILL_HAZARDS: Record<SpillHazardKind, { name: string; short: string; teach: string; unlock: number }> = {
   comet: { name: "Comet strike", short: "Comets", unlock: 4,
     teach: "COMET: its path is marked before it moves. Leave the line or shoot the core." },
   mine: { name: "Drifting mines", short: "Mines", unlock: 7,
-    teach: "MINES: shoot to disarm, or leave the blast ring before the fuse expires." },
+    teach: "MINES: shoot to disarm or leave the ring. Blasts hit enemies; linked mines warn before chaining." },
   ion: { name: "Ion storm", short: "Ion storm", unlock: 11,
     teach: "ION STORM: leave the charged band before it flashes. Shots cannot stop it." },
   gravity: { name: "Gravity well", short: "Gravity wells", unlock: 16,
-    teach: "GRAVITY WELL: steer against the gentle pull. Watch debris bend; avoid the core." },
+    teach: "GRAVITY: debris and enemies drift. Optional gold rides the rim; avoid the dark core." },
+  flare: { name: "Solar flare", short: "Solar flare", unlock: 22,
+    teach: "SOLAR FLARE: hide behind the asteroid or leave the band. Breaking cover restarts its warning." },
+  wreck: { name: "Fracturing wreck", short: "Wrecks", unlock: 27,
+    teach: "WRECK: shoot the bright weak point to open a path; fragments receive their own warning." },
 };
 export const SPILL_HAZARD_TUNING = {
   warning: 1.2, cometLead: .75, mineFuse: .9, mineRange: 68,
   ionPulse: .45, gravityX: 30, gravityY: 55, gravityBendSpeed: 26, gravityBendDuration: 2.4,
+  flareWarning: 1.8, flarePulse: .7, fragmentWarning: 1.2,
 };
+export type SpillFragment = { x: number; y: number; vx: number; vy: number; r: number; warn: number; life: number; dead: boolean };
 export type SpillHazard = {
   id: number; kind: SpillHazardKind; x: number; y: number; vx: number; vy: number; r: number;
   age: number; activeTime: number; life: number; warn: number; hp: number; maxHp: number; dead: boolean;
   aimX: number; aimY: number; phase: "warning" | "active" | "spent";
   fuse: number; pulse: number; safeY: number; range: number; variant: number; hit: boolean;
+  coverBroken?: boolean; fragments?: SpillFragment[]; salvageDropped?: boolean; enemyHits?: number[];
 };
 export type SpillHazardState = { version: 1; rng: number; nextId: number; next: number; spawned: number; actors: SpillHazard[] };
 /** Frame-local work, never saved: combat merges these with swept shot impacts. */
@@ -41,7 +50,10 @@ export function spillHazardPlan(wave: number, seed = 0): { families: SpillHazard
   const taught = SPILL_HAZARD_IDS.find(kind => SPILL_HAZARDS[kind].unlock === wave);
   if (taught) return { families: [taught], maxActive: 1, advanced: false };
   const pool = SPILL_HAZARD_IDS.filter(kind => wave >= SPILL_HAZARDS[kind].unlock);
-  const roll = hash(seed, wave), first = pool[roll % pool.length];
+  // Separate bits from pair selection: six families and a modulo-three
+  // pairing gate otherwise make some solo families unreachable.
+  const roll = hash(seed, wave), first = pool[(roll >>> 5) % pool.length];
+  if (wave >= 31 && roll % 10 === 0) return { families: ["mine"], maxActive: 2, advanced: wave >= 41 };
   if (wave >= 31 && roll % 3 !== 0) {
     const pair: SpillHazardKind[] = roll % 2 ? ["gravity", "comet"] : ["mine", "comet"];
     return { families: pair, maxActive: 2, advanced: wave >= 41 };
@@ -72,6 +84,8 @@ export function resizeSpillHazards(s: SpillState, sx: number, sy: number) {
     h.aimX *= sx; h.aimY *= sy; h.safeY *= sy;
     if (h.kind === "ion") h.r = clamp(s.H * sy * .08, 22, 36);
     if (h.kind === "gravity") h.range = clamp(s.H * sy * .32, 95, 180);
+    if (h.kind === "flare") h.range = clamp(s.H * sy * .2, 60, 100);
+    for (const f of h.fragments ?? []) { f.x *= sx; f.y *= sy; f.vx *= sx; f.vy *= sy; }
   }
 }
 export function spillHazardPressure(s: SpillState) { return s.hazards.actors.filter(h => !h.dead).length; }
@@ -81,7 +95,7 @@ function atHome(s: SpillState, h: SpillHazard) {
   return h.y + h.vy * (s.W * .22 - h.x) / h.vx;
 }
 function safeFor(s: SpillState, h: SpillHazard, y: number) {
-  const center = atHome(s, h), margin = h.kind === "mine" ? h.range + 44 : h.r + 52;
+  const center = atHome(s, h), margin = h.kind === "mine" || h.kind === "flare" ? h.range + 44 : h.r + 52;
   if (h.kind === "gravity" && h.vy !== 0) {
     // Reserve the full remaining vertical envelope, including reflection at
     // the flight edges. A moving well must not drift into its announced refuge.
@@ -120,6 +134,7 @@ function refuge(s: SpillState, candidate: SpillHazard, predict?: RockPrediction)
 export function admitSpillHazards(s: SpillState, dt: number, predict?: RockPrediction) {
   if (s.phase !== "wave") return;
   const plan = spillHazardPlan(s.wave, s.seed), state = s.hazards;
+  const advanced = plan.advanced || (spillRiskActive(s, "volatile") && !plan.families.some(kind => SPILL_HAZARDS[kind].unlock === s.wave));
   if (!plan.families.length || s.event !== "none" || s.waveT > s.spec.dur - 6) return;
   state.next -= dt;
   if (state.next > 0 || state.spawned >= (s.wave < 21 ? 3 : 4) || spillHazardPressure(s) >= plan.maxActive) return;
@@ -127,30 +142,39 @@ export function admitSpillHazards(s: SpillState, dt: number, predict?: RockPredi
     || s.combat.enemies.some(e => !e.dead && e.telegraph > 0)
     || s.combat.shots.some(p => !p.dead && p.team === "enemy")) { state.next = .35; return; }
   const kind = plan.families[state.spawned % plan.families.length];
+  // New cover/body lessons retain their own space even on a mixed plan.
+  if ((kind === "flare" || kind === "wreck" || state.actors.some(h => !h.dead && (h.kind === "flare" || h.kind === "wreck"))) && spillHazardPressure(s)) return;
   for (let attempt = 0; attempt < 8; attempt++) {
-    const r = kind === "ion" ? clamp(s.H * .08, 22, 36) : kind === "comet" ? 16 : 14;
-    const x = kind === "ion" ? s.W * .5 : s.W + r + 24;
+    const r = kind === "ion" ? clamp(s.H * .08, 22, 36) : kind === "comet" ? 16 : kind === "flare" || kind === "wreck" ? 42 : 14;
+    const x = kind === "ion" ? s.W * .5 : kind === "flare" ? s.W * .72 : s.W + r + 24;
     const offset = kind === "gravity" ? (random(s) < .5 ? -1 : 1) * (74 + random(s) * 30) : (random(s) - .5) * 150;
     const y = clamp(s.pilot.y + offset, 45 + r, s.H - 45 - r);
     const aimX = s.W * .22;
-    const aimY = clamp(kind === "comet" ? s.pilot.y + (random(s) - .5) * (plan.advanced ? 160 : 70) : y, 40, s.H - 40);
+    const aimY = clamp(kind === "comet" ? s.pilot.y + (random(s) - .5) * (advanced ? 160 : 70) : y, 40, s.H - 40);
     const dx = aimX - x, dy = aimY - y, distance = Math.max(1, Math.hypot(dx, dy));
-    const speed = Math.min((plan.advanced ? 800 : 630) * lane(s), Math.max(1, distance - r - PHYS.squirrelR) / SPILL_HAZARD_TUNING.cometLead);
+    const speed = Math.min((advanced ? 800 : 630) * lane(s), Math.max(1, distance - r - PHYS.squirrelR) / SPILL_HAZARD_TUNING.cometLead);
     const h: SpillHazard = { id: state.nextId, kind, x, y,
-      vx: kind === "comet" ? dx / distance * speed : kind === "ion" ? 0 : -70 * lane(s),
-      vy: kind === "comet" ? dy / distance * speed : kind === "gravity" && plan.advanced ? (random(s) - .5) * 18 : 0,
+      vx: kind === "comet" ? dx / distance * speed : kind === "ion" || kind === "flare" ? 0 : -70 * lane(s),
+      vy: kind === "comet" ? dy / distance * speed : kind === "gravity" && advanced ? (random(s) - .5) * 18 : 0,
       r, age: 0, activeTime: 0, life: kind === "ion" ? 8 : 10,
-      warn: SPILL_HAZARD_TUNING.warning + (s.utilities.includes("scanner") ? .4 : 0),
-      hp: kind === "mine" ? 2 : kind === "comet" ? 3 : 0, maxHp: kind === "mine" ? 2 : kind === "comet" ? 3 : 0,
+      warn: (kind === "flare" ? SPILL_HAZARD_TUNING.flareWarning : SPILL_HAZARD_TUNING.warning) + (s.utilities.includes("scanner") ? .4 : 0),
+      hp: kind === "mine" ? 2 : kind === "comet" || kind === "wreck" ? 3 : kind === "flare" ? 5 : 0,
+      maxHp: kind === "mine" ? 2 : kind === "comet" || kind === "wreck" ? 3 : kind === "flare" ? 5 : 0,
       dead: false, aimX, aimY, phase: "warning", fuse: -1, pulse: 0,
       safeY: clamp(s.pilot.y + (y > s.pilot.y ? -110 : 110), 30, s.H - 30),
-      range: kind === "gravity" ? clamp(s.H * .32, 95, 180) : kind === "mine" ? SPILL_HAZARD_TUNING.mineRange : r,
-      variant: plan.advanced ? 1 : 0, hit: false };
+      range: kind === "gravity" ? clamp(s.H * .32, 95, 180) : kind === "mine" ? SPILL_HAZARD_TUNING.mineRange : kind === "flare" ? clamp(s.H * .2, 60, 100) : r,
+      variant: advanced ? 1 : 0, hit: false };
     const safeY = refuge(s, h, predict);
     if (safeY === null) continue;
+    if (kind === "flare" && s.rocks.some(rock => !rock.dead && Math.hypot(rock.x - x, rock.y - y) < rock.r + r + 24)) continue;
     h.safeY = safeY;
     for (const existing of state.actors) existing.safeY = safeY;
     state.actors.push(h); state.nextId++; state.spawned++;
+    if (kind === "mine" && plan.maxActive === 2 && plan.families.length === 1 && state.actors.filter(a => !a.dead).length === 1) {
+      const partner = { ...h, id: state.nextId, x: h.x + 44, y: clamp(h.y + (safeY < h.y ? 28 : -28), 50, s.H - 50) };
+      const shared = refuge(s, partner, predict);
+      if (shared !== null) { h.safeY = partner.safeY = shared; state.actors.push(partner); state.nextId++; state.spawned++; }
+    }
     state.next = plan.maxActive > 1 ? 2.8 : 5.5;
     s.cues.push("warn"); return;
   }
@@ -169,6 +193,18 @@ export function spillGravityDrift(s: SpillState): Point {
   }
   return { x: clamp(x, -30, 30), y: clamp(y, -55, 55) };
 }
+/** Enemy steering is affected by the same visible field, without moving a
+ * frozen firing muzzle or allowing an invisible offscreen damage farm. */
+export function spillGravityEnemyDrift(s: SpillState, point: Point): Point {
+  let x = 0, y = 0;
+  for (const h of s.hazards.actors) {
+    if (h.dead || h.kind !== "gravity" || h.phase !== "active" || h.warn > 0) continue;
+    const dx = h.x - point.x, dy = h.y - point.y, d = Math.max(1, Math.hypot(dx, dy));
+    const weight = Math.max(0, 1 - d / h.range) * Math.min(1, h.activeTime / .6);
+    x += dx / d * 40 * weight; y += dy / d * 70 * weight;
+  }
+  return { x: clamp(x, -40, 40), y: clamp(y, -70, 70) };
+}
 export function spillGravityBend(s: SpillState, rock: SpillRock) {
   if (rock.dead || rock.warn > 0 || (rock.gravityBend && s.t < rock.gravityBend.start + rock.gravityBend.duration)) return null;
   const well = s.hazards.actors.find(h => !h.dead && h.kind === "gravity" && h.phase === "active" && h.warn <= 0
@@ -186,6 +222,14 @@ export function spillGravityBendDelta(rock: SpillRock, from: number, to: number)
     return b.strength * b.duration / Math.PI * (1 - Math.cos(Math.PI * u));
   };
   return integral(to) - integral(from);
+}
+/** This is also the renderer's trajectory-marker gate, so a spent/remote
+ * force cannot turn an unmarked ordinary rock into a free enemy projectile. */
+export function spillBentRockThreat(s: SpillState, rock: SpillRock) {
+  const b = rock.gravityBend;
+  return !rock.dead && rock.warn <= 0 && !!b && s.t >= b.start && s.t < b.start + b.duration
+    && s.hazards.actors.some(h => !h.dead && h.kind === "gravity" && h.phase === "active" && h.id === rock.gravityWell
+      && Math.hypot(rock.x - h.x, rock.y - h.y) <= h.range + rock.r);
 }
 /** Retain the announced refuge when admitting or bending ordinary debris. */
 export function spillHazardPathClear(s: SpillState, rock: SpillRock, at: (ahead: number) => Point) {
@@ -211,11 +255,58 @@ function sweep(a: Point, b: Point, c: Point, d: Point, radius: number): number |
   const t = (-bb - Math.sqrt(disc)) / (2 * aa);
   return t >= 0 && t <= 1 ? t : null;
 }
+/** Segment/rectangle entry, including starting inside. Solar rays come from
+ * the right; the intact circular asteroid projects an honest parallel shadow. */
+function rectEntry(a: Point, b: Point, left: number, right: number, top: number, bottom: number) {
+  let enter = 0, leave = 1;
+  for (const [p, v, lo, hi] of [[a.x, b.x - a.x, left, right], [a.y, b.y - a.y, top, bottom]]) {
+    if (Math.abs(v) < 1e-10) { if (p < lo || p > hi) return null; continue; }
+    const t0 = (lo - p) / v, t1 = (hi - p) / v;
+    enter = Math.max(enter, Math.min(t0, t1)); leave = Math.min(leave, Math.max(t0, t1));
+    if (enter > leave) return null;
+  }
+  return enter >= 0 && enter <= 1 ? enter : null;
+}
+export function spillFlareSheltered(h: SpillHazard, point: Point, radius = PHYS.squirrelR) {
+  return !h.coverBroken && point.x + radius < h.x - h.r && Math.abs(point.y - h.y) + radius < h.r;
+}
+function flareContact(h: SpillHazard, from: Point, to: Point, radius: number) {
+  const top = h.y - h.range - radius, bottom = h.y + h.range + radius;
+  if (h.coverBroken) return rectEntry(from, to, -Infinity, Infinity, top, bottom);
+  const times = [rectEntry(from, to, h.x - h.r - radius, Infinity, top, bottom),
+    rectEntry(from, to, -Infinity, Infinity, top, h.y - h.r + radius),
+    rectEntry(from, to, -Infinity, Infinity, h.y + h.r - radius, bottom)].filter((n): n is number => n !== null);
+  return times.length ? Math.min(...times) : null;
+}
+/** Shootable cover is deliberately available during its warning; other
+ * warning silhouettes remain harmless and cannot soak player projectiles. */
+export function spillHazardTarget(h: SpillHazard) {
+  return !h.dead && h.hp > 0 && (h.kind === "flare" || (h.warn <= 0 && h.phase === "active"));
+}
+export function spillHazardTargetRadius(h: SpillHazard) { return h.kind === "wreck" ? 11 : h.r; }
 export function damageSpillHazard(s: SpillState, h: SpillHazard, damage: number) {
-  if (h.dead || h.hp <= 0 || h.warn > 0 || h.phase !== "active" || !(damage > 0)) return false;
+  if (!spillHazardTarget(h) || !(damage > 0)) return false;
   h.hp -= damage;
   if (h.hp > 0) return true;
-  h.dead = true;
+  h.hp = 0;
+  if (h.kind === "flare") {
+    // Losing shelter is a new situation, so it gets a complete warning.
+    h.coverBroken = true; h.phase = "warning"; h.warn = SPILL_HAZARD_TUNING.flareWarning;
+    h.life = Math.max(h.life, h.warn + SPILL_HAZARD_TUNING.flarePulse + .5); h.hit = false;
+    s.cues.push("warn");
+  } else if (h.kind === "wreck") {
+    h.phase = "spent"; h.fuse = 5; h.fragments = [];
+    h.life = Math.max(h.life, SPILL_HAZARD_TUNING.fragmentWarning + 4.1);
+    for (const side of [-1, 1]) {
+      const f: SpillFragment = { x: h.x, y: h.y + side * 23, vx: -100 * lane(s), vy: side * 40,
+        r: 10, warn: SPILL_HAZARD_TUNING.fragmentWarning, life: 4, dead: false };
+      // Fragment paths are committed now. Keep the announced refuge clear;
+      // an unsafe shard becomes harmless debris sparks, not a surprise hit.
+      const homeTime = clamp((s.W * .22 - f.x) / f.vx, 0, f.life);
+      if (Math.abs(f.y + f.vy * homeTime - h.safeY) > f.r + 58) h.fragments.push(f);
+    }
+    s.cues.push("warn");
+  } else h.dead = true;
   s.bursts.push({ x: h.x, y: h.y, n: 12, power: .8, tone: "shatter" });
   if (h.kind === "mine") s.nuts.push({ x: h.x, y: h.y, vx: -60 * lane(s), vy: 0, got: false, bob: h.id, kind: "ore" });
   s.cues.push("shatter"); return true;
@@ -228,6 +319,7 @@ export function spillHazardPulse(s: SpillState, radius: number) {
 export function stepSpillHazards(s: SpillState, dt: number, beforePilot: Point,
   effects: { damagePilot: () => void; predictRock?: RockPrediction; contacts?: SpillHazardContact[] }) {
   if (!active(s) || dt <= 0) return;
+  const enemiesBefore = new Map(s.combat.enemies.map(e => [e, { x: e.x, y: e.y }]));
   const queue = (time: number, resolve: () => void) => {
     if (effects.contacts) effects.contacts.push({ time: clamp(time, 0, 1), resolve });
     else resolve();
@@ -238,11 +330,24 @@ export function stepSpillHazards(s: SpillState, dt: number, beforePilot: Point,
     if (h.life <= 0) { h.dead = true; continue; }
     if (h.phase === "warning") {
       h.warn = Math.max(0, h.warn - dt);
-      if (h.warn === 0) { h.phase = "active"; h.activeTime = 0; h.hit = false; h.fuse = h.kind === "ion" ? SPILL_HAZARD_TUNING.ionPulse : -1; }
+      if (h.warn === 0) { h.phase = "active"; h.activeTime = 0; h.hit = false;
+        h.fuse = h.kind === "ion" ? SPILL_HAZARD_TUNING.ionPulse : h.kind === "flare" ? SPILL_HAZARD_TUNING.flarePulse : -1; }
       // Activation starts next tick: no full-frame movement/damage on a warning's last sliver.
       continue;
     }
     if (h.phase === "spent") {
+      if (h.kind === "wreck") {
+        for (const f of h.fragments ?? []) {
+          if (f.dead) continue;
+          if (f.warn > 0) { f.warn = Math.max(0, f.warn - dt); continue; }
+          const from = { x: f.x, y: f.y }; f.x += f.vx * dt; f.y += f.vy * dt; f.life -= dt;
+          const t = sweep(beforePilot, s.pilot, from, f, f.r + PHYS.squirrelR);
+          if (t !== null) queue(t, () => { if (!f.dead && active(s)) { f.dead = true; effects.damagePilot(); } });
+          if (f.life <= 0 || f.x < -f.r || f.y < -f.r || f.y > s.H + f.r) queue(1, () => { f.dead = true; });
+        }
+        if (!(h.fragments ?? []).some(f => !f.dead)) h.dead = true;
+        continue;
+      }
       h.fuse -= dt; if (h.fuse <= 0) h.dead = true;
       continue;
     }
@@ -250,7 +355,8 @@ export function stepSpillHazards(s: SpillState, dt: number, beforePilot: Point,
     h.activeTime += dt; h.x += h.vx * dt; h.y += h.vy * dt;
     if (h.kind === "gravity" && (h.y < 45 || h.y > s.H - 45)) { h.y = clamp(h.y, 45, s.H - 45); h.vy *= -1; }
     if (h.kind === "mine") {
-      if (h.fuse < 0 && sweep(beforePilot, s.pilot, before, h, h.range + PHYS.squirrelR) !== null) { h.fuse = SPILL_HAZARD_TUNING.mineFuse; s.cues.push("warn"); }
+      const enemyNear = s.combat.enemies.some(e => !e.dead && e.x > 0 && e.x < s.W && Math.hypot(e.x - h.x, e.y - h.y) <= h.range + e.r);
+      if (h.fuse < 0 && (enemyNear || sweep(beforePilot, s.pilot, before, h, h.range + PHYS.squirrelR) !== null)) { h.fuse = SPILL_HAZARD_TUNING.mineFuse; s.cues.push("warn"); }
       else if (h.fuse >= 0) {
         const fuse = h.fuse;
         h.fuse = Math.max(0, h.fuse - dt);
@@ -261,10 +367,28 @@ export function stepSpillHazards(s: SpillState, dt: number, beforePilot: Point,
           queue(t, () => {
             if (h.dead || !active(s)) return;
             h.phase = "spent"; h.fuse = Math.max(0, .25 - (dt - fuse)); h.x = point.x; h.y = point.y;
+            for (const e of s.combat.enemies) {
+              const from = enemiesBefore.get(e) ?? e, x = from.x + (e.x - from.x) * t, y = from.y + (e.y - from.y) * t;
+              if (!e.dead && x >= 0 && x <= s.W && Math.hypot(x - point.x, y - point.y) <= h.range + e.r) damageSpillEnemy(s, e, 5);
+            }
+            // Chain links each retain a fresh full fuse. Disarming stops the chain.
+            for (const other of s.hazards.actors) if (!other.dead && other !== h && other.kind === "mine" && other.phase === "active"
+              && other.fuse < 0 && Math.hypot(other.x - point.x, other.y - point.y) <= h.range + other.r) {
+              other.fuse = SPILL_HAZARD_TUNING.mineFuse; s.cues.push("warn");
+            }
             if (Math.hypot(point.x - pilot.x, point.y - pilot.y) <= h.range + PHYS.squirrelR) { h.hit = true; effects.damagePilot(); }
           });
         }
       }
+    } else if (h.kind === "flare") {
+      const liveFraction = Math.min(1, Math.max(0, h.fuse) / dt);
+      const end = { x: beforePilot.x + (s.pilot.x - beforePilot.x) * liveFraction, y: beforePilot.y + (s.pilot.y - beforePilot.y) * liveFraction };
+      const time = flareContact(h, beforePilot, end, PHYS.squirrelR);
+      if (!h.hit && time !== null) queue(time * liveFraction, () => {
+        if (!h.dead && !h.hit && h.phase === "active" && active(s)) { h.hit = true; effects.damagePilot(); }
+      });
+      const fuse = h.fuse; h.fuse = Math.max(0, h.fuse - dt);
+      if (h.fuse === 0) queue(fuse / dt, () => { if (h.phase === "active") h.dead = true; });
     } else if (h.kind === "ion") {
       const liveTime = Math.min(dt, Math.max(0, h.fuse));
       const endY = beforePilot.y + (s.pilot.y - beforePilot.y) * (liveTime / dt);
@@ -292,10 +416,16 @@ export function stepSpillHazards(s: SpillState, dt: number, beforePilot: Point,
     } else if (!h.hit) {
       const t = sweep(beforePilot, s.pilot, before, h, h.r + PHYS.squirrelR);
       if (t !== null) queue(t, () => {
-        if (h.dead || h.hit || !active(s)) return;
+        if (h.dead || h.hit || h.phase !== "active" || !active(s)) return;
         h.hit = true; effects.damagePilot();
         if (h.kind === "comet") h.dead = true;
       });
+    }
+    if (h.kind === "gravity" && !h.salvageDropped && h.x < s.W - h.range * .3 && h.activeTime > .6) {
+      h.salvageDropped = true;
+      const side = h.safeY < h.y ? -1 : 1;
+      s.nuts.push({ x: h.x - h.range * .5, y: clamp(h.y + side * h.range * .7, 28, s.H - 28),
+        vx: h.vx, vy: 0, got: false, bob: h.id, kind: "gold" });
     }
     if (!active(s)) return;
     if (h.x < -h.range - 80 || h.y < -100 || h.y > s.H + 100) queue(1, () => { h.dead = true; });
