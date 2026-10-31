@@ -1,5 +1,45 @@
 # Browser validation — 2026-10-29
 
+## The Spill identity — 2026-10-30
+
+### Depot alignment correction
+
+**Follow-up edge-fit correction:** the owner identified remaining gaps in the previous screenshot. The backing asset includes its own blue rim and transparent shadow; `cover` cropped that rim differently at each aspect ratio. The final CSS nine-slices the surface as well as the metal and removes the separate opaque header, ship-stage and footer backgrounds. This supersedes the previous inset-and-chamfer backing approach. A bright-magenta exterior exposed the entire perimeter at 390x844 and 844x390: all four inner corner joins remained filled with no exterior showing through. Normal Depot, menu, Settings and result screenshots were refreshed; the 568x320 later-Depot fixture was also checked. Build, typecheck, unchanged asset receipts and whitespace checks pass. Browser warnings/errors were empty; diagnostic/capture/fixture files and tabs were removed and viewport reset. This is browser evidence, not owner acceptance or a physical-device test.
+
+The owner found visible defects in the PR screenshots: the opaque backing extended outside the metal bevel, Depot sections used inconsistent insets, and the sticky footer covered the ship. These were candidate-image findings, not reports from a merged build or a physical-phone playtest. They supersede the earlier visual-review claims below for the original Depot layout.
+
+The corrected Depot has an outer frame and nameplate with separate header, scroll area and footer rows. Health, Shields and Repair occupy the header. On short landscape screens the four system controls sit below the complete ship canvas. Panel surfaces are inset independently of the decorative frame. At 568px landscape width, weapon/artifact cards stack and utility headings wrap.
+
+Actual browser screenshots and bounds checks confirm the full ship canvas, separate header/body/footer, and no header overlap at 390x844 and 844x390 for the normal opening Depot, plus 320x480 and 568x320 for an upgraded, damaged-ship fixture with a 2,500-salvage wallet. At 568x320 its scroll/client widths both measure 506px; all four system controls are at least 52px high. At 844x390 the normal Depot measures 782/782px and retains 44px controls. Inspection caught and corrected Repair/wallet overlap and utility-heading overflow; scroll-width equality alone was insufficient to detect the former.
+
+The later-Depot image is a labeled memory-only fixture, not natural progress. Repair changed Health 3/5 to 5/5 and the wallet from 2,500 to 2,470. The middle area scrolled independently; the header and footer stayed visible. Normal Depot Help and Back to Depot worked. Home at 390x844 and 960x720, Settings and the sample result at 390x844 were inspected and their screenshots refreshed. Browser warnings/errors were empty. Both fixture files and tabs were removed, and the viewport override reset.
+
+The full 28-file `npm run check` passed after the Depot structure change. Subsequent CSS-only fit corrections passed a fresh build and browser review. No lint script exists; `git diff --check` passes. Physical-device feel and owner visual acceptance remain open; PR6 is not merged or published.
+
+![Corrected opening Depot at 844x390](images/identity-depot-landscape.jpg)
+
+[Portrait Depot](images/identity-depot-portrait.jpg) · [568x320 later-Depot fixture](images/identity-depot-repair-fixture.jpg)
+
+### Identity implementation and earlier checks
+
+`npm run check` passes TypeScript, clean build, asset integrity and **28 test files** on existing Node24.19.0. `git diff --check` passes; there is no separate lint script. Docker's Linux engine remains unavailable, so existing local tooling was used without installing host packages. The original 125 assets and two combat sprites remain byte-identical. The 23 new identity files total **2,084,507 bytes**; license, exact generation/edit prompts, original hull reference and source hashes are recorded separately.
+
+The production renderer checks eight portrait/landscape HUD frames with the actual shipped fonts and art, safe text bounds, a clear central flight lane, and unchanged gameplay state. Ship checks cover all 15 system-axis tiers, original attachment registration, no dependence on the old pilot, and the retained illumination setting. A 12-frame ship sheet was inspected. Another 36 cases cover all six launch lessons during countdown/GO at 568x320, 667x320 and 844x390 with a safe-area inset. Existing input, save, economy, trial isolation, encounter, hazard and ship-render regressions pass. The pinned shared-content hash was explicitly updated for the reviewed currency text rename; numeric rules were unchanged.
+
+Actual browser review covered 320x480, 390x844, 568x320, 844x390 and 960x720 layouts. Home, settings, controls/guide, briefing, opening Depot, upgraded trial Depot, locked/equipped/unaffordable choices, trial selectors, launch, pause/resume and saved-run confirmation were exercised before trial navigation was withheld. Long panels scroll without horizontal overflow, game buttons retain a minimum 44px height, confirmation focuses the safe action, and Help disables its dependent prompt switch. Browser review found and fixed compressed short-portrait rows, minimum-width landscape overflow, the Practice badge covering shields, Pause overlapping the hull plate and the countdown covering a lesson. Short-landscape pause/result actions now stay reachable at the bottom. Console errors/warnings were empty.
+
+Comparing the actual supplied examples exposed the missing ship nameplate/backing and stretched borders. Panels now assemble the separate honeycomb surface, metal frame and cyan title plate; buttons and frames use proportional slices. The fixed title remains outside the inset scrolling viewport. At 390x844, Settings content scrolled by 116.6px while its title stayed at y20 and content stayed within y62–806. At 320x480 the Ship Planning title wraps inside its plate without horizontal overflow. Pause and result actions remain reachable at 568x320.
+
+The run-debrief screenshot uses an explicitly labeled **memory-only sample-result fixture**, not a naturally completed 12-wave run. Its restart action and portrait/landscape layouts were checked; the fixture was removed from `dist/` and its tab closed. The earlier Flight HUD proof shows the retained trial renderer. The owner's later menu simplification removes Flight Trials from player navigation and combines Settings with Controls; the trial engine remains covered through the existing isolated test harness, without a production shortcut. The browser viewport override was reset and the normal menu restored.
+
+The final combined page was checked in the browser at 320x480 and 390x844. Its expandable control/field guide remains open across navigation; opening and closing Depot help preserved the actual 1,550.9px scroll position and returned focus to the originating button. The background disclosure is removed from tab order while the modal is open and restored afterward. Content scroll/client widths match (270px narrow, 340px portrait). At 568x320 the four saved-run menu buttons retain 44px heights and the menu has no horizontal overflow. Final screenshots show the simplified menu and normal opening Depot. After the full 28-file pass, the last modal scroll/focus fix was rebuilt and typechecked, then all four affected host suites passed again. Browser console errors/warnings remained empty.
+
+Physical-phone touch feel, audio, sustained performance and owner visual acceptance remain unverified. This pass changes presentation; it does not revalidate long-run balance or select a 3D engine. Publication requires the owner's PR merge approval.
+
+![The Spill desktop menu](images/identity-home-desktop.jpg)
+
+[Phone menu](images/identity-home-portrait.jpg) · [Depot](images/identity-depot-landscape.jpg) · [Settings and Controls](images/identity-settings-portrait.jpg) · [Earlier trial Flight HUD](images/identity-flight-portrait.jpg) · [Sample result fixture](images/identity-results-fixture.jpg) · [Production-rendered upgrade sheet](images/identity-ship-tiers.png)
+
 ## Remaining playable package — 2026-10-29
 
 Production source passes TypeScript, clean build, unchanged asset provenance and the full test runner on existing Node24.19.0. The final expanded runner passes **27 test files**. No separate lint script exists; `git diff --check` passes. Docker's Linux engine is unavailable locally; no host packages, runtime dependencies or external art were installed. The 125 upstream assets and two existing generated sprites retain their hashes.

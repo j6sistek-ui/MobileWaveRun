@@ -24,7 +24,7 @@ function circle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) 
   ctx.beginPath(); ctx.arc(x, y, r, 0, TAU);
 }
 function label(ctx: CanvasRenderingContext2D, s: SpillState, text: string, x: number, y: number, color: string) {
-  ctx.font = "800 10px Figtree,system-ui"; ctx.textAlign = "center";
+  ctx.font = "800 10px Rajdhani,sans-serif"; ctx.textAlign = "center";
   const width = ctx.measureText(text).width + 14;
   x = clamp(x, width / 2 + 8, s.W - width / 2 - 8);
   y = clamp(y, 112, s.H - 34);
@@ -244,7 +244,7 @@ export function drawSpillHazardHint(ctx: CanvasRenderingContext2D, s: SpillState
   const h = s.hazards.actors.find(h => !h.dead && h.phase === "warning")
     ?? s.hazards.actors.find(h => !h.dead && h.phase === "active");
   if (!h) return;
-  ctx.save(); ctx.font = "700 11px Figtree,system-ui";
+  ctx.save(); ctx.font = "700 11px Rajdhani,sans-serif";
   const text = HINTS[h.kind], width = Math.min(s.W - 24, ctx.measureText(text).width + 22);
   const x = (s.W - width) / 2;
   // HUD has a safe-area translation on top of the canvas's device scale.

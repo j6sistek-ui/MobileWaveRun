@@ -3,8 +3,8 @@ import type { SpillState } from "./spill";
 export type SpillRiskId = "standard" | "volatile" | "bounty";
 export const SPILL_RISKS: Record<SpillRiskId, { name: string; detail: string; reward: number }> = {
   standard: { name: "Standard route", detail: "The normal five-wave route. No added risk or bonus.", reward: 0 },
-  volatile: { name: "Volatile route", detail: "Known anomalies use advanced patterns. Full warnings and escape routes remain. Clear all five waves for 45 bonus coins.", reward: 45 },
-  bounty: { name: "Patrol route", detail: "More enemy patrols replace some ordinary debris. Clear all five waves for 60 bonus coins.", reward: 60 },
+  volatile: { name: "Volatile route", detail: "Known anomalies use advanced patterns. Full warnings and escape routes remain. Clear all five waves for 45 bonus Salvage.", reward: 45 },
+  bounty: { name: "Patrol route", detail: "More enemy patrols replace some ordinary debris. Clear all five waves for 60 bonus Salvage.", reward: 60 },
 };
 export type SpillExpedition = {
   version: 1; selected: SpillRiskId; active: SpillRiskId;
@@ -39,7 +39,7 @@ export function settleSpillExpedition(s: SpillState) {
   const reward = SPILL_RISKS[e.active].reward;
   e.rewarded = true;
   s.ore += reward; s.stipend += reward;
-  s.contractMessage = `${SPILL_RISKS[e.active].name} cleared · +${reward} coins`;
+  s.contractMessage = `${SPILL_RISKS[e.active].name} cleared · +${reward} Salvage`;
   s.cues.push("contract");
   return reward;
 }

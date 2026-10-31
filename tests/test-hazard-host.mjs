@@ -46,7 +46,9 @@ function forecast(s) {
 try {
   await engine.artReady;
   for (let turn = 0; !app.querySelector('[data-action="new-run"]') && turn < 100; turn++) await nextTurn();
-  action('controls').click();
+  action('settings').click();
+  action('control-guide').click();
+  assert(action('control-guide').closest('details').open);
   const guide = app.querySelector('.ac-hazard-guide');
   assert(guide, 'controls help includes environmental counterplay');
   for (const kind of H.SPILL_HAZARD_IDS) {

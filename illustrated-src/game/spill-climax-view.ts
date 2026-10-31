@@ -24,7 +24,7 @@ export function drawSpillClimax(ctx: CanvasRenderingContext2D, s: SpillState) {
     const label = exposed ? `CORE OPEN · ${elite.timer.toFixed(1)}s`
       : elite.stage === "warning" ? `${elite.pattern === "fork" ? "FORK · keep the gap" : "LOCK · leave the line"} · ${elite.timer.toFixed(1)}s`
       : elite.stage === "exit" ? "WARDEN RETREATING" : "WARDEN · SHIELDED";
-    ctx.font = "800 10px Figtree,system-ui"; ctx.textAlign = "center";
+    ctx.font = "800 10px Rajdhani,sans-serif"; ctx.textAlign = "center";
     const width = Math.min(s.W - 20, ctx.measureText(label).width + 14);
     const x = Math.max(width / 2 + 8, Math.min(s.W - width / 2 - 8, e.x));
     const y = Math.max(112, Math.min(s.H - 30, e.y - e.r - 24));

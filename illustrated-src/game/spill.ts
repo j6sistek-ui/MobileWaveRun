@@ -1,7 +1,7 @@
 import { VANGUARD_DEPOT_SECONDS } from "./spill-depot-gag";
 // DEBRIS FIELD (mode id "spill") — wave survival authority.
 //
-// An acorn mining rig let go one system over. What reached us is a front of
+// A mining rig let go one system over. What reached us is a front of
 // rock, cargo and shrapnel travelling one way: at you. No gates, no planets.
 // Survive the wave; the next one is harder.
 //
@@ -274,7 +274,7 @@ export const SPILL_SHOP: Record<SpillBuyable, { name: string; prices: readonly n
   pulse: {
     name: "Impact pulse",
     prices: [60, 110, 170],
-    levels: ["Breaks debris on a charged hit", "Second blast readies after 5 seconds", "Wider blast · debris drops Acorn Coins"],
+    levels: ["Breaks debris on a charged hit", "Second blast readies after 5 seconds", "Wider blast · debris drops Salvage"],
   },
   shield: {
     name: "Shields",
@@ -438,7 +438,7 @@ export type SpillState = {
   combo: number;
   comboT: number;
   ore: number;
-  /** Acorn Coins mined over the whole run, spent or not */
+  /** Salvage mined over the whole run, spent or not */
   oreMined: number;
   score: number;
   grazes: number;
@@ -640,7 +640,7 @@ export function spillHas(s: SpillState, utility: SpillUtility) { return s.utilit
 export function spillChargeCap(s: SpillState) { return spillHas(s, "capacitor") ? 2 : 1; }
 
 /** A moving escape corridor through the home lane. Its maximum vertical
- *  speed is below 25px/s; every stock ship can follow it. Acorn Coins outside this
+ *  speed is below 25px/s; every stock ship can follow it. Salvage outside this
  *  route is the reason to take risks. Event sweeps reserve their marked gap. */
 export function spillEscapeY(s: SpillState, ahead = 0) {
   if (s.event !== "none" && s.eventPass > 0) return s.eventSafeY;
@@ -780,7 +780,7 @@ function spawnRock(s: SpillState) {
   return true;
 }
 
-/** Acorn Coins spills in arcs, so collecting a stream is a line you fly, not a dot */
+/** Salvage spills in arcs, so collecting a stream is a line you fly, not a dot */
 function spawnStream(s: SpillState) {
   const n = 4 + Math.floor(rand(s) * 5);
   const y0 = 70 + rand(s) * (s.H - 140);
@@ -801,7 +801,7 @@ function spawnStream(s: SpillState) {
 }
 
 /**
- * The things that drift past alone rather than in a stream. Gold Acorn Coins is
+ * The things that drift past alone rather than in a stream. Gold Salvage is
  * what charges the PULSE - half a meter each - and pays five. A hull
  * fragment only shows up when there is a pip to restore. Shields are not
  * found in the field any more: the Depot sells them, cheaply, every stop.
@@ -1109,7 +1109,7 @@ function openDepot(s: SpillState) {
 }
 
 /** Purchases own the module for this run; fitting it uses one of two slots.
- *  Swapping owned parts at a Depot is free, without selling or duplicating Acorn Coins. */
+ *  Swapping owned parts at a Depot is free, without selling or duplicating Salvage. */
 export function spillUtility(s: SpillState, id: SpillUtility, replace?: SpillUtility): "ok" | "poor" | "full" | "closed" {
   if (s.welcome || s.phase !== "depot" || !s.depot || s.depot.arm > 0 || !SPILL_UTILITIES[id]) return "closed";
   const i = s.utilities.indexOf(id);
@@ -1155,7 +1155,7 @@ function settleContract(s: SpillState) {
   if (!c || s.wave < c.endWave) return;
   const won = c.kind === "clean" ? s.hits === c.startHits : c.kind === "salvage" ? s.oreMined - c.startOre >= c.target : s.shards - c.startShards >= c.target;
   if (won) { s.ore += c.reward; s.contractsDone++; s.score += 500; }
-  s.contractMessage = won ? `CONTRACT COMPLETE · +${c.reward} ACORN COINS` : "CONTRACT MISSED · choose another";
+  s.contractMessage = won ? `CONTRACT COMPLETE · +${c.reward} SALVAGE` : "CONTRACT MISSED · choose another";
   s.contract = null; cue(s, "contract");
 }
 
@@ -1443,7 +1443,7 @@ function stepNuts(s: SpillState, dt: number) {
         s.score += 25 * s.combo * (n.kind === "gold" ? 2 : 1);
         if (n.kind === "gold") {
           s.charge = Math.min(spillChargeCap(s), s.charge + (s.specialties.pulse === "efficient" ? 0.65 : 0.5));
-          say(s, s.up.pulse >= 1 ? (s.charge >= 1 ? "PULSE ARMED" : "CHARGED COIN · CHARGING") : "CHARGED COIN", 1);
+          say(s, s.up.pulse >= 1 ? (s.charge >= 1 ? "PULSE ARMED" : "CHARGED SALVAGE · CHARGING") : "CHARGED SALVAGE", 1);
           cue(s, "gold");
         } else cue(s, "ore");
         burst(s, n.x, n.y, n.kind === "gold" ? 14 : 7, n.kind === "gold" ? "gold" : "ore", 0.8);

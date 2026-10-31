@@ -33,7 +33,9 @@ try {
   await engine.artReady;
   for (let turn = 0; !app.querySelector('[data-action="new-run"]') && turn < 100; turn++) await nextTurn();
   key('keyup');
-  action('controls').click();
+  action('settings').click();
+  action('control-guide').click();
+  assert(action('control-guide').closest('details').open);
   assert.match(app.textContent, /SECOND FINGER/);
   assert.match(app.textContent, /match their height/);
   action('home').click(); action('new-run').click();

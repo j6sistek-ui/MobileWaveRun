@@ -1917,8 +1917,7 @@ function paintSpillModule(ctx: CanvasRenderingContext2D, id: keyof typeof SPILL_
 }
 
 const rustHullCache = new WeakMap<HTMLImageElement, HTMLCanvasElement>();
-/** Appearance proof on the existing hull only. The source footprint, pilot
- * window and every separately fitted module keep their registered geometry. */
+/** Appearance tint never changes the source registration or fitted modules. */
 function rustHull(hull: Sprite) {
   const old = rustHullCache.get(hull); if (old) return old;
   const c = document.createElement("canvas"); c.width = hull.width; c.height = hull.height;
@@ -1941,7 +1940,10 @@ function drawSpillShip(ctx: CanvasRenderingContext2D, w: World, save: SaveData, 
   if (!hull) { drawSpillScout(ctx, w, save, art, s, x); return; }
   const fit = art.spillShipFit;
   const xfOf = (name: string) => fit?.overrides?.[parts.hull]?.[name] ?? fit?.parts?.[name] ?? { dx: 0, dy: 0, scale: 1, rot: 0 };
-  const layers = ([["thrust", parts.thrust], ["cone", parts.cone], ["cockpit", parts.cockpit]] as const)
+  // The neutral hull contains its own sealed canopy. The old open canopy
+  // and pilot remain archived, while engines and nose equipment retain
+  // their exact fitted transforms around the original hull's bounds.
+  const layers = ([["thrust", parts.thrust], ["cone", parts.cone]] as const)
     .map(([, name]) => name ? { name, sp: art.spillShip[name], xf: xfOf(name) } : null)
     .filter((l): l is { name: string; sp: Sprite; xf: { dx: number; dy: number; scale: number; rot: number; behind?: boolean } } => !!l && !!l.sp);
   const z = SPILL_SHIP_LEN / hull.box.w;
@@ -1992,28 +1994,47 @@ function drawSpillShip(ctx: CanvasRenderingContext2D, w: World, save: SaveData, 
     ctx.translate(cx + l.xf.dx, cy + l.xf.dy);
     ctx.rotate((l.xf.rot * Math.PI) / 180);
     ctx.scale(l.xf.scale, l.xf.scale);
-    ctx.drawImage(l.name.startsWith("cockpit") ? spillCanopyFrame(l.sp) : l.sp, -cx, -cy);
+    ctx.drawImage(l.sp, -cx, -cy);
     ctx.restore();
   };
   for (const l of layers) if (l.xf.behind) paint(l);
-  // Stock nozzles are baked into the old hull art. Clip that source area
-  // when an upgrade is fitted; otherwise two different engines show at once.
+  // Keep the same engine replacement cut and full 256px registration. In
+  // particular, do not auto-fit the new asset's alpha box to the old one.
   ctx.save();
   if (parts.thrust) { ctx.beginPath(); ctx.rect(57, 0, 199, 256); ctx.clip(); }
-  ctx.drawImage(appearance.finish === "rust-runner" ? rustHull(hull) : hull, 0, 0); ctx.restore();
-  const hole = SPILL_COCKPITS[parts.hull] ?? SPILL_COCKPITS["hull-0"];
-  ctx.save(); ctx.beginPath(); ctx.ellipse(hole.cx, hole.cy, hole.rx, hole.ry, 0, 0, Math.PI * 2);
-  ctx.fillStyle = "#10243d"; ctx.fill();
-  ctx.strokeStyle = "#b49a71"; ctx.lineWidth = 3; ctx.stroke();
-  if (!parked) paintSpillHead(ctx, art, save, hole);
-  // Glass is a restrained tint and edge glint, never an opaque disk.
-  if (parts.cockpit) {
-    ctx.beginPath(); ctx.ellipse(hole.cx, hole.cy, hole.rx - 2, hole.ry - 2, 0, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(115,203,240,.08)"; ctx.fill();
-    ctx.strokeStyle = "rgba(207,242,255,.65)"; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(hole.cx, hole.cy, hole.rx - 2, hole.ry - 2, 0, Math.PI * 1.12, Math.PI * 1.65); ctx.stroke();
+  if (art.spillHull) {
+    ctx.drawImage(appearance.finish === "rust-runner" ? rustHull(art.spillHull) : art.spillHull, 0, 0, 256, 256);
+  } else {
+    // Network fallback remains a neutral craft with the same registered
+    // footprint, rather than restoring an Acornaut hull or character.
+    const finish = ctx.createLinearGradient(0, 76, 0, 180);
+    finish.addColorStop(0, appearance.finish === "rust-runner" ? "#c99569" : "#a1bac9");
+    finish.addColorStop(.45, "#445c6d"); finish.addColorStop(1, "#1b2e42");
+    ctx.beginPath(); ctx.moveTo(26, 108); ctx.lineTo(91, 99); ctx.lineTo(134, 68);
+    ctx.lineTo(174, 72); ctx.lineTo(222, 111); ctx.lineTo(243, 131);
+    ctx.lineTo(215, 162); ctx.lineTo(106, 184); ctx.lineTo(29, 151); ctx.closePath();
+    ctx.fillStyle = finish; ctx.fill(); ctx.strokeStyle = "#7194a5"; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = "#163b53"; ctx.beginPath(); ctx.moveTo(131, 93); ctx.lineTo(145, 78);
+    ctx.lineTo(171, 82); ctx.lineTo(194, 105); ctx.closePath(); ctx.fill();
   }
   ctx.restore();
+  if (!save.glowOff) {
+    ctx.save(); ctx.fillStyle = "#8cefff"; ctx.shadowColor = "#53ddff"; ctx.shadowBlur = 2 / z;
+    ctx.fillRect(93, 130, 21, 2); ctx.restore();
+  }
+  // Plating and canopy tiers stay visually distinct in flight and previews
+  // without importing the original organic body or mascot bubble.
+  for (let i = 0; i < Math.min(3, s.up.plating); i++) {
+    ctx.fillStyle = "#92b9ce"; ctx.strokeStyle = "#233e50"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(89 + i * 25, 140); ctx.lineTo(111 + i * 25, 143);
+    ctx.lineTo(107 + i * 25, 153); ctx.lineTo(85 + i * 25, 150); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  if (s.canopyLevel > 0) {
+    ctx.strokeStyle = save.glowOff ? "#8da8b8" : s.canopyLevel > 1 ? "#b5f9ff" : "#5dd9ed";
+    ctx.lineWidth = s.canopyLevel > 1 ? 4 : 2;
+    ctx.beginPath(); ctx.moveTo(128, 94); ctx.lineTo(143, 75); ctx.lineTo(172, 79); ctx.lineTo(194, 105); ctx.stroke();
+    if (s.canopyLevel > 1) { ctx.beginPath(); ctx.moveTo(126, 100); ctx.lineTo(192, 111); ctx.stroke(); }
+  }
   for (const l of layers) if (!l.xf.behind) paint(l);
   // Fixed attachment mounts shared by flight and all ship previews.
   const mounts = { magnet: [184, 134, 43, 48], scanner: [95, 45, 40, 48],
@@ -2038,7 +2059,6 @@ function drawSpillScout(ctx: CanvasRenderingContext2D, w: World, save: SaveData,
     ctx.save(); ctx.translate(x, s.pilot.y);
     ctx.fillStyle = "#b99b73"; ctx.beginPath(); ctx.ellipse(0, 3, 27, 12, 0, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = "#152c46"; ctx.beginPath(); ctx.arc(7, -6, 10, 0, Math.PI * 2); ctx.fill();
-    paintSpillHead(ctx, art, save, { cx: 7, cy: -6, rx: 10, ry: 10 });
     ctx.strokeStyle = "#a8ddeb"; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
     return;
   }
@@ -2084,31 +2104,20 @@ function drawSpillScout(ctx: CanvasRenderingContext2D, w: World, save: SaveData,
   cockpitGlow.addColorStop(1, "rgba(3,8,22,.96)");
   ctx.fillStyle = cockpitGlow;
   ctx.fillRect(layout.cockpitX - 16 * scale, layout.cockpitY - 15 * scale, 32 * scale, 30 * scale);
-  paintSpillHead(ctx, art, save, { cx: layout.cockpitX, cy: layout.cockpitY, rx: 12 * scale, ry: 11 * scale });
   ctx.restore();
   drawSprite(ctx, ship, layout.centerX, 0, layout.shipSize, "box", "light");
   ctx.restore();
 }
 
-// THE DEPOT IS A PLATE TOO (owner, 6 Sep 2026: "check new depot artwork
-// too"). Parked at the Depot nothing in the scene moves - the camera has
-// arrived, the marshal holds his last frame - yet every frame redrew the
-// 1536x1024 scene scaled across the screen, the shade over it and the bear,
-// under a DOM sheet the player is reading. Profiled: two in five frames
-// over budget. So once the ship is parked the scene, the shade and the
-// marshal are composited once into a screen-sized plate and handed to the
-// same layer behind the canvas the panorama uses. The approach itself -
-// the camera closing in, the fade, the Vanguard gag - still paints live,
-// because it moves.
-type DepotBearFrame = { image: HTMLCanvasElement | HTMLImageElement; footX: number; footY: number };
+// Cache the parked environment and shade once. Arrival still paints live;
+// the original mascot overlay is deliberately absent from The Spill.
 let spillDepotPlate: HTMLCanvasElement | null = null;
 let spillDepotKey = "";
 function spillDepotPlateFor(ctx: CanvasRenderingContext2D, W: number, H: number, dock: HTMLImageElement,
-  view: { x: number; y: number; width: number; height: number }, bear: DepotBearFrame | undefined,
-  marshal: { x: number; y: number; height: number; frame: number }) {
+  view: { x: number; y: number; width: number; height: number }) {
   const dpr = ctx.getTransform().a || 1;
   const pw = Math.max(1, Math.round(W * dpr)), ph = Math.max(1, Math.round(H * dpr));
-  const key = `${pw}x${ph}|${view.x.toFixed(1)},${view.y.toFixed(1)},${view.width.toFixed(1)},${view.height.toFixed(1)}|${bear ? `${bear.image.width}x${bear.image.height}@${marshal.frame}` : "-"}`;
+  const key = `${pw}x${ph}|${view.x.toFixed(1)},${view.y.toFixed(1)},${view.width.toFixed(1)},${view.height.toFixed(1)}`;
   if (spillDepotPlate && spillDepotKey === key) return spillDepotPlate;
   const c = spillDepotPlate ?? document.createElement("canvas");
   c.width = pw; c.height = ph;
@@ -2119,16 +2128,19 @@ function spillDepotPlateFor(ctx: CanvasRenderingContext2D, W: number, H: number,
   const shade = g.createLinearGradient(0, 0, 0, H);
   shade.addColorStop(0, "rgba(3,7,20,.38)"); shade.addColorStop(0.5, "rgba(3,7,20,0)"); shade.addColorStop(1, "rgba(3,7,20,.3)");
   g.fillStyle = shade; g.fillRect(0, 0, W, H);
-  if (bear) {
-    g.fillStyle = "rgba(6,5,16,.45)"; g.beginPath();
-    g.ellipse(marshal.x, marshal.y, marshal.height * .28, marshal.height * .055, 0, 0, Math.PI * 2); g.fill();
-    g.save(); g.translate(marshal.x, marshal.y);
-    const scale = marshal.height / bear.image.height;
-    g.scale(-scale, scale); // face the incoming ship
-    g.drawImage(bear.image, -bear.footX, -bear.footY); g.restore();
-  }
   spillDepotPlate = c; spillDepotKey = key;
   return c;
+}
+
+function drawSpillSalvage(ctx: CanvasRenderingContext2D, sprite: Sprite | null, x: number, y: number, size: number) {
+  if (sprite) { drawSprite(ctx, sprite, x, y, size); return; }
+  // A missing optional image stays a readable salvage shard, never the
+  // original game's currency. This has no bearing on pickup collision.
+  ctx.save(); ctx.translate(x, y); ctx.scale(size / 28, size / 28);
+  ctx.beginPath(); ctx.moveTo(0, -11); ctx.lineTo(9, -5); ctx.lineTo(9, 6);
+  ctx.lineTo(0, 11); ctx.lineTo(-9, 5); ctx.lineTo(-9, -6); ctx.closePath();
+  ctx.fillStyle = "#163c4d"; ctx.fill(); ctx.strokeStyle = "#8be9ef"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = "#d8fbff"; ctx.fillRect(-2, -5, 4, 10); ctx.restore();
 }
 
 function drawSpillWorld(ctx: CanvasRenderingContext2D, w: World, save: SaveData, art: ArtBank) {
@@ -2139,9 +2151,7 @@ function drawSpillWorld(ctx: CanvasRenderingContext2D, w: World, save: SaveData,
   spillBackdrop(ctx, w, s, art, parked);
   if (dock && parked) {
     const view = spillDockView(W, H, dock.naturalWidth || dock.width, dock.naturalHeight || dock.height, SPILL.dockTime, -1);
-    const marshal = spillDockBear(view, SPILL.dockTime, !!save.motionOff);
-    const bear = art.spillScene?.bear?.[marshal.frame];
-    const plate = spillDepotPlateFor(ctx, W, H, dock, view, bear, marshal);
+    const plate = spillDepotPlateFor(ctx, W, H, dock, view);
     const hosted = plate && spillBackplateHost ? spillBackplateHost(plate, 0, W, H) : false;
     if (plate && !hosted) ctx.drawImage(plate, 0, 0, W, H);
   } else if (dock && s.phase === "docking") {
@@ -2155,7 +2165,6 @@ function drawSpillWorld(ctx: CanvasRenderingContext2D, w: World, save: SaveData,
     shade.addColorStop(0, "rgba(3,7,20,.38)"); shade.addColorStop(0.5, "rgba(3,7,20,0)"); shade.addColorStop(1, "rgba(3,7,20,.3)");
     ctx.fillStyle = shade; ctx.fillRect(0, 0, W, H);
     const marshal = spillDockBear(view, arrival, !!save.motionOff);
-    const bear = art.spillScene?.bear?.[marshal.frame];
     if (cameo) {
       const pose = vanguardDepotPose(gagTime);
       const actorX = view.x + view.width * (.664 + .054 * pose.walk + .027 * pose.enter);
@@ -2171,14 +2180,6 @@ function drawSpillWorld(ctx: CanvasRenderingContext2D, w: World, save: SaveData,
         glow.addColorStop(1, "rgba(124,73,239,0)");
         ctx.fillStyle = glow; ctx.fillRect(px - marshal.height, py - marshal.height, marshal.height * 2, marshal.height * 2);
       }
-    }
-    if (bear) {
-      ctx.fillStyle = "rgba(6,5,16,.45)"; ctx.beginPath();
-      ctx.ellipse(marshal.x, marshal.y, marshal.height * .28, marshal.height * .055, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.save(); ctx.translate(marshal.x, marshal.y);
-      const scale = marshal.height / bear.image.height;
-      ctx.scale(-scale, scale); // face the incoming ship
-      ctx.drawImage(bear.image, -bear.footX, -bear.footY); ctx.restore();
     }
     if (cameo) {
       // The hull stays parked in the same world position as the camera
@@ -2205,7 +2206,7 @@ function drawSpillWorld(ctx: CanvasRenderingContext2D, w: World, save: SaveData,
     ctx.fillRect(W * 0.48, 0, W * 0.52, y0); ctx.fillRect(W * 0.48, y1, W * 0.52, H - y1);
     ctx.strokeStyle = "rgba(138,228,183,.8)"; ctx.lineWidth = 2; ctx.setLineDash([8, 7]);
     ctx.beginPath(); ctx.moveTo(W * 0.5, y0); ctx.lineTo(W, y0); ctx.moveTo(W * 0.5, y1); ctx.lineTo(W, y1); ctx.stroke(); ctx.setLineDash([]);
-    ctx.font = "800 10px Figtree,system-ui"; ctx.textAlign = "right"; ctx.fillStyle = "#a3efc2";
+    ctx.font = "800 10px Rajdhani,sans-serif"; ctx.textAlign = "right"; ctx.fillStyle = "#a3efc2";
     ctx.fillText("OPEN CORRIDOR", W - 14, s.eventSafeY + 4);
   }
 
@@ -2223,9 +2224,9 @@ function drawSpillWorld(ctx: CanvasRenderingContext2D, w: World, save: SaveData,
       ctx.arc(n.x, y, pull, 0, Math.PI * 2);
       ctx.fill();
     }
-    if (n.kind === "ore") drawSprite(ctx, art.ore ?? frameOf(art.acorn, w.time, 10), n.x, y, 28);
+    if (n.kind === "ore") drawSpillSalvage(ctx, art.ore, n.x, y, 28);
     else if (n.kind === "gold") {
-      drawSprite(ctx, art.ore ?? frameOf(art.golden, w.time, 10), n.x, y, 34);
+      drawSpillSalvage(ctx, art.ore, n.x, y, 34);
       ctx.strokeStyle = "#c3f5ff"; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(n.x,y,20,0,Math.PI*2); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(n.x+13,y-22); ctx.lineTo(n.x+8,y-15); ctx.lineTo(n.x+14,y-15); ctx.lineTo(n.x+10,y-8); ctx.stroke();
@@ -2338,9 +2339,19 @@ function drawSpillWorld(ctx: CanvasRenderingContext2D, w: World, save: SaveData,
   }
 }
 
-/** a two-line teaching panel: the rule's name, then what to do about it.
- *  It sits a quarter of the way down, or under the status stack if the
- *  screen is too short for both */
+/** Small chamfered instrument plates echo the Depot's metal/cyan UI kit. */
+function spillHudPlate(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, accent = "#67d8ef") {
+  const cut = Math.min(6, height / 4);
+  ctx.beginPath(); ctx.moveTo(x + cut, y); ctx.lineTo(x + width, y);
+  ctx.lineTo(x + width, y + height - cut); ctx.lineTo(x + width - cut, y + height);
+  ctx.lineTo(x, y + height); ctx.lineTo(x, y + cut); ctx.closePath();
+  const metal = ctx.createLinearGradient(x, y, x, y + height);
+  metal.addColorStop(0, "rgba(23,43,57,.92)"); metal.addColorStop(.18, "rgba(8,22,33,.88)");
+  metal.addColorStop(1, "rgba(3,12,22,.78)"); ctx.fillStyle = metal; ctx.fill();
+  ctx.lineWidth = 1; ctx.strokeStyle = "rgba(136,177,198,.46)"; ctx.stroke();
+  ctx.fillStyle = accent; ctx.fillRect(x + cut + 3, y, Math.min(28, width * .3), 1);
+}
+
 /** the lesson panel sits low, under the flight path, its bottom edge at
  *  `bottom` - the owner flew wave 1 with the controls card in the lane */
 function drawSpillHint(ctx: CanvasRenderingContext2D, w: World, text: string, alpha: number, bottom: number) {
@@ -2348,7 +2359,7 @@ function drawSpillHint(ctx: CanvasRenderingContext2D, w: World, text: string, al
   const title = cut > 0 ? text.slice(0, cut) : "";
   let body = cut > 0 ? text.slice(cut + 2) : text;
   const bw = Math.min(360, w.W - 32);
-  ctx.font = "600 12px Figtree, system-ui";
+  ctx.font = "600 12px Rajdhani, sans-serif";
   // a body wider than the panel breaks once, at the separator nearest the
   // middle - a dot if the line has them, so a list never breaks mid-item
   const lines: string[] = [];
@@ -2365,24 +2376,19 @@ function drawSpillHint(ctx: CanvasRenderingContext2D, w: World, text: string, al
   const cy = bottom - bh / 2;
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.fillStyle = "rgba(12,18,36,0.82)";
-  ctx.strokeStyle = "rgba(127,214,255,0.45)";
-  ctx.lineWidth = 1.5;
-  round(ctx, w.W / 2 - bw / 2, cy - bh / 2, bw, bh, 14);
-  ctx.fill();
-  ctx.stroke();
+  spillHudPlate(ctx, w.W / 2 - bw / 2, cy - bh / 2, bw, bh);
   ctx.textAlign = "center";
   let y = cy - bh / 2 + 22;
   if (title) {
     ctx.fillStyle = "#9fe6ff";
-    ctx.font = "800 14px Figtree, system-ui";
-    ctx.fillText(title, w.W / 2, y);
+    ctx.font = "800 14px Rajdhani, sans-serif";
+    ctx.fillText(title, w.W / 2, y, bw - 24);
     y += 18;
   }
   ctx.fillStyle = "rgba(243,239,228,0.85)";
-  ctx.font = "600 12px Figtree, system-ui";
+  ctx.font = "600 12px Rajdhani, sans-serif";
   for (const line of lines) {
-    ctx.fillText(line, w.W / 2, y);
+    ctx.fillText(line, w.W / 2, y, bw - 24);
     y += 16;
   }
   ctx.restore();
@@ -2391,81 +2397,83 @@ function drawSpillHint(ctx: CanvasRenderingContext2D, w: World, text: string, al
 function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | null, hidePrompts = false) {
   const s = w.spill!;
   const { W, H } = w;
+  const healthW = W < 360 ? 64 : 72, healthX = W - 68 - healthW;
+  const waveW = W < 360 ? 90 : 96, waveX = Math.min(W / 2 - waveW / 2, healthX - waveW - 8);
+  const waveCenter = waveX + waveW / 2;
+  const salvageW = W < 360 ? 76 : 104;
+  spillHudPlate(ctx, 10, 4, salvageW, 60);
+  spillHudPlate(ctx, waveX, 4, waveW, 77);
+  spillHudPlate(ctx, healthX - 4, 4, healthW + 8, 44, s.hull <= 1 ? "#ff9978" : "#67d8ef");
   ctx.textAlign = "center";
-  // the wave sits where every other mode puts its score; a mission counts
-  // it against the rung it has to reach
-  ctx.fillStyle = "#fff";
-  ctx.font = "800 36px Figtree, system-ui";
-  ctx.fillText(s.welcome ? "DEPOT" : s.target ? `${s.wave}/${s.target}` : String(s.wave), W / 2, 46);
-  ctx.font = "700 11px Figtree, system-ui";
-  ctx.fillStyle = "rgba(255,224,128,0.9)";
+  ctx.fillStyle = "#98bdca"; ctx.font = "700 10px Rajdhani, sans-serif";
+  ctx.fillText(s.welcome || s.phase === "depot" ? "STATION LINK" : "WAVE", waveCenter, 17);
+  ctx.fillStyle = "#e6f7ff"; ctx.font = "700 22px Orbitron, sans-serif";
+  ctx.fillText(s.welcome ? "DEPOT" : s.target ? `${s.wave}/${s.target}` : String(s.wave).padStart(2, "0"), waveCenter, 40, waveW - 14);
   const names = s.liveMods.map((m) => SPILL_MOD_INFO[m].name).filter(Boolean).join(" + ");
-  const sub = s.phase === "wave" ? `WAVE ${s.wave}${names ? ` · ${names}` : ""} · ${Math.ceil(spillWaveLeft(s))}s`
-    : s.phase === "drain" ? `WAVE ${s.wave} · FIELD DRAINING`
-      : s.phase === "countdown" ? `NEXT · WAVE ${s.wave}${names ? ` · ${names}` : ""}`
-        : s.phase === "docking" ? s.welcome ? "PRE-FLIGHT · ARRIVING AT THE DEPOT" : `WAVE ${s.wave} CLEARED`
-          : s.phase === "depot" ? "DEPOT · TAKE YOUR TIME"
-            : s.phase === "respawn" ? "RESPAWN CORE" : "DEBRIS FIELD";
-  ctx.fillText(sub, W / 2, 64);
+  const sub = s.phase === "wave" ? `${Math.ceil(spillWaveLeft(s))}s REMAINING`
+    : s.phase === "drain" ? "FIELD DRAINING"
+      : s.phase === "countdown" ? "LAUNCH SEQUENCE"
+        : s.phase === "docking" ? s.welcome ? "PRE-FLIGHT" : "SECTOR CLEARED"
+          : s.phase === "depot" ? "SYSTEMS STANDBY"
+            : s.phase === "respawn" ? "RESPAWN CORE" : "THE SPILL";
+  ctx.font = "600 11px Rajdhani, sans-serif"; ctx.fillStyle = "#a7dbea";
+  ctx.fillText(sub, waveCenter, 55, waveW - 14);
   // the PULSE meter. Locked, it is dim and says so; unlocked and full it
   // is armed, and fires by itself at the next impact
   const unlocked = s.up.pulse >= 1;
-  const barW = 80;
-  const barX = W / 2 - barW / 2;
-  ctx.fillStyle = "rgba(255,255,255,.15)";
-  ctx.fillRect(barX, 69, barW, 3);
-  ctx.fillStyle = !unlocked ? "rgba(200,190,255,.45)" : s.charge >= 1 ? "#ffe680" : "#8fd6ff";
-  ctx.fillRect(barX, 69, barW * Math.min(1, s.charge / spillChargeCap(s)), 3);
+  const barW = waveW - 20, barX = waveX + 10;
+  ctx.fillStyle = "#294454"; ctx.fillRect(barX, 62, barW, 3);
+  ctx.fillStyle = !unlocked ? "#5c7e90" : s.charge >= 1 ? "#ffe39b" : "#66d9ee";
+  ctx.fillRect(barX, 62, barW * Math.min(1, s.charge / spillChargeCap(s)), 3);
   if (s.phase !== "depot" && s.phase !== "docking") {
-    ctx.font = "800 9px Figtree, system-ui";
+    ctx.font = "700 10px Rajdhani, sans-serif";
     if (unlocked && s.charge >= 1) {
-      ctx.fillStyle = "#ffe680";
-      ctx.globalAlpha = 0.7 + 0.3 * Math.sin(w.time * 8);
-      ctx.fillText(`PULSE ARMED${spillChargeCap(s) > 1 ? ` · ${Math.floor(s.charge)}/2` : ""}`, W / 2, 82);
-      ctx.globalAlpha = 1;
-    } else if (!unlocked && s.charge > 0) {
-      ctx.fillStyle = "rgba(200,190,255,.6)";
-      ctx.fillText("UNLOCK PULSE", W / 2, 82);
+      ctx.fillStyle = "#ffe39b";
+      ctx.fillText(`PULSE ARMED${spillChargeCap(s) > 1 ? ` · ${Math.floor(s.charge)}/2` : ""}`, waveCenter, 76, barW);
+    } else {
+      ctx.fillStyle = unlocked ? "#a7dbea" : "#829ba9";
+      ctx.fillText(unlocked ? "PULSE CHARGING" : "PULSE LOCKED", waveCenter, 76, barW);
     }
   }
-  // Acorn Coins, top-left, where the acorns sit in every other mode
-  if (art?.ore) drawSprite(ctx, art.ore, 22, 24, 24);
+  // Salvage keeps the original ore ledger and pickup footprint.
+  ctx.textAlign = "left"; ctx.font = "700 10px Rajdhani, sans-serif";
+  ctx.fillStyle = "#98bdca"; ctx.fillText("SALVAGE", 18, 17);
+  if (art?.ore) drawSprite(ctx, art.ore, 25, 35, 22);
   else {
-    ctx.fillStyle = "#c99bff";
+    ctx.fillStyle = "#85e6ef";
     ctx.beginPath();
-    ctx.moveTo(22, 15); ctx.lineTo(30, 24); ctx.lineTo(22, 33); ctx.lineTo(14, 24);
+    ctx.moveTo(25, 27); ctx.lineTo(32, 35); ctx.lineTo(25, 43); ctx.lineTo(18, 35);
     ctx.closePath();
     ctx.fill();
   }
-  ctx.textAlign = "left";
-  ctx.font = "700 14px Figtree, system-ui";
-  ctx.fillStyle = "#d9b8ff";
-  ctx.fillText(`${s.ore}`, 38, 28);
+  ctx.font = "700 21px Rajdhani, sans-serif"; ctx.fillStyle = "#e8f7ff";
+  ctx.fillText(`${s.ore}`, 41, 41, salvageW - 37);
+  ctx.fillStyle = "#afc3cf"; ctx.font = "600 10px Rajdhani, sans-serif";
+  ctx.fillText(`${Math.floor(s.score)} PTS`, 18, 57, salvageW - (s.combo > 1 ? 34 : 16));
   if (s.combo > 1) {
-    ctx.fillStyle = "#ffd76a";
-    ctx.font = "800 12px Figtree, system-ui";
-    ctx.fillText(`×${s.combo}`, 38, 44);
+    ctx.textAlign = "right"; ctx.fillStyle = "#ffe39b"; ctx.font = "700 11px Rajdhani, sans-serif";
+    ctx.fillText(`×${s.combo}`, salvageW + 2, 57, 22);
   }
-  ctx.fillStyle = "rgba(221,211,246,.7)"; ctx.font = "700 9px Figtree, system-ui";
-  ctx.fillText(`SCORE ${Math.floor(s.score)}`, 14, 58);
   ctx.strokeStyle = "#a4e9ea";
-  s.utilities.forEach((id, i) => paintSpillModule(ctx, id, 14 + i * 22, 61, 16));
+  s.utilities.forEach((id, i) => paintSpillModule(ctx, id, 14 + i * 22, 70, 16));
   // Current protection stays readable beside the pause control.
-  const healthW = Math.min(72, W * .2), healthX = W - 58 - healthW;
-  ctx.fillStyle = "rgba(255,255,255,.18)"; round(ctx, healthX, 20, healthW, 9, 4); ctx.fill();
+  ctx.fillStyle = "#294454"; ctx.fillRect(healthX + 3, 22, healthW - 6, 6);
   const health = Math.max(0, Math.min(1, s.hull / s.maxHull));
-  if (health > 0) { ctx.fillStyle = health <= .34 ? "#ff9978" : "#70e3a0"; round(ctx, healthX, 20, healthW * health, 9, 4); ctx.fill(); }
-  ctx.textAlign = "right"; ctx.font = "800 10px Figtree, system-ui";
-  ctx.fillStyle = "#b3f1d2"; ctx.fillText("HEALTH", W - 58, 15);
-  ctx.fillStyle = "#a3e6ff"; ctx.fillText(`SHIELDS ${s.shield}`, W - 58, 44);
+  if (health > 0) { ctx.fillStyle = health <= .34 ? "#ff9978" : "#76e5c0"; ctx.fillRect(healthX + 3, 22, (healthW - 6) * health, 6); }
+  ctx.textAlign = "right"; ctx.font = "700 10px Rajdhani, sans-serif";
+  ctx.fillStyle = "#b3f1d2"; ctx.fillText(`HULL ${s.hull}/${s.maxHull}`, W - 69, 17);
+  ctx.fillStyle = "#a3e6ff"; ctx.fillText(`SHIELDS ${s.shield}`, W - 69, 41);
   drawSpillCombatHud(ctx, s);
-  // status lines stack under the meter
+  // Only a transient banner enters the upper lane. Persistent status is
+  // grouped at the lower edge instead of stacking down the playfield.
   let hudY = 100;
   const hudLine = (text: string, color: string) => {
     ctx.textAlign = "center";
     ctx.fillStyle = color;
-    ctx.font = "700 13px Figtree, system-ui";
-    ctx.fillText(text, W / 2, hudY);
+    ctx.font = "700 13px Rajdhani, sans-serif";
+    const width = Math.min(W - 24, ctx.measureText(text).width + 24);
+    spillHudPlate(ctx, (W - width) / 2, hudY - 15, width, 23, color);
+    ctx.fillStyle = color; ctx.fillText(text, W / 2, hudY, width - 16);
     hudY += 18;
   };
   if (s.bannerT > 0 && s.phase !== "countdown") {
@@ -2473,16 +2481,11 @@ function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | n
     hudLine(s.banner, s.banner.startsWith("HEALTH") ? "#ff9a8c" : s.banner.startsWith("PULSE") ? "#ffe680" : "#f2b653");
     ctx.globalAlpha = 1;
   }
-  if (s.gold > 0) hudLine(`GOLD  ${Math.ceil(s.gold)}s`, "#ffd060");
-  if (s.surgeT > 0) hudLine(`SURGE  ${Math.ceil(s.surgeT)}s`, "#ff9a4c");
-  if (s.pulseQueue > 0) hudLine(`ECHO READY IN ${Math.ceil(s.pulseQueue)}s`, "#ffe680");
-  else if (s.echoReady) hudLine("ECHO ARMED", "#ffe680");
-  if (s.contract) hudLine(spillContractProgress(s), "#cdb3ff");
   // a mission's three objectives ride the top of the run, live
   if (w.lvl && w.lvl.def.base === "spill") {
     const live = { ...w.lvl.stats, ore: s.oreMined, hits: s.hits, depots: s.depotVisits, repairs: s.repairs ?? 0 };
     const pills = w.lvl.def.goals.map((g) => goalHud(g, live, w.score, w.lvl!.def));
-    ctx.font = "800 9.5px Figtree, system-ui";
+    ctx.font = "800 9.5px Rajdhani, sans-serif";
     const padX = 7, gapX = 6, ph = 17, py = hudY - 10;
     const widths = pills.map((p) => ctx.measureText(p.text).width + padX * 2);
     let x = W / 2 - (widths.reduce((a, b) => a + b, 0) + gapX * (pills.length - 1)) / 2;
@@ -2503,32 +2506,39 @@ function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | n
     }
     hudY += 14;
   }
-  // The rule stays at the lower edge now that flight has no fixed button tray.
-  if (names && (s.phase === "wave" || s.phase === "drain" || s.phase === "countdown")) {
-    ctx.font = "800 11px Figtree, system-ui";
-    const label = names;
-    const tw = ctx.measureText(label).width;
-    const cx = 16, cy = H - (w.insetTop || 0) - 40;
-    const cw = tw + 26;
-    ctx.fillStyle = "rgba(14,20,38,.8)";
-    round(ctx, cx, cy - 15, cw, 30, 15);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(255,154,76,.55)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
+  const footer: { text: string; color: string }[] = [];
+  const liveRule = names && (s.phase === "wave" || s.phase === "drain" || s.phase === "countdown");
+  if (liveRule) footer.push({ text: names, color: "#ffbf86" });
+  const effects: string[] = [];
+  if (s.gold > 0) effects.push(`GOLD ${Math.ceil(s.gold)}s`);
+  if (s.surgeT > 0) effects.push(`SURGE ${Math.ceil(s.surgeT)}s`);
+  if (s.pulseQueue > 0) effects.push(`ECHO IN ${Math.ceil(s.pulseQueue)}s`);
+  else if (s.echoReady) effects.push("ECHO ARMED");
+  if (effects.length) footer.push({ text: effects.join("  ·  "), color: "#ffe39b" });
+  if (s.contract) footer.push({ text: spillContractProgress(s), color: "#b8d4ed" });
+  const footerH = footer.length ? footer.length * 16 + 12 : 0;
+  const compactLaunch = W > H && H <= 540;
+  if (footerH) {
+    ctx.font = "700 12px Rajdhani, sans-serif";
+    const width = Math.min(W - 24, Math.max(...footer.map(line => ctx.measureText(line.text).width)) + 28);
+    const x = 12, y = H - (w.insetTop || 0) - 12 - footerH;
+    spillHudPlate(ctx, x, y, width, footerH, liveRule ? "#ffbf86" : "#67d8ef");
     ctx.textAlign = "left";
-    ctx.fillStyle = "#ff9a4c";
-    ctx.fillText(label, cx + 13, cy + 4);
-    ctx.fillStyle = "rgba(255,154,76,.3)";
-    ctx.fillRect(cx + 13, cy + 9, tw, 2);
-    ctx.fillStyle = "#ff9a4c";
-    ctx.fillRect(cx + 13, cy + 9, tw * (s.phase === "countdown" ? 0 : spillRamp(s)), 2);
+    footer.forEach((line, i) => {
+      ctx.fillStyle = line.color; ctx.fillText(line.text, x + 12, y + 17 + i * 16, width - 24);
+    });
+    if (liveRule) {
+      ctx.fillStyle = "#ffbf86";
+      ctx.fillRect(x + 12, y + footerH - 3, (width - 24) * (s.phase === "countdown" ? 0 : spillRamp(s)), 1);
+    }
   }
-  // Brief lessons sit above the rule chip; no empty pad area is reserved.
+  // Teaching and hazard hints retain their occlusion rules and sit above
+  // the edge telemetry even when several temporary effects are active.
   if (!hidePrompts && s.hintT > 0 && s.phase !== "ready" && s.phase !== "depot" && s.phase !== "docking" && s.phase !== "over") {
-    drawSpillHint(ctx, w, s.hint, Math.min(1, s.hintT * 2), H - (w.insetTop || 0) - 96);
+    const lessonEdge = compactLaunch ? 48 : 96;
+    drawSpillHint(ctx, w, s.hint, Math.min(1, s.hintT * 2), H - (w.insetTop || 0) - Math.max(lessonEdge, footerH + 24));
   }
-  if (!hidePrompts && s.hintT <= 0) drawSpillHazardHint(ctx, s, H - (w.insetTop || 0) - 64);
+  if (!hidePrompts && s.hintT <= 0) drawSpillHazardHint(ctx, s, H - (w.insetTop || 0) - Math.max(64, footerH + 24));
   if (s.phase === "ready" && s.target) {
     const compact = W < 520;
     // a phone gets the same briefing in shorter lines, never a clipped one
@@ -2537,9 +2547,9 @@ function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | n
     // on a phone a long line pushed the sprites off the panel's edge.
     const lines = [
       "SURVIVE THE WAVES",
-      "COLLECT ACORN COINS",
+      "COLLECT SALVAGE",
       compact ? "DEPOT EVERY 5 WAVES · UPGRADE THE SHIP"
-              : "DEPOT EVERY 5 WAVES · SPEND ACORN COINS",
+              : "DEPOT EVERY 5 WAVES · SPEND SALVAGE",
       compact ? "DRAG ▲▼ · FLICK ◀▶ TO DODGE"
               : "DRAG UP / DOWN · FLICK LEFT / RIGHT TO DODGE",
       "SECOND FINGER TAP · FIRE",
@@ -2561,7 +2571,7 @@ function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | n
       const isLaunch = i === lines.length - 1;
       ctx.fillStyle = isLaunch ? "#ffe086" : i === 0 ? "#fff" : "rgba(215,230,247,.9)";
       ctx.globalAlpha = isLaunch ? 0.75 + 0.25 * Math.sin(w.time * 4) : 1;
-      ctx.font = isLaunch ? "900 15px Figtree, system-ui" : i === 0 ? "900 13px Figtree, system-ui" : "800 12px Figtree, system-ui";
+      ctx.font = isLaunch ? "900 15px Rajdhani, sans-serif" : i === 0 ? "900 13px Rajdhani, sans-serif" : "800 12px Rajdhani, sans-serif";
       ctx.fillText(line, W / 2, panelTop + 21 + i * lineHeight);
       // the ore, drawn as the thing it is, riding the line that names it
       if (i === oreLine && art?.ore) {
@@ -2574,10 +2584,10 @@ function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | n
     ctx.globalAlpha = 1;
     const titleY = Math.max(H * 0.3, hudY + 24);
     ctx.fillStyle = "#fff";
-    ctx.font = "900 30px Figtree, system-ui";
-    ctx.fillText("DEBRIS FIELD", W / 2, titleY);
+    ctx.font = "700 30px Orbitron, sans-serif";
+    ctx.fillText("THE SPILL", W / 2, titleY);
     ctx.fillStyle = "rgba(215,230,247,.8)";
-    ctx.font = "600 12px Figtree, system-ui";
+    ctx.font = "600 12px Rajdhani, sans-serif";
     if (compact) {
       ctx.fillText("A mining rig let go one system over.", W / 2, titleY + 22);
       ctx.fillText("What reached us is travelling one way.", W / 2, titleY + 38);
@@ -2591,27 +2601,45 @@ function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | n
     const frac = 1 - ((SPILL.countdown - s.phaseT) % 1);
     ctx.save();
     ctx.textAlign = "center";
+    if (compactLaunch) {
+      // A short landscape screen uses two columns below the instruments.
+      // The rule names are already visible in edge telemetry; the lesson
+      // stays below this compact launch block rather than behind the count.
+      const labelX = W / 2 - 45, labelW = Math.min(240, W - 160);
+      ctx.fillStyle = "#fff"; ctx.font = "700 20px Orbitron, sans-serif";
+      ctx.fillText(`WAVE ${s.wave}`, labelX, 110, labelW);
+      if (s.target) {
+        ctx.fillStyle = "#bad4e4"; ctx.font = "700 11px Rajdhani, sans-serif";
+        ctx.fillText(`CLEAR WAVE ${s.target} TO FINISH`, labelX, 125, labelW);
+      }
+      ctx.fillStyle = "#b5cbdc"; ctx.font = "700 11px Rajdhani, sans-serif";
+      ctx.fillText(s.manual ? "YOU ARE STEERING · FIELD ON GO" : "AUTOPILOT · DRAG TO STEER", labelX, s.target ? 140 : 130, labelW);
+      ctx.globalAlpha = .55 + .45 * (1 - frac); ctx.fillStyle = "#ffe086";
+      ctx.font = `700 ${Math.round(46 + 8 * (1 - frac))}px Orbitron, sans-serif`;
+      ctx.fillText(String(n), W / 2 + Math.min(140, W * .26), 138, 72);
+    } else {
     ctx.fillStyle = "#fff";
-    ctx.font = "900 26px Figtree, system-ui";
+    ctx.font = "700 26px Orbitron, sans-serif";
     ctx.fillText(`WAVE ${s.wave}`, W / 2, H * 0.34);
     if (names) {
       ctx.fillStyle = "#ff9a4c";
-      ctx.font = "800 15px Figtree, system-ui";
+      ctx.font = "800 15px Rajdhani, sans-serif";
       ctx.fillText(names, W / 2, H * 0.34 + 24);
     }
     if (s.target) {
       ctx.fillStyle = "rgba(215,230,247,.8)";
-      ctx.font = "700 12px Figtree, system-ui";
+      ctx.font = "700 12px Rajdhani, sans-serif";
       ctx.fillText(`CLEAR WAVE ${s.target} TO FINISH`, W / 2, H * 0.34 + (names ? 44 : 24));
     }
     ctx.globalAlpha = 0.55 + 0.45 * (1 - frac);
     ctx.fillStyle = "#ffe086";
-    ctx.font = `900 ${Math.round(64 + 18 * (1 - frac))}px Figtree, system-ui`;
+    ctx.font = `900 ${Math.round(64 + 18 * (1 - frac))}px Orbitron, sans-serif`;
     ctx.fillText(String(n), W / 2, H * 0.34 + 120);
     ctx.globalAlpha = 1;
     ctx.fillStyle = "rgba(215,230,247,.7)";
-    ctx.font = "700 11px Figtree, system-ui";
+    ctx.font = "700 11px Rajdhani, sans-serif";
     ctx.fillText(s.manual ? "YOU ARE STEERING · FIELD ON GO" : "AUTOPILOT · DRAG TO STEER", W / 2, H * 0.34 + 146);
+    }
     ctx.restore();
   }
   if (s.phase === "wave" && s.phaseT < 0.6) {
@@ -2620,27 +2648,27 @@ function drawSpillHud(ctx: CanvasRenderingContext2D, w: World, art?: ArtBank | n
     ctx.globalAlpha = Math.min(1, (0.6 - s.phaseT) * 3);
     ctx.textAlign = "center";
     ctx.fillStyle = "#8df0b4";
-    ctx.font = "900 54px Figtree, system-ui";
-    ctx.fillText("GO", W / 2, H * 0.34 + 120);
+    ctx.font = compactLaunch ? "700 42px Orbitron, sans-serif" : "700 54px Orbitron, sans-serif";
+    ctx.fillText("GO", W / 2, compactLaunch ? 124 : H * 0.34 + 120);
     ctx.restore();
   }
   if (s.phase === "docking" && !s.depotGag) {
     ctx.textAlign = "center";
     ctx.fillStyle = "#f5d59b";
-    ctx.font = "800 12px Figtree, system-ui";
+    ctx.font = "800 12px Rajdhani, sans-serif";
     ctx.fillText("SALVAGE DEPOT", W / 2, H * 0.24);
-    ctx.fillStyle = "#f1e9ff"; ctx.font = `800 ${W < 380 ? 21 : 26}px Figtree, system-ui`;
+    ctx.fillStyle = "#f1e9ff"; ctx.font = `800 ${W < 380 ? 21 : 26}px Orbitron, sans-serif`;
     ctx.fillText(s.phaseT / spillDockTravelDuration(s) < .22 ? "DEPOT IN SIGHT" : s.phaseT / spillDockTravelDuration(s) < .78 ? "APPROACHING THE BAY" : "DOCKING COMPLETE", W / 2, H * 0.24 + 34);
-    ctx.fillStyle = "rgba(209,222,246,.78)"; ctx.font = "600 11px Figtree, system-ui";
+    ctx.fillStyle = "rgba(209,222,246,.78)"; ctx.font = "600 11px Rajdhani, sans-serif";
     ctx.fillText("AUTOPILOT ENGAGED", W / 2, H * 0.24 + 58);
   }
   if (s.phase === "respawn") {
     ctx.textAlign = "center";
     ctx.fillStyle = "#ffe086";
-    ctx.font = "900 26px Figtree, system-ui";
+    ctx.font = "700 26px Orbitron, sans-serif";
     ctx.fillText("RESPAWN CORE", W / 2, H * 0.36);
     ctx.fillStyle = "rgba(215,230,247,.85)";
-    ctx.font = "700 12px Figtree, system-ui";
+    ctx.font = "700 12px Rajdhani, sans-serif";
     ctx.fillText("full health · 3 seconds of Gold protection", W / 2, H * 0.36 + 22);
   }
 }
@@ -5657,7 +5685,7 @@ function previewRot(p: number, beat: number, kick: number, pull: number) {
 }
 
 /** The same fitted ship in flight, the Depot and the Loadout: hull,
- * engines, pulse cone, canopy, pilot and installed module indicators.
+ * engines, pulse cone, sealed canopy and installed module indicators.
  * Preview state is isolated from purchases and the live run. */
 export type ShipPick = SpillBuild;
 const shipPreviewStates = new Map<string, SpillState>();

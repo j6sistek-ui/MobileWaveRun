@@ -8,8 +8,8 @@ export const SPILL_ARTIFACTS: Record<SpillArtifactId, {
   name: string; style: string; description: string; detail: string; color: string;
 }> = {
   reclaimer: { name: "Reclaimer", style: "Salvage", color: "#a9e8a5",
-    description: "Weapon-broken debris drops an extra Acorn Coin.",
-    detail: "Up to 8 extra coins per wave. Collect them to earn them; Pulse and dodge breaks do not trigger it." },
+    description: "Weapon-broken debris drops an extra Salvage pickup.",
+    detail: "Up to 8 extra Salvage per wave. Collect them to earn them; Pulse and dodge breaks do not trigger it." },
   slipstream: { name: "Slipstream Relay", style: "Evasive", color: "#b3caff",
     description: "Dodge, then fire within 2 seconds to add an echo round.",
     detail: "The next manual volley adds one half-damage trailing round. Dodging never fires for you; echoes do not stack." },
@@ -22,7 +22,7 @@ export const SPILL_BUILD_RECIPES: {
   id: string; name: string; description: string; artifact: SpillArtifactId;
   weapon: SpillWeaponId; utilities: SpillUtility[]; specialties: SpillSpecialty[];
 }[] = [
-  { id: "salvage", name: "Salvager", description: "Break debris, pull in the salvage, and turn collected coins into repairs.",
+  { id: "salvage", name: "Salvager", description: "Break debris, pull in the salvage, and turn collected Salvage into repairs.",
     artifact: "reclaimer", weapon: "laser", utilities: ["magnet", "scanner"], specialties: ["salvage", "yield"] },
   { id: "evasive", name: "Evasive", description: "Dodge into an opening, brake cleanly, and answer with a primed shot.",
     artifact: "slipstream", weapon: "laser", utilities: ["brake", "scanner"], specialties: ["precision", "brace"] },

@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "mode": "built-in image_gen",
+  "intent": "generate-and-edit",
+  "date": "2026-10-30",
+  "assets": [
+    {
+      "id": "menu-background",
+      "intent": "generate",
+      "path": "public/art/space-ui/menu-background.webp",
+      "generationId": "exec-875a7fff-de0f-439c-be7b-6b0687745248",
+      "transparent_background": false,
+      "references": [],
+      "prompt": "Use case: stylized-concept\nAsset type: production background artwork for a premium sci-fi arcade game's main menu, landscape image.\nPrimary request: create an original cinematic deep-space salvage scene to pair with an industrial metallic and cyan holographic UI kit. A damaged orbital station and intricate debris arc occupy the right half, the edge of a blue planet below right, a few distant cyan engines tracing through space. High-quality detailed 3D painted game key art, believable spacecraft materials, restrained atmosphere and clear silhouettes.\nComposition: wide landscape, left 55 percent very dark uncluttered navy space with only faint stars for separately rendered title and menu. Brightest detailed station area on right third, center horizon low. Dark enough for white text over all edges. No large foreground ship or character. Do not include a visual tunnel or corridor.\nPalette: near-black blue, desaturated steel, electric cyan highlights, tiny warm amber lights. Dramatic cool rim light with subtle dust haze; no magenta, no purple, no cartoon acorns, no people.\nConstraints: no text, no logos, no watermarks, no buttons, no interface frames. Finished artwork meant to ship as a game backdrop."
+    },
+    {
+      "id": "title-wordmark",
+      "intent": "generate",
+      "path": "public/art/space-ui/title-wordmark.png",
+      "generationId": "exec-1c04dffe-126e-4061-966e-a9bf4b5b1c17",
+      "transparent_background": true,
+      "references": [],
+      "prompt": "Use case: logo-brand\nAsset type: transparent title wordmark for a sci-fi arcade game main menu.\nText (verbatim): \"THE SPILL\". Spell T H E, then S P I L L. No other lettering.\nPrimary request: an exceptionally polished, wide horizontal game title, two words on one line. Angular forward-leaning futuristic block lettering, bevelled gunmetal and brushed silver faces, luminous electric cyan inner edges and restrained blue bloom. Dark engraved cuts, precise manufactured geometry, readable strong silhouette. THE is smaller than SPILL but aligned on the same baseline. This should visually pair with metallic hexagonal space-station UI buttons and cyan holographic panels.\nComposition: isolated wordmark centered with a little breathing room, approximately 3:1 wide silhouette. No badge, no background panel, no spacecraft, no stars, no extra symbols, no subheading. Genuine transparent background, clean alpha edges including very subtle cyan glow. Make the exact words readable at mobile menu size. No watermark."
+    },
+    {
+      "id": "ship-hull",
+      "intent": "edit",
+      "path": "public/art/space-ui/ship-hull.png",
+      "generationId": "exec-5eab34ad-d0ab-4b6a-aa54-8f65749a42e4",
+      "transparent_background": true,
+      "references": [
+        {
+          "path": "public/art/spill-ship/hull-0.png",
+          "sha256": "8bc22f46fb434112ef56fad331f18daf2654f9bd3be74fdadf7aec189734c9d1",
+          "bytes": 46060
+        }
+      ],
+      "prompt": "Use case: game-asset. Edit the provided transparent hull sprite into an original polished sci-fi salvage shuttle hull for The Spill, preserving the exact right-facing side-view orientation, compact silhouette, position and occupied bounds. Replace the brown acorn/stone surface and open round pilot socket with brushed steel and dark navy angular spacecraft armor. A smoky sealed cyan-tinted canopy sits flush at the upper-right; no visible pilot, animal, face, emblem or lettering. The stern engine socket stays at left in the same position; preserve the small lower-left fin and pointed nose at right so existing game upgrade attachments still fit. Do not add external engines, thrust flames, trails, weapons or extra mounted components. High quality 3D game sprite, crisp machined bevels, subtle cyan light lines, silver edges, restrained top-left illumination. Keep genuine transparent background and isolated clean alpha. No cast shadow outside the hull. This is the hull only for a layered ship renderer, not a complete spacecraft scene."
+    }
+  ]
+}

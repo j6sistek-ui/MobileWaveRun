@@ -15,3 +15,4 @@ public/art/** -text
 public/fonts/** -text
 # Keep the original third-party license bytes, including their whitespace.
 public/fonts/OFL-*.txt -whitespace
+public/fonts/space-ui/OFL-*.txt -whitespace

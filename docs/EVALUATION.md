@@ -2,9 +2,11 @@
 
 The owner approved completing the remaining wave-game proposals on 2026-10-29, before deciding whether to invest in front-facing 3D. This build brings together combat, artifact builds, six hazard families, environmental tactics, fifth-wave climaxes, optional risk routes and earned loadout choices. The Depot remains the only place for run purchases. Station walking, free flight, a new engine and licensed Unreal assets are outside this experiment.
 
-## Try it without grinding
+## Retained Flight Trials (currently hidden)
 
-From the main menu choose **Flight Trials**. Choose an encounter and Stock, Salvager, Evasive or Heavy Combat. The trial opens a Depot where both weapons and every chassis/targeting sidegrade can be compared. Launch, then use **Retry Trial** or **Choose Trial** from Pause or the result. Each encounter has a fixed seed. The plan repeats; changes in steering and firing can still change later admissions and outcomes.
+The owner requested simpler mobile navigation on 2026-10-30. **Flight Trials are currently unavailable from player navigation:** the host's trial picker, menu entry and choose-trial links are removed, with no hidden production shortcut. Use normal runs for current playtests. All wave mechanics described below remain in normal progression.
+
+The trial encounter catalog, Stock/Salvager/Evasive/Heavy Combat presets and isolated practice implementation are retained for regression tests and a later return. Tests can start them through the existing engine APIs. A trial opens a Depot where both weapons and every chassis/targeting sidegrade can be compared; retry/result support remains. Each encounter has a fixed seed. The plan repeats; changes in steering and firing can still change later admissions and outcomes. The catalog below documents retained content, not a currently accessible player menu.
 
 Trials use the ordinary simulation, damage, controls, warnings and equipment. They grant no invulnerability. They never advance best wave, unlocks, records, currency or score submissions, and cannot overwrite a suspended normal run. Restarting a trial resets its preset; optional Depot adjustments can be made again. Reloading ends an unsaved trial. Normal Depot checkpoints are still available through Resume.
 
@@ -63,7 +65,7 @@ Chassis do not add dodge charges. Lenses do not increase damage or firing rate. 
 
 ## Decide whether to take it into 3D
 
-Start with **Solar cover**, **Fracturing wreck**, **Gravity and salvage**, then **Wave climax**. Compare Stock with one specialized build on the same trial. The useful questions are whether warnings explain the next action, choosing to fire changes the situation, risks feel voluntary, and a different build changes your decisions. Record confusing or unavoidable hits before adding more content.
+Use normal runs for current playtests. If Flight Trials return, start with **Solar cover**, **Fracturing wreck**, **Gravity and salvage**, then **Wave climax**, comparing Stock with one specialized build on the same trial. The useful questions are whether warnings explain the next action, choosing to fire changes the situation, risks feel voluntary, and a different build changes your decisions. Record confusing or unavoidable hits before adding more content.
 
 | Current 2D test | Possible front-facing adaptation | What still needs a 3D prototype |
 | --- | --- | --- |
@@ -78,6 +80,6 @@ These are design mappings, not implemented 3D behavior. The eventual prototype s
 
 ## Source ownership
 
-`spill-career.ts` owns options/trial metadata; `engine.ts` and `save.ts` isolate practice state. `spill-expeditions.ts` owns route selection and one-time stipends. `spill-climax.ts` and `spill-climax-view.ts` own the Warden, with common combat hit/reward resolution. `spill-hazards.ts` and its view own environmental mechanics. `spill.ts` integrates lifecycle, steering, pressure and checkpoint validation. UI composes shared metadata in `standalone.ts` and `spill-workshop.ts`.
+`spill-career.ts` owns options/trial metadata; `engine.ts` and `save.ts` isolate practice state. Trial entry remains available to the test harness through engine APIs, while `standalone.ts` exposes no player trial picker. `spill-expeditions.ts` owns route selection and one-time stipends. `spill-climax.ts` and `spill-climax-view.ts` own the Warden, with common combat hit/reward resolution. `spill-hazards.ts` and its view own environmental mechanics. `spill.ts` integrates lifecycle, steering, pressure and checkpoint validation. UI composes shared metadata in `standalone.ts` and `spill-workshop.ts`.
 
 See [HAZARDS.md](HAZARDS.md), [BUILDS.md](BUILDS.md), [COMBAT.md](COMBAT.md) and [VALIDATION.md](VALIDATION.md) for rules and executed evidence. Implementation and automated checks are not owner acceptance; physical phone feel, audio, performance and long-run balance remain playtest work.

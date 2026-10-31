@@ -9,7 +9,7 @@ const port = Number(process.env.PORT || 8795);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be 1–65535');
 const host = process.env.HOST || '127.0.0.1';
 if (!existsSync(resolve(root, 'index.html'))) { console.error('Run npm run build first.'); process.exit(1); }
-const mime = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.json':'application/json', '.png':'image/png', '.jpg':'image/jpeg', '.svg':'image/svg+xml', '.webp':'image/webp', '.woff2':'font/woff2', '.woff':'font/woff', '.mp3':'audio/mpeg', '.m4a':'audio/mp4' };
+const mime = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.json':'application/json', '.png':'image/png', '.jpg':'image/jpeg', '.svg':'image/svg+xml', '.webp':'image/webp', '.woff2':'font/woff2', '.woff':'font/woff', '.ttf':'font/ttf', '.mp3':'audio/mpeg', '.m4a':'audio/mp4' };
 createServer((req, res) => {
   try {
     const url = new URL(req.url, `http://${host}:${port}`);

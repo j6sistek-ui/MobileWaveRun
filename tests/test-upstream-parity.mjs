@@ -17,12 +17,13 @@ for (const [file, expected] of Object.entries(authority)) {
   assert.equal(sha256(source), expected, `${file} must preserve the pinned upstream source content`);
 }
 
-// The only authorized edits to this shared content module are Brake and Precision
-// descriptions matching direct steering. Guard that reviewed revision separately;
+// Authorized edits are Brake/Precision descriptions matching direct steering and
+// the 2026-10-30 Acorn Coins -> Salvage presentation rename (no numeric rules).
+// Guard that reviewed revision separately;
 // this is not a claim that modified content still equals upstream.
 const content = readFileSync(new URL('../illustrated-src/game/spill-content.ts', import.meta.url), 'utf8').replaceAll('\r\n', '\n');
-assert.equal(sha256(content), '10dc8a135b78424b711b0f493332eb1302f784753a384ae3dcf233c873c78a75',
-  'shared content must retain the reviewed steering-description revision');
+assert.equal(sha256(content), '3cdc549545601b867a25d99483c45ca998c667e0e4fa85f0d453af7a534cf2fa',
+  'shared content must retain the reviewed steering and identity text revision');
 
 // New deterministic replay coverage, not frozen upstream behavior. Identical seeds
 // and semantic input must reproduce the entire state including combat and RNG.

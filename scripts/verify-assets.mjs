@@ -46,6 +46,83 @@ for (const entry of generated.files) {
   listed.add(entry.path); generatedBytes += bytes.length;
 }
 assert.equal(generatedBytes, generated.totalBytes);
+
+// The identity pass has its own provenance. Never relabel or replace the pinned
+// extraction/combat manifests when incorporating third-party UI or new artwork.
+const ui = JSON.parse(await readFile(path.join(root, 'ui-asset-manifest.json'), 'utf8'));
+assert.equal(ui.schema, 1);
+assert.equal(ui.sourcePack, 'UIFBRCA Space Station / UF License Version 1.1 (2018)');
+assert.equal(ui.prompts, 'docs/ui-image-prompts.json');
+const uiPrompts = JSON.parse(await readFile(path.join(root, ui.prompts), 'utf8'));
+assert.equal(uiPrompts.schema, 1);
+assert.equal(uiPrompts.mode, 'built-in image_gen');
+assert.equal(uiPrompts.intent, 'generate-and-edit');
+assert.deepEqual(uiPrompts.assets.map(entry => entry.id).sort(), ['menu-background', 'ship-hull', 'title-wordmark']);
+let uiBytes = 0, uiGenerated = 0;
+const uiPaths = new Set();
+for (const entry of ui.files) {
+  // Fixed local namespace, no traversal, encoded separators, drive paths or queries.
+  assert.match(entry.path, /^public\/(art|fonts)\/space-ui\/[A-Za-z0-9-]+\.(webp|png|ttf|txt)$/);
+  assert.equal(listed.has(entry.path), false, `Asset has conflicting provenance: ${entry.path}`);
+  assert.match(entry.sha256, /^[a-f0-9]{64}$/);
+  assert(Number.isSafeInteger(entry.bytes) && entry.bytes > 0, `Invalid asset size: ${entry.path}`);
+  assert(typeof entry.recipe === 'string' && entry.recipe.length > 20, `Missing preparation recipe: ${entry.path}`);
+  assert(Array.isArray(entry.sources) && entry.sources.length > 0, `Missing source: ${entry.path}`);
+  if (entry.provenance === 'built-in image_gen') {
+    assert.equal(entry.sources.length, 1);
+    const source = entry.sources[0];
+    assert.match(source.generationId, /^exec-[a-f0-9-]+$/);
+    assert.match(source.sha256, /^[a-f0-9]{64}$/);
+    assert(Number.isSafeInteger(source.bytes) && source.bytes > 0);
+    const prompt = uiPrompts.assets.find(item => item.path === entry.path);
+    assert(prompt && prompt.generationId === source.generationId && prompt.prompt.length > 100,
+      `Missing exact generation prompt: ${entry.path}`);
+    assert.equal(typeof prompt.transparent_background, 'boolean');
+    if (prompt.id === 'ship-hull') {
+      assert.equal(prompt.intent, 'edit');
+      const reference = manifest.files.find(item => item.path === 'public/art/spill-ship/hull-0.png');
+      assert(reference, 'Ship identity edit requires the preserved original hull reference');
+      assert.deepEqual(prompt.references, [{ path: reference.path, sha256: reference.sha256, bytes: reference.bytes }],
+        'Hull edit must retain the exact source reference provenance');
+    } else {
+      assert.equal(prompt.intent, 'generate');
+      assert.deepEqual(prompt.references, [], 'Menu artwork was generated without reference images');
+    }
+    assert.equal(prompt.transparent_background, prompt.id !== 'menu-background');
+    uiGenerated++;
+  } else if (entry.provenance === 'Google Fonts / SIL OFL 1.1') {
+    assert.match(entry.path, /^public\/fonts\/space-ui\/(?:OFL-)?(?:Orbitron|Rajdhani)(?:-[A-Za-z]+)?\.(ttf|txt)$/);
+    assert.deepEqual(entry.sources, [{ url: `https://github.com/google/fonts/tree/main/ofl/${entry.path.includes('Orbitron') ? 'orbitron' : 'rajdhani'}` }]);
+  } else {
+    assert(['UIFBRCA Space Station', 'UIFBRCA Space Station + original code artwork'].includes(entry.provenance),
+      `Unknown UI provenance: ${entry.path}`);
+    assert(entry.path.startsWith('public/art/space-ui/'));
+    for (const source of entry.sources) {
+      assert.match(source.file, /^(Panels__|Buttons_)\d+\.png$/);
+      assert.match(source.sha256, /^[a-f0-9]{64}$/);
+      assert(Number.isSafeInteger(source.bytes) && source.bytes > 0);
+    }
+  }
+  const bytes = await readFile(path.join(root, entry.path));
+  assert.equal(bytes.length, entry.bytes, `${entry.path}: UI byte count changed`);
+  assert.equal(createHash('sha256').update(bytes).digest('hex'), entry.sha256, `${entry.path}: UI bytes changed`);
+  listed.add(entry.path); uiPaths.add(entry.path); uiBytes += bytes.length;
+}
+assert.equal(uiBytes, ui.totalBytes);
+assert.equal(uiGenerated, uiPrompts.assets.length, 'Every UI generation prompt must map to one shipped asset');
+const uiRequired = [
+  ...['panel-frame.webp', 'panel-surface.webp', 'panel-title.webp', 'button-idle.webp', 'button-active.webp',
+    'menu-background.webp', 'title-wordmark.png', 'salvage.png', 'ship-hull.png',
+    ...['play', 'trials', 'settings', 'target'].flatMap(id => [`icon-${id}.webp`, `icon-${id}-active.webp`])]
+    .map(file => `public/art/space-ui/${file}`),
+  ...['Orbitron-Variable.ttf', 'Rajdhani-Regular.ttf', 'Rajdhani-SemiBold.ttf', 'Rajdhani-Bold.ttf',
+    'OFL-Orbitron.txt', 'OFL-Rajdhani.txt'].map(file => `public/fonts/space-ui/${file}`),
+];
+assert.deepEqual([...uiPaths].sort(), uiRequired.sort(), 'UI runtime subset or font license coverage changed');
+const uiLicense = await readFile(path.join(root, 'docs/licenses/UIFBRCA-EULA.pdf'));
+assert.equal(createHash('sha256').update(uiLicense).digest('hex'),
+  'caa192fc64c636dd61b7acecfe70b842d299680abdafbe10894cafcc54905466', 'Supplied UIFBRCA license changed');
+
 async function inventory(relative) {
   const files = [];
   for (const item of await readdir(path.join(root, relative), { withFileTypes: true })) {
@@ -57,7 +134,7 @@ async function inventory(relative) {
   return files;
 }
 assert.deepEqual((await inventory('public/art')).concat(await inventory('public/fonts')).sort(), [...listed].sort(),
-  'Every shipped asset must have explicit upstream or generated provenance');
+  'Every shipped asset must have explicit upstream, generated or licensed UI provenance');
 
 // Required painter/fallback coverage is explicit: trimming the extraction cannot silently turn
 // a missing hull or coin into a procedural substitute and still pass a checksum-only inventory.
@@ -80,4 +157,12 @@ for (const license of ['OFL-Figtree.txt', 'OFL-Fraunces.txt'])
 const fonts = await readFile(path.join(root, 'public/fonts/fonts.css'), 'utf8');
 for (const [, asset] of fonts.matchAll(/url\(['"]?([^)'"\s]+)['"]?\)/g))
   assert(listed.has(`public/fonts/${asset.replace(/^\.\//, '')}`), `Missing self-hosted font: ${asset}`);
-console.log(`Assets verified: ${upstreamCount} exact upstream files (${total} bytes), ${generated.files.length} generated files (${generatedBytes} bytes); Spill and fallback coverage intact.`);
+const uiFonts = await readFile(path.join(root, 'public/space-fonts.css'), 'utf8');
+const uiFontURLs = [...uiFonts.matchAll(/url\(['"]?([^)'"\s]+)['"]?\)/g)].map(([, asset]) => asset);
+assert.deepEqual(uiFontURLs.map(asset => `public/${asset.replace(/^\.\//, '')}`).sort(),
+  [...uiPaths].filter(asset => asset.endsWith('.ttf')).sort(), 'UI font URLs must cover the exact self-hosted fonts');
+for (const family of ['Orbitron', 'Rajdhani']) {
+  const license = await readFile(path.join(root, `public/fonts/space-ui/OFL-${family}.txt`), 'utf8');
+  assert(license.includes('SIL OPEN FONT LICENSE Version 1.1'), `Missing OFL text for ${family}`);
+}
+console.log(`Assets verified: ${upstreamCount} exact upstream files (${total} bytes), ${generated.files.length} combat generations (${generatedBytes} bytes), ${ui.files.length} identity files (${uiBytes} bytes); Spill, UI artwork and font-license coverage intact.`);

@@ -11,6 +11,8 @@ Owner-requested controls revision, 2026-10-29. This prepares the side-view proto
 
 There are no fixed flight pads. The joystick is a non-interactive visual guide, so it cannot intercept the firing finger. Neutral input holds altitude outside an active gravity well; the well's marked influence can gently drift the ship until you steer away. Vertical boundaries slow outward movement and clamp the ship without old floor-contact damage. Rocks, enemy shots and active hazard cores/bands still damage the ship.
 
+Open **Settings & Controls** from the main menu for the existing settings switches and expandable **Controls & Field Guide**. The panel title is **Settings** to fit narrow phones. Expand the guide for flight instructions, hazard explanations and Depot help; the former separate Controls entry is consolidated here.
+
 ## Input and save behavior
 
 Movement and combat remain in the existing fixed 60 Hz simulation. A firing press buffers at most one shot for 0.18 seconds, so a quick press/release between frames is not lost. This can bridge a nearly finished weapon cooldown; it does not bypass cooldowns or queue a long burst.
@@ -19,9 +21,9 @@ Pause, focus loss, hidden tabs, resizing, stopping and leaving flight clear cont
 
 Thrusters improve movement response and dodging. Emergency Brake improves neutral stopping instead of forcing an upward kick near the former fatal floor. Low-G/Heavy modify steering response without making a released ship drift vertically.
 
-Phase 3 adds no input or camera mode. Use the same steering to leave a comet line or ion band, fire to destroy a comet or disarm a mine, and steer away from gravity cores. A mine gives a visible fuse before its ring explodes; moving out is always an alternative to shooting. The Depot forecast and Help field guide explain each family. See [HAZARDS.md](HAZARDS.md).
+Phase 3 adds no input or camera mode. Use the same steering to leave a comet line or ion band, fire to destroy a comet or disarm a mine, and steer away from gravity cores. A mine gives a visible fuse before its ring explodes; moving out is always an alternative to shooting. The Depot forecast and Settings & Controls field guide explain each family. See [HAZARDS.md](HAZARDS.md).
 
-The completed evaluation package keeps these same controls. Preserve solar cover or leave the charged band; shoot a wreck's bright weak point, then avoid its warned fragments. Evade the Warden's frozen volley and fire during the open-core window. Chassis alter vertical steering speed/health, and targeting lenses trade aim width against projectile speed. Flight Trials offer immediate practice plus Pause/Retry, with no extra flight pads. See [EVALUATION.md](EVALUATION.md).
+The completed evaluation package keeps these same controls. Preserve solar cover or leave the charged band; shoot a wreck's bright weak point, then avoid its warned fragments. Evade the Warden's frozen volley and fire during the open-core window. Chassis alter vertical steering speed/health, and targeting lenses trade aim width against projectile speed. Flight Trials are currently hidden from player navigation; their retained practice implementation uses these same controls and remains available to regression tests. Normal wave play is unchanged. See [EVALUATION.md](EVALUATION.md).
 
 ## Browser gestures
 
