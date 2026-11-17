@@ -8,14 +8,32 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(await readFile(path.join(root, 'asset-manifest.json'), 'utf8'));
 assert.equal(manifest.schema, 1);
 assert.equal(manifest.upstream.revision, 'b67bb50f3f3fa24b6a335133a1c176638a83f775');
+// Owner-directed removals keep the extraction manifest byte-identical: each
+// retired path must match its pinned upstream entry and be gone from public/.
+const retired = JSON.parse(await readFile(path.join(root, 'retired-asset-manifest.json'), 'utf8'));
+assert.equal(retired.schema, 1);
+assert.equal(retired.authority, 'asset-manifest.json');
+const retiredPaths = new Map();
+for (const entry of retired.files) {
+  const pinned = manifest.files.find(item => item.path === entry.path);
+  assert(pinned, `Retired asset is not an upstream extraction file: ${entry.path}`);
+  assert.equal(entry.sha256, pinned.sha256, `${entry.path}: retirement record does not match the pinned hash`);
+  assert.equal(entry.bytes, pinned.bytes, `${entry.path}: retirement record does not match the pinned size`);
+  assert.match(entry.retired, /^\d{4}-\d{2}-\d{2}$/);
+  assert(typeof entry.reason === 'string' && entry.reason.length > 20, `Missing retirement reason: ${entry.path}`);
+  assert.equal(retiredPaths.has(entry.path), false, `Duplicate retirement: ${entry.path}`);
+  retiredPaths.set(entry.path, entry);
+  await assert.rejects(readFile(path.join(root, entry.path)), { code: 'ENOENT' }, `Retired asset still shipped: ${entry.path}`);
+}
 const listed = new Set();
-let total = 0;
+let total = 0, retiredBytes = 0;
 for (const entry of manifest.files) {
   assert.match(entry.path, /^public\/(art|fonts)\//);
   assert.equal(entry.path.split('/').includes('..'), false, `Unsafe asset path: ${entry.path}`);
   assert.equal(listed.has(entry.path), false, `Duplicate asset: ${entry.path}`);
-  listed.add(entry.path);
   assert.equal(entry.source, `docs/${entry.path.slice('public/'.length)}`);
+  if (retiredPaths.has(entry.path)) { retiredBytes += entry.bytes; continue; }
+  listed.add(entry.path);
   const bytes = await readFile(path.join(root, entry.path));
   assert.equal(bytes.length, entry.bytes, `${entry.path}: byte count changed`);
   assert.equal(createHash('sha256').update(bytes).digest('hex'), entry.sha256, `${entry.path}: upstream bytes changed`);
@@ -23,7 +41,7 @@ for (const entry of manifest.files) {
   assert.equal(gitBlob, entry.gitBlob, `${entry.path}: upstream Git object mismatch`);
   total += bytes.length;
 }
-assert.equal(total, manifest.totalBytes);
+assert.equal(total + retiredBytes, manifest.totalBytes);
 const upstreamCount = listed.size;
 const generated = JSON.parse(await readFile(path.join(root, 'generated-asset-manifest.json'), 'utf8'));
 assert.equal(generated.schema, 1);
@@ -133,7 +151,12 @@ async function inventory(relative) {
   }
   return files;
 }
-assert.deepEqual((await inventory('public/art')).concat(await inventory('public/fonts')).sort(), [...listed].sort(),
+const shippedArt = await inventory('public/art');
+// The placeholder score is synthesized (illustrated-src/game/chiptune.ts). A real
+// soundtrack needs its own provenance record and docs/AUDIO.md update first.
+assert.deepEqual(shippedArt.filter(file => /\.(mp3|m4a|ogg|oga|opus|wav|flac|aac)$/i.test(file)), [],
+  'Audio files need soundtrack provenance; see docs/AUDIO.md');
+assert.deepEqual(shippedArt.concat(await inventory('public/fonts')).sort(), [...listed].sort(),
   'Every shipped asset must have explicit upstream, generated or licensed UI provenance');
 
 // Required painter/fallback coverage is explicit: trimming the extraction cannot silently turn
@@ -141,7 +164,7 @@ assert.deepEqual((await inventory('public/art')).concat(await inventory('public/
 const required = [
   'spill-scene/depot.png', 'spill-scene/panorama.png', 'spill-scene/workshop.webp', 'spill-scene/depot-bear.jpg',
   'spill-ship/transforms.json', 'suits/flight.png', 'helms/clear.png', 'hyper-run/scout-ship.png',
-  'pickups/acorn-coin.svg', 'music/menu.mp3', 'music/flight.mp3',
+  'pickups/acorn-coin.svg',
   ...Array.from({ length: 4 }, (_, i) => `spill-ship/hull-${i}.png`),
   ...['thrust', 'cone', 'cockpit'].flatMap(part => [1, 2, 3].map(level => `spill-ship/${part}-${level}.png`)),
   ...['magnet', 'scanner', 'brake', 'capacitor'].map(id => `spill-ship/utilities/${id}.webp`),
@@ -165,4 +188,4 @@ for (const family of ['Orbitron', 'Rajdhani']) {
   const license = await readFile(path.join(root, `public/fonts/space-ui/OFL-${family}.txt`), 'utf8');
   assert(license.includes('SIL OPEN FONT LICENSE Version 1.1'), `Missing OFL text for ${family}`);
 }
-console.log(`Assets verified: ${upstreamCount} exact upstream files (${total} bytes), ${generated.files.length} combat generations (${generatedBytes} bytes), ${ui.files.length} identity files (${uiBytes} bytes); Spill, UI artwork and font-license coverage intact.`);
+console.log(`Assets verified: ${upstreamCount} exact upstream files (${total} bytes; ${retiredPaths.size} retired by owner direction), ${generated.files.length} combat generations (${generatedBytes} bytes), ${ui.files.length} identity files (${uiBytes} bytes); Spill, UI artwork and font-license coverage intact.`);

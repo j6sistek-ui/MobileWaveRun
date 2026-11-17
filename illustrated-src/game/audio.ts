@@ -6,6 +6,8 @@
 // through a shared plate so the whole game sounds like it is happening
 // somewhere large.
 
+import { ChipPlayer, type SongId } from "./chiptune";
+
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let verb: GainNode | null = null;
@@ -79,150 +81,107 @@ export function unlockAudio() {
   }
 }
 
-// ————— Music: four streamed loops, one audible at a time —————
-// MENU is the slow score for every screen outside a live run; FLIGHT is
-// the upbeat instrumental under the illustrated game modes; VOYAGE now
-// scores exactly one place — the Hyper Run time trial; COSMOS remains
-// the retro timeline's chiptune (the whole arcade run and the shifted
-// stretches of Free Flight), untouched. All stay OUTSIDE the WebAudio
-// element-decode path on purpose: <audio> elements stream and loop
-// seamlessly, and each is crossfaded at its boundary.
-type MusicTrack = "menu" | "flight" | "voyage" | "cosmos";
-const MUSIC_FILES: Record<MusicTrack, string> = {
-  menu: "music/menu.mp3",
-  flight: "music/flight.mp3",
-  voyage: "music/voyage.mp3",
-  cosmos: "music/cosmos.m4a",
-};
-// Halved on owner feedback: the score is a floor under the SFX, not a
-// ceiling over them.
-const MUSIC_VOLS: Record<MusicTrack, number> = { menu: 0.21, flight: 0.21, voyage: 0.21, cosmos: 0.25 };
-const musicEls: Record<MusicTrack, HTMLAudioElement | null> = { menu: null, flight: null, voyage: null, cosmos: null };
-// Each element is routed THROUGH the shared WebAudio graph instead of
-// playing on its own: a bare <audio> element ignores the phone's silent
-// switch (iOS treats it as media, not game audio) while WebAudio output
-// respects it — flipping the switch must hush the score along with the
-// SFX. Fades drive these gain nodes; the elements stay at volume 1.
-const musicGains: Record<MusicTrack, GainNode | null> = { menu: null, flight: null, voyage: null, cosmos: null };
-const musicFades: Record<MusicTrack, number> = { menu: 0, flight: 0, voyage: 0, cosmos: 0 }; // rAF ids
+// ————— Music: a synthesized placeholder score, one song at a time —————
+// The Acornaut recordings that came across with the extraction are retired
+// (owner direction, 17 Nov 2026). chiptune.ts holds four short 8-bit loops —
+// MENU for every screen outside a run, DEPOT for docking and the shop, FLIGHT
+// for normal waves and WARDEN for the fifth-wave climax — synthesized on the
+// shared WebAudio graph, so the phone's silent switch hushes them with the
+// effects and no audio file is downloaded. They are placeholders until a real
+// score exists; swap the song table, not this plumbing.
+export type MusicTrack = SongId;
+// The bus level matches the retired recordings' in-game loudness (about
+// -32 dB RMS): the score is a floor under the SFX, not a ceiling over them.
+const MUSIC_LEVEL = 0.11;
+// Pausing keeps the tune but drops it well under anything else.
+const MUSIC_DUCKED = 0.32;
+let musicBus: GainNode | null = null;
+let player: ChipPlayer | null = null;
 let musicWanted: MusicTrack | null = null;
 let musicMuted = false;
+let musicDucked = false;
 let musicUnlockArmed = false;
 let lifecycleArmed = false;
-let sleptTrack: MusicTrack | null = null;
+let gestured = false;
+let asleep = false;
 
-function musicUrl(track: MusicTrack) {
-  const raw = (typeof window !== "undefined" && window.__ACORNAUT_ART__) || "/art";
-  return `${raw.replace(/\/$/, "")}/${MUSIC_FILES[track]}`;
+function audioSupported() {
+  return typeof window !== "undefined"
+    && !!(window.AudioContext || (window as unknown as { webkitAudioContext?: unknown }).webkitAudioContext);
 }
 
-function ensureMusic(track: MusicTrack) {
-  if (musicEls[track] || typeof Audio === "undefined") return musicEls[track];
-  const el = new Audio(musicUrl(track));
-  el.loop = true;
-  el.preload = "none";
-  // attach it (off-layout) so mobile browsers treat it as a real media
-  // element and keep the loop alive when the tab is backgrounded
-  el.setAttribute("aria-hidden", "true");
-  el.style.display = "none";
-  if (typeof document !== "undefined" && document.body) document.body.appendChild(el);
+// Never build the context before the player has touched the page: browsers
+// refuse to start it then (and say so in the console). The first gesture —
+// caught by armMusicUnlock — starts the score instead.
+function mayStartAudio() {
+  if (ctx) return true;
+  const activation = typeof navigator !== "undefined"
+    ? (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation : undefined;
+  return gestured || !!activation?.hasBeenActive;
+}
+
+function bus(c: AudioContext) {
+  if (!musicBus) {
+    musicBus = c.createGain();
+    musicBus.gain.value = MUSIC_LEVEL * (musicDucked ? MUSIC_DUCKED : 1);
+    musicBus.connect(master ?? c.destination);
+  }
+  return musicBus;
+}
+
+function startWanted(fadeSec = 0.35) {
+  if (!musicWanted || musicMuted || asleep || !audioSupported() || !mayStartAudio()) return;
+  if (player?.id === musicWanted) { player.resume(); return; }
   try {
     const c = ac();
-    const src = c.createMediaElementSource(el);
-    const g = c.createGain();
-    g.gain.value = 0;
-    src.connect(g);
-    g.connect(master ?? c.destination);
-    musicGains[track] = g;
-    el.volume = 1; // the gain node owns loudness from here
+    player?.stop(0.45);
+    player = new ChipPlayer(c, bus(c), musicWanted);
+    player.start(fadeSec);
   } catch {
-    // no WebAudio: fall back to the element's own volume for fades
-    musicGains[track] = null;
-    el.volume = 0;
+    player = null; // no audio device: the game is still playable
   }
-  musicEls[track] = el;
-  return el;
 }
 
-function fadeMusic(track: MusicTrack, to: number, ms: number) {
-  const el = musicEls[track];
-  if (!el) return;
-  const g = musicGains[track];
-  if (musicFades[track]) cancelAnimationFrame(musicFades[track]);
-  const from = g ? g.gain.value : el.volume;
-  const start = performance.now();
-  const step = (now: number) => {
-    const k = Math.min(1, (now - start) / ms);
-    const v = from + (to - from) * k;
-    if (g) g.gain.value = v;
-    else el.volume = v;
-    if (k < 1) {
-      musicFades[track] = requestAnimationFrame(step);
-    } else {
-      musicFades[track] = 0;
-      if (to === 0) el.pause();
-    }
-  };
-  musicFades[track] = requestAnimationFrame(step);
+function stopPlayer(fadeSec: number) {
+  player?.stop(fadeSec);
+  player = null;
 }
 
-function playWanted(fadeMs: number) {
-  if (!musicWanted || musicMuted) return;
-  const el = ensureMusic(musicWanted);
-  if (!el) return;
-  void el.play().catch(() => {
-    /* autoplay may be blocked until the first gesture; armMusicUnlock
-       retries on the first pointer/key, so the score still starts */
-  });
-  fadeMusic(musicWanted, MUSIC_VOLS[musicWanted], fadeMs);
-}
-
-// The menu score now WANTS to play from the first frame, before any
-// gesture — where the retro loop always started post-tap. One document
-// listener retries the wanted track the moment the user first interacts.
+// One document listener starts the wanted song on the first interaction.
+// Mobile browsers count only some events as a gesture that may start audio
+// (touch END, not touch start, in Chrome), so several are watched and the
+// listener stays armed: it also nudges a context the OS interrupted.
 function armMusicUnlock() {
   if (musicUnlockArmed || typeof document === "undefined") return;
   musicUnlockArmed = true;
   const kick = () => {
-    // RESUME THE CONTEXT, NOT JUST THE ELEMENT (audit, 8 Sep 2026). The menu
-    // score wants to play from the first frame, so ac() built a context
-    // before any gesture existed and the browser left it suspended. This
-    // retry only re-played the audio element, so the score stayed silent
-    // until something else happened to call ac() - the first run. ac()
-    // resumes a suspended context and is safe to call again.
-    try { ac(); } catch { /* no audio device: the game is still playable */ }
-    const el = musicWanted ? musicEls[musicWanted] : null;
-    if (el && el.paused && !musicMuted) playWanted(600);
+    gestured = true;
+    try { if (audioSupported()) ac(); } catch { /* no audio device: the game is still playable */ }
+    if (!player) startWanted(0.6);
   };
-  document.addEventListener("pointerdown", kick, { capture: true, passive: true });
-  document.addEventListener("keydown", kick, { capture: true, passive: true });
+  for (const type of ["pointerdown", "pointerup", "touchend", "keydown", "click"])
+    document.addEventListener(type, kick, { capture: true, passive: true });
 }
 
 // THE APP GOES AWAY, AND SO SHOULD THE SOUND (App Store prep audit, section
-// 2). Nothing suspended the AudioContext or paused the score when the app
-// left the foreground: engine.ts auto-pauses only Race and the Debris Field
-// on blur, so a phone locked mid-flight kept a running context and a playing
-// element behind the lock screen. That is battery a reviewer notices, and on
-// iOS a context left running across an interruption comes back wrong.
-//
-// Suspend only what we own, and put back only what the pilot still wants: if
-// the track changed while we were away, or they muted, `wake` leaves it to
-// the engine's next `music.set`. A context that was never built is left
-// alone, so the first gesture still does the unlocking.
+// 2). Hiding the page stops the sequencer and suspends the context so a phone
+// locked mid-flight does not keep scheduling notes behind the lock screen; a
+// context left running across an interruption also comes back wrong on iOS.
+// Coming back resumes the same song where it stopped if it is still wanted.
 function armLifecycle() {
   if (lifecycleArmed || typeof document === "undefined") return;
   lifecycleArmed = true;
   const sleep = () => {
-    sleptTrack = musicWanted;
-    for (const el of Object.values(musicEls)) if (el && !el.paused) el.pause();
+    asleep = true;
+    player?.pause();
     if (ctx && ctx.state === "running") void ctx.suspend();
   };
   const wake = () => {
+    asleep = false;
     if (!ctx) return;
     // "interrupted" (WebKit, after a call or Siri) needs the same nudge as "suspended"
-  if (ctx.state !== "running") ctx.resume().catch(() => { /* a closed context stays closed */ });
-    if (sleptTrack && sleptTrack === musicWanted && !musicMuted) playWanted(300);
-    sleptTrack = null;
+    if (ctx.state !== "running") ctx.resume().catch(() => { /* a closed context stays closed */ });
+    startWanted(0.3);
   };
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") sleep(); else wake();
@@ -238,22 +197,26 @@ export const music = {
   // silence). It debounces itself, so the engine can call it unconditionally.
   set(track: MusicTrack | null) {
     if (track === musicWanted) return;
-    const prev = musicWanted;
     musicWanted = track;
-    if (prev) fadeMusic(prev, 0, 450);
-    if (track) {
-      armMusicUnlock();
-      armLifecycle();
-      playWanted(600);
-    }
+    if (!track) { stopPlayer(0.45); return; }
+    armMusicUnlock();
+    armLifecycle();
+    startWanted();
   },
   setMuted(m: boolean) {
+    if (m === musicMuted) return;
     musicMuted = m;
-    if (m) {
-      for (const t of Object.keys(MUSIC_FILES) as MusicTrack[]) fadeMusic(t, 0, 200);
-    } else playWanted(400);
+    if (m) stopPlayer(0.2);
+    else startWanted(0.4);
+  },
+  /** Drop the score under the pause menu without losing its place. */
+  duck(on: boolean) {
+    if (on === musicDucked) return;
+    musicDucked = on;
+    if (musicBus && ctx) musicBus.gain.setTargetAtTime(MUSIC_LEVEL * (on ? MUSIC_DUCKED : 1), ctx.currentTime, 0.08);
   },
   muted: () => musicMuted,
+  playing: () => player?.id ?? null,
 };
 
 function out(c: AudioContext, node: AudioNode, dry: number, wet: number) {

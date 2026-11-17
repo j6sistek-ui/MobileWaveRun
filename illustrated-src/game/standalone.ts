@@ -262,7 +262,7 @@ export async function bootStandalone(root: HTMLElement) {
     const box = sheet("Settings", "Controls, flight help, sound and presentation.", "settings");
     const settings = el("section", "ac-spillsettings mwr-settings-panel");
     settings.append(el("h3", "", "Sound & presentation"));
-    settings.append(toggle("music", "Music", "The score under menus and flight", !engine.save.musicOff,
+    settings.append(toggle("music", "Music", "The score under menus, the Depot and flight", !engine.save.musicOff,
       () => engine.setMusicOff(!engine.save.musicOff)),
       toggle("sound", "Sound effects", "Thrusters, pickups and hits", !engine.save.sfxOff,
         () => engine.setSfxOff(!engine.save.sfxOff)),

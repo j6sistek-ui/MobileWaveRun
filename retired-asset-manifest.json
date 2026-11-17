@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "authority": "asset-manifest.json",
+  "note": "Upstream extraction files removed from the shipped game by owner direction. asset-manifest.json stays byte-identical as the historical extraction record; each entry here must match its pinned hash there and must be absent from public/.",
+  "files": [
+    {
+      "path": "public/art/music/flight.mp3",
+      "sha256": "9fb77a01cb8ac1cb71dc53f693615034e9b0d6fa1d542eec82a7125070b50cde",
+      "bytes": 405045,
+      "retired": "2026-11-17",
+      "reason": "Acornaut soundtrack ported with the extraction; The Spill uses the synthesized placeholder score in illustrated-src/game/chiptune.ts until a new soundtrack exists."
+    },
+    {
+      "path": "public/art/music/menu.mp3",
+      "sha256": "f03f640cf78a059941a7f45e8ceeda8d97429877dd457dd897cec38d9f412dc8",
+      "bytes": 347367,
+      "retired": "2026-11-17",
+      "reason": "Acornaut soundtrack ported with the extraction; The Spill uses the synthesized placeholder score in illustrated-src/game/chiptune.ts until a new soundtrack exists."
+    }
+  ]
+}

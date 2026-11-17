@@ -20,6 +20,8 @@ The Depot shell keeps the frame/title, top bar, middle `.ac-depotcard` scroller 
 
 The owner's latest menu direction combines Settings and Controls and hides Flight Trials for now. Preserve the trial implementation and isolated regression coverage for later, but do not expose a production shortcut or restore its menu entry without owner direction. Keep the combined screen's control guide, field guide and existing settings reachable on phones.
 
+On 2026-11-17 the owner directed removal of the Acornaut soundtrack. The Spill plays a synthesized 8-bit placeholder score from `illustrated-src/game/chiptune.ts` (menu, Depot, flight and Warden loops); it is not the shipping soundtrack. Retired upstream files are recorded in `retired-asset-manifest.json` and must stay absent; `asset-manifest.json` remains unchanged. Any recorded soundtrack needs its own provenance record. See `docs/AUDIO.md`.
+
 Edit TypeScript under `illustrated-src/game/`. `docs/UPSTREAM_SPILL.md` preserves the extraction baseline; subsequent authorized gameplay changes are documented separately. Preserve unchanged upstream artwork and provenance. Shared rendering/simulation support may remain; only Spill may be launched. Keep saves isolated from Acornaut.
 
 Default verification uses the repository Dockerfile: `docker build -t mobile-wave-run .` then `docker run --rm mobile-wave-run`. Never install host system packages. If Docker is unavailable, record the limitation and use existing Node with workspace-local `npm ci`; run build, typecheck and tests. No lint script: use typecheck and `git diff --check`.

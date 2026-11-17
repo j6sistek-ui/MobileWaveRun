@@ -8,7 +8,7 @@ import { routeMasks, rewardId } from "./campaign-progress";
 import { reachedGate } from "./campaign";
 import { emptyArt, loadArt, loadPalBank, loadSuitBank, loadSpillScene, loadZoneArt, prefetchArtBanks, type ArtBank } from "./art";
 import { vanguardDepotEligible } from "./spill-depot-gag";
-import { sfx, unlockAudio, music, setSfxMuted } from "./audio";
+import { sfx, unlockAudio, music, setSfxMuted, type MusicTrack } from "./audio";
 import { wearsOwnHead, GUIDE_HELM, GUIDE_SUIT, TUTORIAL_SUIT, HELMETS, IAP_ITEMS, HYPER_RUN_ENABLED, IS_BETA, isIap, MOD_BATTERY_COST, MOD_SHIELD_COST, MODS, SUITS, TRAILS, TUT_ARM, BUNDLES, bundleIds, bundlePrice, idDust, idGrants, featurePrice, DUST_PACKS, DAILY_DUST, DAILY_STREAK_BONUS, DAILY_STREAK_LEN} from "./catalog";
 import { drawHud, drawWorld, setSpillBackplateHost } from "./draw";
 import { setVanguardPitchTrim } from "./vanguard";
@@ -275,6 +275,14 @@ export type Engine = {
   subscribeFrame: (fn: () => void) => () => void;
   snap: () => Snapshot;
 };
+
+/** Which placeholder song the current moment wants (see chiptune.ts). */
+export function spillMusicTrack(world: Pick<World, "screen" | "spill">): MusicTrack {
+  const s = world.spill;
+  if ((world.screen !== "play" && world.screen !== "pause") || !s || s.phase === "over") return "menu";
+  if (s.phase === "ready" || s.phase === "docking" || s.phase === "depot") return "depot";
+  return s.combat.enemies.some(e => e.elite && !e.dead) ? "warden" : "flight";
+}
 
 export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
   // THE SPILL'S BACKPLATE (owner, 5 Sep 2026: "choppy laggy sometimes").
@@ -2034,17 +2042,13 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<Engine> {
       raceAccumulator -= 1 / 60;
       if (world.screen === "lvldone") break;
     }
-    // Four scores, one at a time: the chiptune rides the retro renderer
-    // (arcade + shifted stretches, exactly as always); the Hyper Run time
-    // trial keeps the voyage loop; every other live run gets the upbeat
-    // flight instrumental; and everything outside a run — menus, results,
-    // the hangar — settles onto the slow menu score.
-    const inRun = world.screen === "play" || world.screen === "pause";
-    music.set(
-      world.retro && inRun ? "cosmos"
-        : world.race && inRun ? "voyage"
-          : inRun ? "flight"
-            : "menu");
+    // The placeholder score follows the run: the slow menu loop outside a
+    // run and after a loss, the Depot loop from launch prep through docking
+    // and the shop, the Warden loop while a fifth-wave elite is on the field,
+    // and the driving flight loop for every other moment of a wave. Pausing
+    // keeps the current song, ducked under the menu.
+    music.set(spillMusicTrack(world));
+    music.duck(world.screen === "pause");
     // Keep authority/input at 60 Hz without painting duplicate frames on 120 Hz phones.
     if (world.spill && now + 0.5 < nextSpillPaint) {
       if (running) raf = requestAnimationFrame(loop);

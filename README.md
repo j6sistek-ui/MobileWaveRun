@@ -33,6 +33,8 @@ Start a new run, choose a weapon and a free starter system in the first Depot, a
 
 Gameplay gestures stay inside the playfield instead of zooming or scrolling the browser; menu scrolling remains available. Forward aim assistance helps line up nearby targets, but you choose when to fire. Wave 1 introduces shooting debris; enemy encounters begin at Wave 2. Enemy shots are warned before firing and debris can provide cover. See [controls and tuning](docs/CONTROLS.md).
 
+**Music:** the Acornaut soundtrack has been removed. A synthesized 8-bit placeholder score plays instead, with separate menu, Depot, flight and Warden loops. It is not the shipping soundtrack. See [audio and placeholder score](docs/AUDIO.md).
+
 The main menu has one **Settings & Controls** entry. Its **Settings** panel keeps the existing switches and an expandable **Controls & Field Guide** with flight instructions, hazard explanations and the Depot guide.
 
 **Landscape:** turn the phone sideways; the field and menus fit the available viewport in either orientation. The phone's rotation lock must be off. Rotating during flight pauses the same run and releases held controls; tap **Resume**, then touch again. Side notches stay outside the playfield and dialogs, and the layout follows browser-bar height changes.
